@@ -2,6 +2,7 @@
 
 !.gitignore
 !ags
+!ags2
 !hypr
 !scripts/*
 !nvim
