@@ -1,0 +1,77 @@
+#!/bin/bash
+
+# Set default values
+clipboard=false
+bgcolor="000000"
+dir="$HOME/screenshots/"
+bordercolor="ffffff22"
+
+# Optimized regex to extract value within parentheses
+extract_rgba_value() {
+  sed 's/.*(\(.*\))/\1/'
+}
+
+# Parse arguments with improved error handling and exec  $hyprwr -m -smessage
+while getopts "b:B:scefh" opt; do
+  case $opt in
+  b)
+    bgcolor=$(extract_rgba_value <<<"$OPTARG")
+    ;;
+  B)
+    bordercolor=$(extract_rgba_value <<<"$OPTARG")
+    ;;
+  s)
+    selection=true
+    ;;
+  c)
+    clipboard=true
+    ;;
+  h)
+    echo "Usage: $0 [-s] [-c | -e | -f filename] [-b bgcolor] [-B bordercolor]"
+    echo "  -s: Enable selection mode"
+    echo "  -c: Copy screenshot to clipboard"
+    echo "  -b bgcolor: Background color in hex format (default: 000000)"
+    echo "  -B bordercolor: Border color in hex format (default: ffffff22)"
+    exit 0
+    ;;
+  \?)
+    echo "Invalid option: -$OPTARG" >&2
+    exit 1
+    ;;
+  :)
+    echo "Option -$OPTARG requires an argument." >&2
+    exit 1
+    ;;
+  esac
+done
+
+handle_notification_action() {
+  local action=$(echo "$1" | cut -d "|" -f 2)
+  case "$action" in
+  "open") eog "$file" & ;;
+  "edit") satty --filename "$file" & ;;
+  esac
+}
+
+screenshot() {
+  if $selection; then
+    grim -g "$(slurp -w 1 -b "#${bgcolor}6c" -c "#$bordercolor")" -t png -
+  else
+    grim -t png - && notify-send "Screenshot taken!"
+  fi
+}
+
+file="${dir}sc-$(date +"%F_%H%M%S").png"
+echo $file
+
+if $clipboard; then
+  tmp=$(mktemp)
+  screenshot | wl-copy && wl-paste>$tmp && notify-send -i $tmp "Screenshot taken!" -t 2000 && rm tmp
+else
+  screenshot >$file && 
+    handle_notification_action $(
+      notify-send "Screenshot taken" -i $file\
+        -A "open=Open"\
+        -A "edit=Edit"
+    )
+fi

@@ -1,0 +1,9 @@
+*
+
+!.gitignore
+!ags/
+!hypr/
+!scripts/*
+!nvim
+
+!*/
