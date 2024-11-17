@@ -1,8 +1,8 @@
 *
 
 !.gitignore
-!ags/
-!hypr/
+!ags
+!hypr
 !scripts/*
 !nvim
 
