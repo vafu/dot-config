@@ -1,3 +1,6 @@
 [submodule "nvim"]
 	path = nvim
 	url = git@github.com:vafu/nvim-config.git
+[submodule "ags"]
+	path = ags
+	url = git@github.com:vafu/astal-dots.git
