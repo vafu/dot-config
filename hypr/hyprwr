@@ -1,0 +1,42 @@
+#!/bin/bash
+
+TARGET_WR=-1
+TARGET_WS=-1
+ACTION=workspace
+
+while [[ $# -gt 0 ]]; do
+	case $1 in
+	-r)
+		TARGET_WR="$2"
+		shift
+		shift
+		;;
+	-s)
+		TARGET_WS="$2"
+		shift
+		shift
+		;;
+	-m)
+		ACTION=movetoworkspace
+		shift
+		;;
+	esac
+done
+
+ACTIVE=$(hyprctl activeworkspace -j | jq '.id')
+CURRENT_WR=$(($ACTIVE / 10))
+CURRENT_WS=$(($ACTIVE % 10))
+
+if [ $TARGET_WR == -1 ]; then
+	TARGET_WR=$CURRENT_WR
+fi
+
+if [ $TARGET_WS == -1 ]; then
+	TARGET_WS=$CURRENT_WS
+fi
+
+DISPATCH=$(($TARGET_WR * 10 + $TARGET_WS))
+
+echo $DISPATCH $ACTION
+
+hyprctl dispatch $ACTION $DISPATCH
