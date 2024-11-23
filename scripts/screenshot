@@ -30,7 +30,7 @@ while getopts "b:B:scefh" opt; do
     echo "Usage: $0 [-s] [-c | -e | -f filename] [-b bgcolor] [-B bordercolor]"
     echo "  -s: Enable selection mode"
     echo "  -c: Copy screenshot to clipboard"
-    echo "  -b bgcolor: Background color in hex format (default: 000000)"
+    echo "  -b bgcolor: Background color in rgb format (default: 000000)"
     echo "  -B bordercolor: Border color in hex format (default: ffffff22)"
     exit 0
     ;;
@@ -57,7 +57,7 @@ screenshot() {
   if $selection; then
     grim -g "$(slurp -w 1 -b "#${bgcolor}6c" -c "#$bordercolor")" -t png -
   else
-    grim -t png - && notify-send "Screenshot taken!"
+    grim -t png -
   fi
 }
 
@@ -66,7 +66,8 @@ echo $file
 
 if $clipboard; then
   tmp=$(mktemp)
-  screenshot | wl-copy && wl-paste>$tmp && notify-send -i $tmp "Screenshot taken!" -t 2000 && rm tmp
+  set -o pipefail
+  (screenshot | wl-copy && wl-paste>$tmp) && notify-send -i $tmp "Screenshot taken!" -t 2000; rm tmp
 else
   screenshot >$file && 
     handle_notification_action $(
