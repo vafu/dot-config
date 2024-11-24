@@ -1,5 +1,6 @@
 import { bind } from "../../../../../../usr/share/astal/gjs"
 import { Services } from "../index"
+import { WindowService } from "./window"
 import { WorkspaceService } from "./workspace"
 import AstalHyprland from "gi://AstalHyprland?version=0.1"
 
@@ -8,7 +9,30 @@ const hypr = AstalHyprland.get_default()
 export function bindHypr<S extends keyof Services>(type: S, service: Services[S]) {
     switch (type) {
         case "workspace": return bindWorkspace(service as WorkspaceService)
+        case "window": return bindWindow(service as WindowService)
     }
+}
+
+function bindWindow(windowService: WindowService) {
+    const bindWindow = (w: AstalHyprland.Client) => {
+        windowService.activeWindow.cls = w.class
+        windowService.activeWindow.title = w.title
+        // need to cancel binding...
+        bind(w, "class").subscribe(cls => windowService.activeWindow.cls = cls)
+        bind(w, "title").subscribe(title => windowService.activeWindow.title = title)
+    }
+    const focused = hypr.get_focused_client()
+    if (focused != null) bindWindow(focused)
+
+    bind(hypr, "focusedClient").subscribe(w => {
+        console.log(w)
+        if (w != null) {
+            bindWindow(w)
+        } else {
+            windowService.activeWindow.cls = ""
+            windowService.activeWindow.title = ""
+        }
+    })
 }
 
 function bindWorkspace(workspaceService: WorkspaceService) {
