@@ -34,7 +34,7 @@ $outline-offset: $label-margin * 0.5;
         font-size: 10pt;
         font-weight: bold;
         &.cls {
-            color: #665c54;
+            color: #{$app_title};
             margin-right: 4px;
         }
     }
