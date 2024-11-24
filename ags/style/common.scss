@@ -1,0 +1,10 @@
+@import "elevation.scss";
+
+@mixin animate {
+    transition: 300ms;
+} 
+
+window {
+    background: #{$bar_bg};
+    @include elevation-1;
+}

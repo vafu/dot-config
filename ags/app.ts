@@ -1,7 +1,7 @@
 import { App } from "astal/gtk4"
-import style from "./style.scss"
 import Adw from "gi://Adw?version=1"
 import Bar from "./widgets/windows/Bar"
+import style from "./style/style"
 
 App.start({
     css: style,

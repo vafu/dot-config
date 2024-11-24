@@ -1,0 +1,9 @@
+/* bar */
+@define-color bar_bg @theme_bg_color;
+@define-color ws_active @accent_color;
+@define-color ws_occupied alpha(@theme_fg_color, 0.8);
+@define-color ws_empty alpha(@theme_fg_color, 0.1);
+@define-color ws_urgent @red_2;
+
+/* global */
+@define-color shadow @shade_color;

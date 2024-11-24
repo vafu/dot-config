@@ -1,0 +1,73 @@
+@import './common.scss';
+
+$label-size: 10px;
+$label-margin: 4px;
+$outline-width: $label-margin * 0.5;
+$outline-offset: $label-margin * 0.5;
+
+.bar {
+    min-height: 32px;
+
+    .bar-widget {
+        margin: 4px;
+        padding: 4px;
+    }
+}
+
+@keyframes urgent {
+    from {
+        background-color: #{$ws_occupied};
+        outline: $outline-width * 0.5 solid #{$ws_occupied};
+        outline-offset: 0;
+    }
+
+    to {
+        background-color: #{$ws_urgent};
+        outline: $outline-width * 0.5 solid #{$ws_urgent};
+        outline-offset: $outline-offset * 0.5;
+    }
+}
+
+
+.window-title {
+    label {
+        font-size: 10pt;
+        font-weight: bold;
+        &.cls {
+            color: #665c54;
+            margin-right: 4px;
+        }
+    }
+}
+
+.workspaces {
+    label {
+        @include animate;
+
+        font-size: 0;
+        min-width: $label-size;
+        min-height: $label-size;
+        border-radius: $label-size;
+        margin: 0 $label-margin;
+        background: #{$ws_empty};
+
+        &.occupied {
+            background-color: #{$ws_occupied};
+        }
+
+        &.active {
+            background-color: #{$ws_active};
+            outline: $outline-width solid #{$ws_active};
+            outline-offset: $outline-offset;
+        }
+
+        &.urgent {
+            outline: 1px solid #{$ws_urgent};
+            background-color: #{$ws_urgent};
+            animation-duration: 200ms;
+            animation-name: urgent;
+            animation-iteration-count: infinite;
+            animation-direction: alternate;
+        }
+    }
+}

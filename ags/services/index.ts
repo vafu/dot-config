@@ -1,5 +1,5 @@
 import { bindHypr } from "./wm/hypr"
-import { WorkspaceService } from "./workspace"
+import { WorkspaceService } from "./wm/workspace"
 
 export interface Services {
     workspace: WorkspaceService
@@ -10,7 +10,7 @@ const bound = new Set<keyof Services>()
 export default function obtainService<S extends keyof Services>(type: S): Services[S] {
     let service: Services[S] | null = null
     switch (type) {
-        case "workspace": service = new WorkspaceService() as Services[S]
+        case "workspace": service = new WorkspaceService() as Services[S]; break
     }
     if (!service)
         throw Error("unregistered service")

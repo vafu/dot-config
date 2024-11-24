@@ -1,16 +1,15 @@
 import { bind } from "../../../../../../usr/share/astal/gjs"
-import { Services } from "../services"
-import { WorkspaceService } from "../workspace"
+import { Services } from "../index"
+import { WorkspaceService } from "./workspace"
 import AstalHyprland from "gi://AstalHyprland?version=0.1"
 
 const hypr = AstalHyprland.get_default()
 
 export function bindHypr<S extends keyof Services>(type: S, service: Services[S]) {
     switch (type) {
-        case "workspace": return bindWorkspace(service as Services[S])
+        case "workspace": return bindWorkspace(service as WorkspaceService)
     }
 }
-
 
 function bindWorkspace(workspaceService: WorkspaceService) {
     const getWs = (int: number) => {
