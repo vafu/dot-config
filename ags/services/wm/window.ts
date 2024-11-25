@@ -1,16 +1,10 @@
-import { GObject, property, register } from "astal";
+import { Observable } from "rx";
 
-export class WindowService {
-
-    activeWindow = new ActiveWindow()
+export interface WindowService {
+    active: ActiveWindow
 }
 
-@register()
-export class ActiveWindow extends GObject.Object {
-
-    @property(String)
-    declare cls : string
-
-    @property(String)
-    declare title : string
+export interface ActiveWindow {
+    cls: Observable<string>
+    title: Observable<string>
 }

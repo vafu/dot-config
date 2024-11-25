@@ -1,26 +1,32 @@
-import { bind } from "astal"
 import { range } from "../commons"
 import Service from "../services"
 import { Box, Label } from "./types"
 import Gtk from "gi://Gtk?version=4.0"
+import { binding } from "rxbinding"
+import { Observable } from "rx"
 
-const workspaces = Service("workspace")
+const workspaceService = Service("workspace")
+
+const workspaces = workspaceService.activeWorkroom
+    .doOnNext(w => console.log(w))
+    .map(wr =>
+        range(7)
+            .map(idx => wr.getWs(idx))
+            .map(ws => <Label
+                valign={Gtk.Align.CENTER}
+                halign={Gtk.Align.CENTER}
+                label={`${ws}`}
+                css_classes={binding(Observable.combineLatest(
+                    ws.active.map(a => a ? "active" : ""),
+                    ws.urgent.map(a => a ? "urgent" : ""),
+                    ws.occupied.map(a => a ? "occupied" : ""),
+                ))}
+            />)
+    )
 
 export const Workspaces = () =>
     <Box className="workspaces bar-widget" >
-        {workspaces.active_workroom().as(wr =>
-            range(workspaces.getWorkroom(wr).length).map(ws => {
-                const workspace = workspaces.getWorkroom(wr).getWorkspace(ws)
-                return <Label
-                    valign={Gtk.Align.CENTER}
-                    halign={Gtk.Align.CENTER}
-                    label={`${ws}`}
-                    css_classes={bind(workspace, "changed").as(ws => [
-                        ws.active ? "active" : "",
-                        ws.urgent ? "urgent" : "",
-                        ws.occupied ? "occupied" : ""
-                    ].filter(s => s.length > 0))}
-                />
-            })
-        )}
+        {binding(workspaces)}
     </Box>
+
+// http://google.com

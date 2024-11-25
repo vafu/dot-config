@@ -1,15 +1,11 @@
 {
-    "$schema": "https://json.schemastore.org/tsconfig",
     "compilerOptions": {
+        "baseUrl": ".",
         "experimentalDecorators": true,
-        "strict": true,
-        "target": "ES2022",
-        "module": "ES2022",
-        "moduleResolution": "Bundler",
-        // "checkJs": true,
-        // "allowJs": true,
         "jsx": "react-jsx",
         "jsxImportSource": "/usr/share/astal/gjs/gtk4",
+        "module": "ES2022",
+        "moduleResolution": "Bundler",
         "paths": {
             "astal": [
                 "/usr/share/astal/gjs"
@@ -18,5 +14,9 @@
                 "/usr/share/astal/gjs/*"
             ]
         },
+        "target": "ES2022",
+        "typeRoots": [
+            "./node_modules/@types"
+        ]
     }
 }

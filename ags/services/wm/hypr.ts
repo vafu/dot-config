@@ -1,70 +1,114 @@
-import { bind } from "../../../../../../usr/share/astal/gjs"
-import { Services } from "../index"
-import { WindowService } from "./window"
-import { WorkspaceService } from "./workspace"
+import { WorkspaceService, WR, WS } from "./workspace"
 import AstalHyprland from "gi://AstalHyprland?version=0.1"
+import { ActiveWindow, WindowService } from "./window"
+import { CompositeDisposable, Disposable, Observable, Subject } from "rx"
+import { obs } from "rxbinding"
 
 const hypr = AstalHyprland.get_default()
 
-export function bindHypr<S extends keyof Services>(type: S, service: Services[S]) {
-    switch (type) {
-        case "workspace": return bindWorkspace(service as WorkspaceService)
-        case "window": return bindWindow(service as WindowService)
-    }
+const focusedClient = obs(hypr, "focusedClient").replay().refCount()
+const activeWindow: ActiveWindow = {
+    cls: focusedClient.flatMapLatest(c => c == null ? Observable.just("") : obs(c, "class")),
+    title: focusedClient.flatMapLatest(c => c == null ? Observable.just("") : obs(c, "title")),
 }
 
-function bindWindow(windowService: WindowService) {
-    const bindWindow = (w: AstalHyprland.Client) => {
-        windowService.activeWindow.cls = w.class
-        windowService.activeWindow.title = w.title
-        // need to cancel binding...
-        bind(w, "class").subscribe(cls => windowService.activeWindow.cls = cls)
-        bind(w, "title").subscribe(title => windowService.activeWindow.title = title)
-    }
-    const focused = hypr.get_focused_client()
-    if (focused != null) bindWindow(focused)
-
-    bind(hypr, "focusedClient").subscribe(w => {
-        console.log(w)
-        if (w != null) {
-            bindWindow(w)
-        } else {
-            windowService.activeWindow.cls = ""
-            windowService.activeWindow.title = ""
-        }
-    })
+export const windowService: WindowService = {
+    active: activeWindow
 }
 
-function bindWorkspace(workspaceService: WorkspaceService) {
-    const getWs = (int: number) => {
-        const wr = Math.floor(int / 10)
-        const ws = int % 10
-        return workspaceService.getWorkroom(wr).getWorkspace(ws)
-    }
+const focusedWorkspace = obs(hypr, "focusedWorkspace").replay().refCount()
 
-    let last = getWs(hypr.focusedWorkspace.id)
-    last.active = true
+const workspaces = obs(hypr, "workspaces").replay().refCount()
 
-    bind(hypr, "focusedWorkspace").subscribe((w) => {
-        last.active = false
-        last = getWs(w.id)
-        last.active = true
-        last.urgent = false
+const workspaceAdded = Observable.create<number>(o => {
+    const id = hypr.connect("workspace-added", (_, w) => {
+        o.onNext(w.id)
     })
+    return Disposable.create(() => hypr.disconnect(id))
+})
 
-    hypr.get_workspaces()
-        .forEach(w => getWs(w.get_id()).occupied = w.get_clients().length > 0)
-
-    hypr.connect("workspace-added", (_, w) => {
-        getWs(w.get_id()).occupied = true
+const workspaceRemoved = Observable.create<number>(o => {
+    const id = hypr.connect("workspace-removed", (_, w) => {
+        o.onNext(w)
     })
-    hypr.connect("workspace-removed", (_, w) => {
-        getWs(w).occupied = false
-    })
+    return Disposable.create(() => hypr.disconnect(id))
+})
 
-    hypr.connect("urgent", (s, id) => {
+const urgentWs = Observable.create<number>(o => {
+    const id = hypr.connect("urgent", (s, id) => {
         const wsid = s.get_workspaces().find(w => w.get_last_client() === id)?.id
-        if (wsid)
-            getWs(wsid).urgent = true
+        o.onNext(wsid)
     })
+    return Disposable.create(() => hypr.disconnect(id))
+})
+
+class HyprWorkspaceService implements WorkspaceService {
+
+    private _workrooms: Map<number, HyprWR> = new Map()
+
+    getWs = (int: number) => {
+        const ws = int % 10
+        return this.getWr(int).getWs(ws)
+    }
+
+    getWr = (int: number) => {
+        const wr = Math.floor(int / 10)
+        return this.getWorkroom(wr)
+    }
+
+    activeWorkroom: Observable<WR> = focusedWorkspace
+        .map(w => this.getWr(w.id))
+        .distinctUntilChanged()
+
+    getWorkroom(idx: number) {
+        if (!this._workrooms.get(idx)) {
+            const wr = new HyprWR(idx)
+            this._workrooms.set(idx, wr)
+        }
+        return this._workrooms.get(idx)!
+    }
 }
+
+class HyprWR implements WR {
+
+    private _workspaces: Map<number, WS> = new Map()
+    private wr: number
+    constructor(wr: number) {
+        this.wr = wr
+    }
+
+    getWs(idx: number): WS {
+        if (!this._workspaces.get(idx)) {
+            const ws = new HyprWS(this.wr * 10 + idx)
+            this._workspaces.set(idx, ws)
+        }
+        return this._workspaces.get(idx)!
+    }
+}
+
+class HyprWS implements WS {
+    active: Observable<boolean>
+    occupied: Observable<boolean>
+    urgent: Observable<boolean> = Observable.just(false)
+
+    constructor(id: number) {
+        this.active = focusedWorkspace.map(w => w.id == id).replay().refCount()
+
+        this.occupied = Observable.merge(
+            workspaces.take(1).map(a => a.some(a => a.id == id)),
+            workspaceAdded
+                .filter(i => i == id)
+                .map(() => true),
+            workspaceRemoved
+                .filter(i => i == id)
+                .map(() => false),
+        ).replay().refCount()
+
+        // this.urgent = urgentWs
+        //     .filter(i => i == id)
+        //     .map(() => true)
+        //     .takeUntil(this.active.filter(i => i))
+    }
+}
+
+export const workspaceService: WorkspaceService = new HyprWorkspaceService()
