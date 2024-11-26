@@ -1,2 +1,2 @@
-export * from "./workspaces"
-export * as Widget from "./types"
+export * from './workspaces'
+export * as Widget from './types'

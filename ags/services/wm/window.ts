@@ -1,10 +1,10 @@
-import { Observable } from "rx";
+import { Observable } from 'rx'
 
 export interface WindowService {
-    active: ActiveWindow
+  active: ActiveWindow
 }
 
 export interface ActiveWindow {
-    cls: Observable<string>
-    title: Observable<string>
+  cls: Observable<string>
+  title: Observable<string>
 }
