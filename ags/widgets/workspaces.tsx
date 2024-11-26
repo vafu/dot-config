@@ -7,25 +7,20 @@ import { Observable } from "rx"
 
 const workspaceService = Service("workspace")
 
-const workspaces = workspaceService.activeWorkroom
-    .doOnNext(w => console.log(w))
-    .map(wr =>
-        range(7)
-            .map(idx => wr.getWs(idx))
-            .map(ws => <Label
-                valign={Gtk.Align.CENTER}
-                halign={Gtk.Align.CENTER}
-                label={`${ws}`}
-                css_classes={binding(Observable.combineLatest(
-                    ws.active.map(a => a ? "active" : ""),
-                    ws.urgent.map(a => a ? "urgent" : ""),
-                    ws.occupied.map(a => a ? "occupied" : ""),
-                ))}
-            />)
-    )
+const workspaces = range(7).map(idx => {
+    const ws = workspaceService.activeWorkroom.map(wr => wr.getWs(idx))
+    return <Label
+        valign={Gtk.Align.CENTER}
+        halign={Gtk.Align.CENTER}
+        label={`${ws}`}
+        css_classes={binding(Observable.combineLatest(
+            ws.flatMapLatest(w => w.active).map(a => a ? "active" : ""),
+            ws.flatMapLatest(w => w.urgent).map(a => a ? "urgent" : ""),
+            ws.flatMapLatest(w => w.occupied).map(a => a ? "occupied" : ""),
+        ))}
+    />
+})
 
 export const Workspaces = () =>
-    <Box className="workspaces bar-widget" >
-        {binding(workspaces)}
-    </Box>
+    <Box className="workspaces bar-widget" >{workspaces}</Box>
 
