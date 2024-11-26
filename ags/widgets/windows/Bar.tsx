@@ -2,6 +2,7 @@ import { Astal, Gdk } from "astal/gtk4"
 import { Workspaces } from "../workspaces"
 import { Box, CenterBox } from "../types"
 import { WindowTitle } from "../windowtitle"
+import { PanelButtons } from "widgets/panel-buttons"
 
 export default (gdkmonitor: Gdk.Monitor) =>
 	<window
@@ -12,7 +13,7 @@ export default (gdkmonitor: Gdk.Monitor) =>
 		<CenterBox className="bar">
 			<Workspaces />
 			<WindowTitle />
-			<Box />
+			<PanelButtons />
 		</CenterBox>
 	</window>
 

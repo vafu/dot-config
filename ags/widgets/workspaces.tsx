@@ -29,4 +29,3 @@ export const Workspaces = () =>
         {binding(workspaces)}
     </Box>
 
-// http://google.com

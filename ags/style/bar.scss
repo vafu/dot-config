@@ -9,10 +9,17 @@ $outline-offset: $label-margin * 0.5;
     min-height: 32px;
 
     .bar-widget {
-        margin: 4px;
-        padding: 4px;
+        margin: 2pt;
     }
 }
+
+.panel-button {
+    label {
+        font-size: 12pt;
+        font-weight: bolder;
+    }
+}
+
 
 @keyframes urgent {
     from {
@@ -31,8 +38,9 @@ $outline-offset: $label-margin * 0.5;
 
 .window-title {
     label {
-        font-size: 10pt;
         font-weight: bold;
+        font-size: 10pt;
+
         &.cls {
             color: #{$app_title};
             margin-right: 4px;
@@ -41,6 +49,8 @@ $outline-offset: $label-margin * 0.5;
 }
 
 .workspaces {
+    padding: 8px;
+
     label {
         @include animate;
 

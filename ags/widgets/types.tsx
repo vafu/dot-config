@@ -22,6 +22,15 @@ export class Button extends astalify(
     constructor(props?: ButtonProps, ...children: Array<BindableChild>) { super({ children, ...props } as any) }
 }
 
+export type IconProps = ConstructProps<Icon, Gtk.Image.ConstructorProps>
+export class Icon extends astalify(
+    Gtk.Image,
+    Gtk.Image.name,
+) {
+    static { GObject.registerClass({ GTypeName: "Image" }, this) }
+    constructor(props?: IconProps) { super({ ...props } as any) }
+}
+
 export type BoxProps = ConstructProps<Box, Gtk.Box.ConstructorProps>
 export class Box extends astalify(
     Gtk.Box,

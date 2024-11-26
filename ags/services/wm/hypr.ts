@@ -92,7 +92,7 @@ class HyprWS implements WS {
     urgent: Observable<boolean> = Observable.just(false)
 
     constructor(id: number) {
-        this.active = focusedWorkspace.map(w => w.id == id).replay().refCount()
+        this.active = focusedWorkspace.map(w => w.id == id).shareReplay(1)
 
         this.occupied = Observable.merge(
             workspaces.take(1).map(a => a.some(a => a.id == id)),
@@ -104,10 +104,15 @@ class HyprWS implements WS {
                 .map(() => false),
         ).replay().refCount()
 
-        // this.urgent = urgentWs
-        //     .filter(i => i == id)
-        //     .map(() => true)
-        //     .takeUntil(this.active.filter(i => i))
+        this.urgent = urgentWs
+            .filter(i => i == id)
+            .flatMapLatest(() => this.active
+                .filter(active => active)
+                .map(active => !active)
+                .take(1)
+                .startWith(true)
+            )
+            .startWith(false)
     }
 }
 
