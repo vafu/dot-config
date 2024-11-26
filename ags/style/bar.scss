@@ -6,78 +6,76 @@ $outline-width: $label-margin * 0.5;
 $outline-offset: $label-margin * 0.5;
 
 .bar {
-    min-height: 32px;
+  min-height: 32px;
 
-    .bar-widget {
-        margin: 2pt;
-    }
+  .bar-widget {
+    margin: 2pt;
+  }
 }
 
 .panel-button {
-    label {
-        font-size: 12pt;
-        font-weight: bolder;
-    }
+  label {
+    font-size: 12pt;
+    font-weight: bolder;
+  }
 }
-
 
 @keyframes urgent {
-    from {
-        background-color: #{$ws_occupied};
-        outline: $outline-width * 0.5 solid #{$ws_occupied};
-        outline-offset: 0;
-    }
+  from {
+    background-color: #{$ws_occupied};
+    outline: $outline-width * 0.5 solid #{$ws_occupied};
+    outline-offset: 0;
+  }
 
-    to {
-        background-color: #{$ws_urgent};
-        outline: $outline-width * 0.5 solid #{$ws_urgent};
-        outline-offset: $outline-offset * 0.5;
-    }
+  to {
+    background-color: #{$ws_urgent};
+    outline: $outline-width * 0.5 solid #{$ws_urgent};
+    outline-offset: $outline-offset * 0.5;
+  }
 }
 
-
 .window-title {
-    label {
-        font-weight: bold;
-        font-size: 10pt;
+  label {
+    font-weight: bold;
+    font-size: 10pt;
 
-        &.cls {
-            color: #{$app_title};
-            margin-right: 4px;
-        }
+    &.cls {
+      color: #{$app_title};
+      margin-right: 4px;
     }
+  }
 }
 
 .workspaces {
-    padding: 8px;
+  padding: 8px;
 
-    label {
-        @include animate;
+  label {
+    @include animate;
 
-        font-size: 0;
-        min-width: $label-size;
-        min-height: $label-size;
-        border-radius: $label-size;
-        margin: 0 $label-margin;
-        background: #{$ws_empty};
+    font-size: 0;
+    min-width: $label-size;
+    min-height: $label-size;
+    border-radius: $label-size;
+    margin: 0 $label-margin;
+    background: #{$ws_empty};
 
-        &.occupied {
-            background-color: #{$ws_occupied};
-        }
-
-        &.active {
-            background-color: #{$ws_active};
-            outline: $outline-width solid #{$ws_active};
-            outline-offset: $outline-offset;
-        }
-
-        &.urgent {
-            outline: 1px solid #{$ws_urgent};
-            background-color: #{$ws_urgent};
-            animation-duration: 200ms;
-            animation-name: urgent;
-            animation-iteration-count: infinite;
-            animation-direction: alternate;
-        }
+    &.occupied {
+      background-color: #{$ws_occupied};
     }
+
+    &.active {
+      background-color: #{$ws_active};
+      outline: $outline-width solid #{$ws_active};
+      outline-offset: $outline-offset;
+    }
+
+    &.urgent {
+      outline: 1px solid #{$ws_urgent};
+      background-color: #{$ws_urgent};
+      animation-duration: 200ms;
+      animation-name: urgent;
+      animation-iteration-count: infinite;
+      animation-direction: alternate;
+    }
+  }
 }
