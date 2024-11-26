@@ -2,7 +2,7 @@ import { Observable } from 'rx'
 import GLib from 'gi://GLib?version=2.0'
 import { binding } from 'rxbinding'
 import { Box, Button, ButtonProps, Icon, Label } from './types'
-import { BindableChild } from '../../../../../usr/share/astal/gjs/gtk4'
+import { App, BindableChild } from '../../../../../usr/share/astal/gjs/gtk4'
 import AstalNetwork from 'gi://AstalNetwork?version=0.1'
 import { bind } from '../../../../../usr/share/astal/gjs'
 
@@ -52,7 +52,11 @@ function Wifi() {
   const { wifi } = AstalNetwork.get_default()
 
   return (
-    <PanelButton tooltipText={bind(wifi, 'ssid').as(String)}>
+    <PanelButton
+      window="network-config"
+      onClicked={() => App.toggle_window('network-config')}
+      tooltipText={bind(wifi, 'ssid').as(String)}
+    >
       <Icon className="Wifi" iconName={bind(wifi, 'iconName')} />
     </PanelButton>
   )
