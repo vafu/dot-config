@@ -1,10 +1,10 @@
 import { Observable } from 'rx'
 import GLib from 'gi://GLib?version=2.0'
 import { binding } from 'rxbinding'
-import { Box, Button, ButtonProps, Icon, Label } from './types'
-import { App, BindableChild } from '../../../../../usr/share/astal/gjs/gtk4'
+import { Box, Button, ButtonProps, Icon, Label } from 'widgets'
+import { App, BindableChild } from 'astal/gtk4'
 import AstalNetwork from 'gi://AstalNetwork?version=0.1'
-import { bind } from '../../../../../usr/share/astal/gjs'
+import { bind } from 'astal'
 
 type PanelButtonProps = ButtonProps & {
   window?: string
@@ -68,3 +68,5 @@ export const PanelButtons = () => (
     <DateTime />
   </Box>
 )
+
+// http://google.com

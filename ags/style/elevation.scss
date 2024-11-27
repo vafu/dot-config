@@ -1,18 +1,18 @@
-$blur: 8px;
-$spread: 1px;
+$blur: 2px;
+$spread: 0px;
 
 @mixin elevation-0 {
   box-shadow: none;
 }
 
 @mixin elevation-1 {
-  box-shadow: 0px 1pt $blur $spread #{$shadow};
+  box-shadow: 0px 1px $blur $spread #{$shadow};
 }
 
 @mixin elevation-2 {
-  box-shadow: 0px 3pt $blur $spread #{$shadow};
+  box-shadow: 0px 3px $blur $spread #{$shadow};
 }
 
 @mixin elevation-3 {
-  box-shadow: 0px 6pt $blur $spread #{$shadow};
+  box-shadow: 0px 6px $blur $spread #{$shadow};
 }

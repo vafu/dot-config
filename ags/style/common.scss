@@ -5,6 +5,5 @@
 }
 
 window {
-  background: #{$bar_bg};
-  @include elevation-1;
+  color: #{$fg};
 }

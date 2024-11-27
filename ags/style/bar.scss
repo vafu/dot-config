@@ -6,37 +6,24 @@ $outline-width: $label-margin * 0.5;
 $outline-offset: $label-margin * 0.5;
 
 .bar {
+  background: transparent;
   min-height: 32px;
 
   .bar-widget {
-    margin: 2pt;
+    padding: 0 6pt;
   }
 }
 
 .panel-button {
   label {
     font-size: 12pt;
-    font-weight: bolder;
-  }
-}
-
-@keyframes urgent {
-  from {
-    background-color: #{$ws_occupied};
-    outline: $outline-width * 0.5 solid #{$ws_occupied};
-    outline-offset: 0;
-  }
-
-  to {
-    background-color: #{$ws_urgent};
-    outline: $outline-width * 0.5 solid #{$ws_urgent};
-    outline-offset: $outline-offset * 0.5;
+    font-weight: bold;
   }
 }
 
 .window-title {
   label {
-    font-weight: bold;
+    font-weight: bolder;
     font-size: 10pt;
 
     &.cls {
@@ -79,3 +66,18 @@ $outline-offset: $label-margin * 0.5;
     }
   }
 }
+
+@keyframes urgent {
+  from {
+    background-color: #{$ws_occupied};
+    outline: $outline-width * 0.5 solid #{$ws_occupied};
+    outline-offset: 0;
+  }
+
+  to {
+    background-color: #{$ws_urgent};
+    outline: $outline-width * 0.5 solid #{$ws_urgent};
+    outline-offset: $outline-offset * 0.5;
+  }
+}
+

@@ -1,6 +1,6 @@
-import { Box, Label } from './types'
+import { Box, Label } from 'widgets/types'
 import Pango from 'gi://Pango?version=1.0'
-import Service from '../services'
+import Service from 'services'
 import { binding } from 'rxbinding'
 
 const active = Service('window').active

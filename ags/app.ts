@@ -1,8 +1,8 @@
 import { App } from 'astal/gtk4'
 import Adw from 'gi://Adw?version=1'
-import Bar from './widgets/windows/Bar'
+import Bar from 'widgets/bar'
 import style from './style/style'
-import { NetworkConfig } from 'widgets/windows/popup'
+import NetworkConfig from 'widgets/bar_dropdown'
 
 App.start({
   css: style,

@@ -1,13 +1,14 @@
 import { Astal, Gdk } from 'astal/gtk4'
-import { Workspaces } from '../workspaces'
-import { Box, CenterBox } from '../types'
-import { WindowTitle } from '../windowtitle'
-import { PanelButtons } from 'widgets/panel-buttons'
+import { CenterBox } from 'widgets'
+import { Workspaces } from './workspaces'
+import { WindowTitle } from './windowtitle'
+import { PanelButtons } from './panel-buttons'
 
 export default (gdkmonitor: Gdk.Monitor) => (
   <window
     gdkmonitor={gdkmonitor}
     name="Bar"
+    className="bar"
     exclusivity={Astal.Exclusivity.EXCLUSIVE}
     anchor={
       Astal.WindowAnchor.TOP |
@@ -15,7 +16,7 @@ export default (gdkmonitor: Gdk.Monitor) => (
       Astal.WindowAnchor.RIGHT
     }
   >
-    <CenterBox className="bar">
+    <CenterBox>
       <Workspaces />
       <WindowTitle />
       <PanelButtons />
