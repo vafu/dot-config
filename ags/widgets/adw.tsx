@@ -14,3 +14,13 @@ export class ActionRow extends astalify(Adw.ActionRow) {
     super(props as any)
   }
 }
+
+export type ListBoxProps = ConstructProps<ListBox, Gtk.ListBox.ConstructorProps>
+export class ListBox extends astalify(Gtk.ListBox) {
+  static {
+    GObject.registerClass({ GTypeName: 'ListBox' }, this)
+  }
+  constructor(props?: ListBoxProps, ...children: Array<BindableChild>) {
+    super({ children, ...props } as any)
+  }
+}

@@ -1,12 +1,12 @@
 import { WorkspaceService, WR, WS } from './workspace'
 import AstalHyprland from 'gi://AstalHyprland?version=0.1'
 import { ActiveWindow, WindowService } from './window'
-import { CompositeDisposable, Disposable, Observable, Subject } from 'rx'
+import { Disposable, Observable } from 'rx'
 import { obs } from 'rxbinding'
 
 const hypr = AstalHyprland.get_default()
 
-const focusedClient = obs(hypr, 'focusedClient').replay().refCount()
+const focusedClient = obs(hypr, 'focusedClient').shareReplay(1)
 const activeWindow: ActiveWindow = {
   cls: focusedClient.flatMapLatest((c) =>
     c == null ? Observable.just('') : obs(c, 'class')
@@ -20,23 +20,9 @@ export const windowService: WindowService = {
   active: activeWindow,
 }
 
-const focusedWorkspace = obs(hypr, 'focusedWorkspace').replay().refCount()
+const focusedWorkspace = obs(hypr, 'focusedWorkspace').shareReplay(1)
 
-const workspaces = obs(hypr, 'workspaces').replay().refCount()
-
-const workspaceAdded = Observable.create<number>((o) => {
-  const id = hypr.connect('workspace-added', (_, w) => {
-    o.onNext(w.id)
-  })
-  return Disposable.create(() => hypr.disconnect(id))
-})
-
-const workspaceRemoved = Observable.create<number>((o) => {
-  const id = hypr.connect('workspace-removed', (_, w) => {
-    o.onNext(w)
-  })
-  return Disposable.create(() => hypr.disconnect(id))
-})
+const workspaces = obs(hypr, 'workspaces').shareReplay(1)
 
 const urgentWs = Observable.create<number>((o) => {
   const id = hypr.connect('urgent', (s, id) => {
@@ -96,13 +82,11 @@ class HyprWS implements WS {
   constructor(id: number) {
     this.active = focusedWorkspace.map((w) => w.id == id).shareReplay(1)
 
-    this.occupied = Observable.merge(
-      workspaces.take(1).map((a) => a.some((a) => a.id == id)),
-      workspaceAdded.filter((i) => i == id).map(() => true),
-      workspaceRemoved.filter((i) => i == id).map(() => false)
-    )
-      .replay()
-      .refCount()
+    this.occupied = workspaces
+      .map((w) => w.map((ws) => ws.id))
+      .distinctUntilChanged()
+      .map((ws) => ws.some((i) => i == id))
+      .shareReplay(1)
 
     this.urgent = urgentWs
       .filter((i) => i == id)

@@ -28,8 +28,7 @@ export function binding<T>(observable: Observable<T>): Binding<T> {
   let value: T | null
   const shared = observable
     .doOnNext((v) => (value = v))
-    .replay()
-    .refCount()
+    .shareReplay(1)
 
   return bind({
     subscribe: (callback) => shared.subscribe(callback).dispose,

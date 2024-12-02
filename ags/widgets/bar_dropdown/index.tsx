@@ -1,6 +1,14 @@
 import Astal from 'gi://Astal?version=4.0'
-import { App } from 'astal/gtk4'
-import { Label } from 'widgets'
+import { App, Gtk } from 'astal/gtk4'
+import { Box, Label } from 'widgets'
+import Adw from 'gi://Adw?version=1'
+
+function SwitchRow() {
+  return new Adw.SwitchRow({
+    title: 'Wifi',
+    hexpand: true
+  })
+}
 
 export default () => (
   <window
@@ -8,9 +16,11 @@ export default () => (
     name="network-config"
     className="bar-dropdown"
     application={App}
-    exclusivity={Astal.Exclusivity.EXCLUSIVE}
+    exclusivity={Astal.Exclusivity.NORMAL}
     anchor={Astal.WindowAnchor.TOP | Astal.WindowAnchor.RIGHT}
-  > 
-    <Label label="test"/>
+  >
+    <Box>
+      <SwitchRow />
+    </Box>
   </window>
 )
