@@ -19,6 +19,7 @@ const PanelButton = (
       setup: (self) => {
         self.toggleClassName('panel-button')
         self.toggleClassName('flat')
+        self.toggleClassName('pill')
         self.toggleClassName('bar-widget')
       },
       ...rest,

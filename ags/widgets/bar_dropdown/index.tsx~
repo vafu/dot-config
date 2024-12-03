@@ -86,8 +86,8 @@ const toggles = [
     iconName={bind(network.wifi, 'iconName')}
     label={binding(ssid)}
   />,
-  <Quicktoggle
-    iconName={bind(network.wifi, 'iconName')}
-    label={binding(ssid)}
-  />,
 ]
+function Separator() {
+  const w = new Gtk.Separator()
+  return w
+}
