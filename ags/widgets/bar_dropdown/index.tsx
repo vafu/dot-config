@@ -16,7 +16,7 @@ import {
 import Adw from 'gi://Adw?version=1'
 import AstalNetwork from 'gi://AstalNetwork?version=0.1'
 import { binding, obs } from 'rxbinding'
-import { bind, Binding } from '../../../../../../usr/share/astal/gjs'
+import { bind, Binding, Variable } from '../../../../../../usr/share/astal/gjs'
 
 const network = AstalNetwork.get_default()
 const wifi = obs(network, 'wifi').shareReplay(1)
@@ -40,7 +40,7 @@ export default () => (
 
 function Quicktoggles() {
   return (
-    <Box>
+    <Box className="quicktoggle-container">
       <Box orientation={Gtk.Orientation.VERTICAL}>
         {toggles.filter((_, i) => i % 2 == 0)}
       </Box>
@@ -52,41 +52,52 @@ function Quicktoggles() {
 }
 
 type QuicktoggleProps = ButtonProps & {
+  enabled?: Binding<Boolean>
   iconName?: string | Binding<String>
-  onMainClick?: () => void
-  onSideClick?: () => void
+  onExtra?: () => void
 }
 
 const Quicktoggle = ({
   iconName = '',
   label = '',
   ...rest
-}: QuicktoggleProps) => (
-  <Box className="linked">
-    {
-      new Button(
-        {
-          setup: (self) => {
-            self.toggleClassName('suggested-action')
-            self.toggleClassName('icon-button')
-            self.toggleClassName('circular')
+}: QuicktoggleProps) => {
+  const classes = ['icon-button', 'circular']
+  return (
+    <Box className="linked">
+      {
+        new Button(
+          {
+            onClicked: rest.onMainClicked,
+            css_classes: rest.enabled.as((e) => [
+              e ? 'suggested-action' : '',
+              ...classes,
+            ]),
+            ...rest,
           },
-          ...rest,
-        },
-        <Icon iconName={iconName} />,
-        <Label label={label} />
-      )
-    }
-    <Button iconName="go-next" className="suggested-action circular" />
-  </Box>
-)
+          <Icon iconName={iconName} />,
+          <Label label={label} />
+        )
+      }
+      <Button
+        iconName="go-next"
+        css_classes={rest.enabled.as((e) => [
+          e ? 'suggested-action' : '',
+          ...classes,
+        ])}
+      />
+    </Box>
+  )
+}
+
+const wifiEnabled = wifi.flatMapLatest((w) => obs(w, 'enabled'))
 
 const toggles = [
   <Quicktoggle
-    iconName={bind(network.wifi, 'iconName')}
-    label={binding(ssid)}
-  />,
-  <Quicktoggle
+    enabled={binding(wifiEnabled)}
+    onClicked={() =>
+      network.get_wifi().set_enabled(!network.get_wifi().get_enabled())
+    }
     iconName={bind(network.wifi, 'iconName')}
     label={binding(ssid)}
   />,

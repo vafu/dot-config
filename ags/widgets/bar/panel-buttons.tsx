@@ -5,6 +5,7 @@ import { Box, Button, ButtonProps, Icon, Label } from 'widgets'
 import { App, BindableChild } from 'astal/gtk4'
 import AstalNetwork from 'gi://AstalNetwork?version=0.1'
 import { bind } from 'astal'
+import AstalBattery from 'gi://AstalBattery?version=0.1'
 
 type PanelButtonProps = ButtonProps & {
   window?: string
@@ -49,25 +50,24 @@ const DateTime = () => (
   </PanelButton>
 )
 
-function Wifi() {
-  const { wifi } = AstalNetwork.get_default()
-
-  return (
-    <PanelButton
-      window="network-config"
-      onClicked={() => App.toggle_window('network-config')}
-      tooltipText={bind(wifi, 'ssid').as(String)}
-    >
-      <Icon className="Wifi" iconName={bind(wifi, 'iconName')} />
-    </PanelButton>
-  )
-}
+const { wifi } = AstalNetwork.get_default()
+const battery = AstalBattery.get_default()
 
 export const PanelButtons = () => (
   <Box>
-    <Wifi />
+    <PanelButton
+      window="network-config"
+      onClicked={() => App.toggle_window('network-config')}
+    >
+      <Icon
+        tooltipText={bind(wifi, 'ssid').as(String)}
+        iconName={bind(wifi, 'iconName')}
+      />
+      <Icon
+        tooltipText={bind(battery, 'percentage').as(String)}
+        iconName={bind(battery, 'battery_icon_name')}
+      />
+    </PanelButton>
     <DateTime />
   </Box>
 )
-
-// http://google.com
