@@ -1,5 +1,15 @@
 import { Disposable, Observable } from 'rx'
 import Binding, { bind, Connectable } from 'astal/binding'
+import Gtk from 'gi://Gtk?version=4.0'
+
+export function subscribeTo<W extends Gtk.Widget, T>(
+  widget: W,
+  observable: Observable<T>,
+  sub: (value: T, self: W) => void
+) {
+  const d = observable.subscribe((t) => sub(t, widget))
+  widget.connect('destroy', () => d.dispose())
+}
 
 export function obs<T extends Connectable, P extends keyof T>(
   object: T,
@@ -26,9 +36,7 @@ export function asObservable<Value>(
 
 export function binding<T>(observable: Observable<T>): Binding<T> {
   let value: T | null
-  const shared = observable
-    .doOnNext((v) => (value = v))
-    .shareReplay(1)
+  const shared = observable.doOnNext((v) => (value = v)).shareReplay(1)
 
   return bind({
     subscribe: (callback) => shared.subscribe(callback).dispose,

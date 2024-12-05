@@ -1,16 +1,33 @@
 @import 'common.scss';
 
 .bar-dropdown {
-
   > box {
+    @include elevation-1;
+    border-radius: 16px;
+    margin: 16px;
     padding: 16px;
     background-color: #{$bg_deep};
-    > * {
-
-    }
   }
 }
 
 .quicktoggle-container {
+  > box {
+    > * {
+      margin: 8px;
+    }
+  }
+}
 
+.quicktoggle {
+  min-width: 180px;
+
+  & .power-saver {
+    color: #{$powersaver_fg};
+    background: #{$powersaver};
+  }
+
+  & .performance {
+    color: #{$performance_fg};
+    background: #{$performance};
+  }
 }

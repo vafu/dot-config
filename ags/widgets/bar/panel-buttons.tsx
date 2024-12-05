@@ -4,8 +4,9 @@ import { binding } from 'rxbinding'
 import { Box, Button, ButtonProps, Icon, Label } from 'widgets'
 import { App, BindableChild } from 'astal/gtk4'
 import AstalNetwork from 'gi://AstalNetwork?version=0.1'
-import { bind } from 'astal'
+import { bind, Binding } from 'astal'
 import AstalBattery from 'gi://AstalBattery?version=0.1'
+import AstalPowerProfiles from 'gi://AstalPowerProfiles?version=0.1'
 
 type PanelButtonProps = ButtonProps & {
   window?: string
@@ -52,6 +53,7 @@ const DateTime = () => (
 
 const { wifi } = AstalNetwork.get_default()
 const battery = AstalBattery.get_default()
+const profiles = AstalPowerProfiles.get_default()
 
 export const PanelButtons = () => (
   <Box>
@@ -59,6 +61,11 @@ export const PanelButtons = () => (
       window="network-config"
       onClicked={() => App.toggle_window('network-config')}
     >
+      <Icon
+        tooltipText={bind(profiles, 'active_profile')}
+        iconName={bind(profiles, 'iconName')}
+        visible={bind(profiles, 'active_profile').as((p) => p != 'balanced')}
+      />
       <Icon
         tooltipText={bind(wifi, 'ssid').as(String)}
         iconName={bind(wifi, 'iconName')}

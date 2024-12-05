@@ -13,5 +13,10 @@
 @define-color ws_urgent @red_2;
 @define-color app_title @dark_4;
 
+@define-color powersaver @success_bg_color;
+@define-color powersaver_fg @success_fg_color;
+@define-color performance @warning_bg_color;
+@define-color performance_fg @warning_fg_color;
+
 /* global */
 @define-color shadow @shade_color;
