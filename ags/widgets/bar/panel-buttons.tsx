@@ -30,7 +30,7 @@ const PanelButton = (
   )
 
 const clockFormat = '%H:%M'
-const dateFormat = '%a %y %b'
+const dateFormat = '%a %d %b'
 const time = Observable.interval(1000)
   .startWith(0)
   .map(() => {
