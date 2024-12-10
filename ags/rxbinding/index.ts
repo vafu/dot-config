@@ -34,8 +34,8 @@ export function asObservable<Value>(
   })
 }
 
-export function binding<T>(observable: Observable<T>): Binding<T> {
-  let value: T | null
+export function binding<T>(observable: Observable<T>, initial = null): Binding<T> {
+  let value: T | null = initial
   const shared = observable.doOnNext((v) => (value = v)).shareReplay(1)
 
   return bind({

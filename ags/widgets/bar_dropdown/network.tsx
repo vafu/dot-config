@@ -17,8 +17,8 @@ const activeSsid = wifiEnabled.flatMapLatest((enabled) =>
     : Observable.just('WiFi off')
 )
 
-function subtitle(ssid: string) {
-  return activeSsid.map((active) => (active == ssid ? 'Connected' : ''))
+function subt(ssid: string) {
+  return activeSsid.map((active) => (active == ssid ? 'Connected' : 'adsf'))
 }
 
 function disconnect(ap: AstalNetwork.AccessPoint) {
@@ -82,9 +82,9 @@ function List() {
                     <ActionRow
                       title={ap.ssid}
                       iconName={bind(ap, 'icon_name')}
-                      subtitle={binding(subtitle(ap.ssid))}
+                      subtitle={binding(subt(ap.ssid), '')}
                     >
-                      <Box>{binding(disconnect(ap.ssid))}</Box>
+                      <Box>{binding(disconnect(ap))}</Box>
                     </ActionRow>
                   ))
               )
