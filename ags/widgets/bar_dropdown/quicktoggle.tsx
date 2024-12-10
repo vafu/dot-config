@@ -10,7 +10,7 @@ export type QuicktoggleProps = ButtonProps & {
   onClicked?: () => void
 
   hasExtra?: boolean | Binding<boolean>
-  onExtra?: () => void
+  onExtraClicked?: () => void
 }
 
 export const Quicktoggle = ({
@@ -19,7 +19,7 @@ export const Quicktoggle = ({
   iconName = '',
   label = '',
   onClicked = () => {},
-  onExtra = () => {},
+  onExtraClicked = () => {},
   setup = () => {},
   ...rest
 }: QuicktoggleProps) => {
@@ -51,6 +51,7 @@ export const Quicktoggle = ({
           iconName: 'go-next',
           css_classes: classes,
           visible: hasExtra,
+          onClicked: onExtraClicked,
           setup: (self) => {
             self.toggleClassName('icon-button')
             setup(self)

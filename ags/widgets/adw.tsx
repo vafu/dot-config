@@ -7,7 +7,13 @@ export type ActionRowProps = ConstructProps<
   ActionRow,
   Adw.ActionRow.ConstructorProps
 >
-export class ActionRow extends astalify(Adw.ActionRow) {
+export class ActionRow extends astalify(
+  Adw.ActionRow,
+  Adw.ActionRow.name,
+  (widgets, self) => {
+    self.add_suffix(widgets[0])
+  }
+) {
   static {
     GObject.registerClass({ GTypeName: 'ActionRow' }, this)
   }

@@ -4,9 +4,10 @@ import { Box } from 'widgets'
 import { NetworkQuicktoggle } from './network'
 import { PowerProfileQuicktoggle } from './power_profile'
 import { BluetoothQuicktoggle } from './bluetooth'
+import Adw from 'gi://Adw?version=1'
 
 const toggles = [
-  <NetworkQuicktoggle />,
+  NetworkQuicktoggle((page) => navigation.push(page)),
   <BluetoothQuicktoggle />,
   <PowerProfileQuicktoggle />,
 ]
@@ -24,15 +25,28 @@ function Quicktoggles() {
   )
 }
 
+function Main() {
+  return (
+    <Adw.NavigationPage>
+      <Quicktoggles />
+    </Adw.NavigationPage>
+  )
+}
+
+const navigation = new Adw.NavigationView({ cssClasses: ['quickbar-nav'] })
+navigation.push(Main())
+
 export default () => (
   <window
     visible={false}
     name="network-config"
     className="bar-dropdown"
     application={App}
+    resizable={false}
+    layer={Astal.Layer.OVERLAY}
     exclusivity={Astal.Exclusivity.EXCLUSIVE}
     anchor={Astal.WindowAnchor.TOP | Astal.WindowAnchor.RIGHT}
   >
-    <Quicktoggles />
+    {navigation}
   </window>
 )

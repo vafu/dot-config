@@ -1,21 +1,26 @@
 @import 'common.scss';
 
 .bar-dropdown {
-  > box {
+  min-width: 500px;
+  > * {
     @include elevation-1;
     border-radius: 16px;
     margin: 16px;
-    padding: 16px;
     background-color: #{$bg_deep};
   }
 }
 
 .quicktoggle-container {
+  padding: 16px;
   > box {
     > * {
       margin: 8px;
     }
   }
+}
+
+.list-page {
+  min-height: 400px;
 }
 
 .quicktoggle {
