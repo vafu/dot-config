@@ -1,13 +1,12 @@
 import { Observable } from 'rx'
 import GLib from 'gi://GLib?version=2.0'
 import { binding } from 'rxbinding'
-import { App } from 'astal/gtk4'
+import { App, Gtk } from 'astal/gtk4'
 import AstalNetwork from 'gi://AstalNetwork?version=0.1'
 import { bind, Binding } from 'astal'
 import AstalBattery from 'gi://AstalBattery?version=0.1'
 import AstalPowerProfiles from 'gi://AstalPowerProfiles?version=0.1'
-import { Button, ButtonProps } from 'astal/gtk4/widget'
-import { BindableChild } from 'astal/gtk4/astalify'
+import { Box, Button, ButtonProps } from 'astal/gtk4/widget'
 
 type PanelButtonProps = ButtonProps & {
   window?: string
@@ -15,7 +14,7 @@ type PanelButtonProps = ButtonProps & {
 
 const PanelButton = (
   { window = '', ...rest }: PanelButtonProps,
-  ...children: Array<BindableChild>
+  child: Gtk.Widget
 ) =>
   Button(
     {
@@ -25,9 +24,9 @@ const PanelButton = (
         self.add_css_class('pill')
         self.add_css_class('bar-widget')
       },
+      child: child,
       ...rest,
     },
-    ...children
   )
 
 const clockFormat = '%H:%M'
@@ -62,19 +61,21 @@ export const PanelButtons = () => (
       window="network-config"
       onClicked={() => App.toggle_window('network-config')}
     >
-      <image
-        tooltipText={bind(profiles, 'active_profile')}
-        iconName={bind(profiles, 'iconName')}
-        visible={bind(profiles, 'active_profile').as((p) => p != 'balanced')}
-      />
-      <image
-        tooltipText={bind(wifi, 'ssid').as(String)}
-        iconName={bind(wifi, 'iconName')}
-      />
-      <image
-        tooltipText={bind(battery, 'percentage').as(String)}
-        iconName={bind(battery, 'battery_icon_name')}
-      />
+      <box>
+        <image
+          tooltipText={bind(profiles, 'active_profile')}
+          iconName={bind(profiles, 'iconName')}
+          visible={bind(profiles, 'active_profile').as((p) => p != 'balanced')}
+        />
+        <image
+          tooltipText={bind(wifi, 'ssid').as(String)}
+          iconName={bind(wifi, 'iconName')}
+        />
+        <image
+          tooltipText={bind(battery, 'percentage').as(String)}
+          iconName={bind(battery, 'battery_icon_name')}
+        />
+      </box>
     </PanelButton>
     <DateTime />
   </box>

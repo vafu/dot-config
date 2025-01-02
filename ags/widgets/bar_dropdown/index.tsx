@@ -14,7 +14,7 @@ const toggles = [
 
 function Quicktoggles() {
   return (
-    <box className="quicktoggle-container">
+    <box cssClasses={["quicktoggle-container"]}>
       <box orientation={Gtk.Orientation.VERTICAL}>
         {toggles.filter((_, i) => i % 2 == 0)}
       </box>
@@ -35,7 +35,7 @@ function Main() {
             hexpand={false}
             cssClasses={['flat', 'circular', 'icon-button']}
             onClicked={() => exec('systemctl suspend')}
-            iconName={'system-shutdown-symbolic'}
+            icon_name={'system-shutdown-symbolic'}
           />
         </box>
         <Quicktoggles />

@@ -65,7 +65,7 @@ function List() {
     child: (
       <Adw.Clamp orientation={Gtk.Orientation.HORIZONTAL}>
         <ListBox
-          className={'boxed-list'}
+          cssClasses={['boxed-list']}
           selectionMode={Gtk.SelectionMode.NONE}
         >
           {binding(
@@ -104,7 +104,7 @@ function NetworkPage() {
           titleWidget={
             <box>
               <image iconName={bind(network.wifi, 'iconName')} />
-              <label label={binding(activeSsid)} className={'title'} />
+              <label label={binding(activeSsid)} cssClasses={['title']} />
             </box>
           }
         />

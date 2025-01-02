@@ -25,5 +25,5 @@ const workspaces = range(7).map((idx) => {
 })
 
 export const Workspaces = () => (
-  <box className="workspaces bar-widget">{workspaces}</box>
+  <box cssClasses={['workspaces', 'bar-widget']}>{workspaces}</box>
 )

@@ -7,17 +7,9 @@ import NetworkConfig from 'widgets/bar_dropdown'
 App.start({
   css: style,
   main() {
-    // Adw.init()
-    // App.get_monitors().forEach((m) => Bar(m))
-    // NetworkConfig()
-    w(App.get_monitors()[0])
+    Adw.init()
+    App.get_monitors().forEach((m) => Bar(m))
+    NetworkConfig()
   },
 })
 
-function w(monitor) {
-  return (
-    <window gdkmonitor={monitor}>
-      <label label={'kek'} />
-    </window>
-  )
-}

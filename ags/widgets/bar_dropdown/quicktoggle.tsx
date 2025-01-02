@@ -30,7 +30,7 @@ export const Quicktoggle = ({
     classes = enabled.as((e) => [e ? 'suggested-action' : '', ...base_classes])
   }
   return (
-    <box className="linked quicktoggle">
+    <box cssClasses={['linked', 'quicktoggle']}>
       {Button(
         {
           onClicked: onClicked,
@@ -39,11 +39,13 @@ export const Quicktoggle = ({
           setup: setup,
           ...rest,
         },
-        <image iconName={iconName} />,
-        <label label={label} />
+        <box>
+          <image icon_name={iconName} />
+          <label label={label} />
+        </box>
       )}
       {Button({
-        iconName: 'go-next',
+        icon_name: 'go-next',
         css_classes: classes,
         visible: hasExtra,
         onClicked: onExtraClicked,

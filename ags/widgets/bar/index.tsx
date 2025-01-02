@@ -5,6 +5,7 @@ import { PanelButtons } from './panel-buttons'
 
 export default (gdkmonitor: Gdk.Monitor) => (
   <window
+    visible={true}
     gdkmonitor={gdkmonitor}
     name="Bar"
     cssClasses={['bar']}
