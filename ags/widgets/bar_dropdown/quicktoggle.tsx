@@ -1,7 +1,5 @@
-import { Box, Button, ButtonProps, Icon, Label } from 'widgets/types'
 import { Binding } from 'astal'
-import Adw from 'gi://Adw?version=1'
-import Gtk from 'gi://Gtk?version=4.0'
+import { Button, ButtonProps } from 'astal/gtk4/widget'
 
 export type QuicktoggleProps = ButtonProps & {
   enabled?: boolean | Binding<boolean>
@@ -32,33 +30,29 @@ export const Quicktoggle = ({
     classes = enabled.as((e) => [e ? 'suggested-action' : '', ...base_classes])
   }
   return (
-    <Box className="linked quicktoggle">
-      {
-        new Button(
-          {
-            onClicked: onClicked,
-            css_classes: classes,
-            hexpand: true,
-            setup: setup,
-            ...rest,
-          },
-          <Icon iconName={iconName} />,
-          <Label label={label} />
-        )
-      }
-      {
-        new Button({
-          iconName: 'go-next',
+    <box className="linked quicktoggle">
+      {Button(
+        {
+          onClicked: onClicked,
           css_classes: classes,
-          visible: hasExtra,
-          onClicked: onExtraClicked,
-          setup: (self) => {
-            self.toggleClassName('icon-button')
-            setup(self)
-          },
+          hexpand: true,
+          setup: setup,
           ...rest,
-        })
-      }
-    </Box>
+        },
+        <image iconName={iconName} />,
+        <label label={label} />
+      )}
+      {Button({
+        iconName: 'go-next',
+        css_classes: classes,
+        visible: hasExtra,
+        onClicked: onExtraClicked,
+        setup: (self) => {
+          self.add_css_class('icon-button')
+          setup(self)
+        },
+        ...rest,
+      })}
+    </box>
   )
 }

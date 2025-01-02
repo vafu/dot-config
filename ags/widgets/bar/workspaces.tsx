@@ -1,6 +1,5 @@
 import { range } from 'commons'
 import Service from 'services'
-import { Box, Label } from 'widgets'
 import Gtk from 'gi://Gtk?version=4.0'
 import { binding } from 'rxbinding'
 import { Observable } from 'rx'
@@ -10,7 +9,7 @@ const workspaceService = Service('workspace')
 const workspaces = range(7).map((idx) => {
   const ws = workspaceService.activeWorkroom.map((wr) => wr.getWs(idx))
   return (
-    <Label
+    <label
       valign={Gtk.Align.CENTER}
       halign={Gtk.Align.CENTER}
       label={`${ws}`}
@@ -26,5 +25,5 @@ const workspaces = range(7).map((idx) => {
 })
 
 export const Workspaces = () => (
-  <Box className="workspaces bar-widget">{workspaces}</Box>
+  <box className="workspaces bar-widget">{workspaces}</box>
 )

@@ -1,12 +1,13 @@
 import { Observable } from 'rx'
 import GLib from 'gi://GLib?version=2.0'
 import { binding } from 'rxbinding'
-import { Box, Button, ButtonProps, Icon, Label } from 'widgets'
-import { App, BindableChild } from 'astal/gtk4'
+import { App } from 'astal/gtk4'
 import AstalNetwork from 'gi://AstalNetwork?version=0.1'
 import { bind, Binding } from 'astal'
 import AstalBattery from 'gi://AstalBattery?version=0.1'
 import AstalPowerProfiles from 'gi://AstalPowerProfiles?version=0.1'
+import { Button, ButtonProps } from 'astal/gtk4/widget'
+import { BindableChild } from 'astal/gtk4/astalify'
 
 type PanelButtonProps = ButtonProps & {
   window?: string
@@ -16,13 +17,13 @@ const PanelButton = (
   { window = '', ...rest }: PanelButtonProps,
   ...children: Array<BindableChild>
 ) =>
-  new Button(
+  Button(
     {
       setup: (self) => {
-        self.toggleClassName('panel-button')
-        self.toggleClassName('flat')
-        self.toggleClassName('pill')
-        self.toggleClassName('bar-widget')
+        self.add_css_class('panel-button')
+        self.add_css_class('flat')
+        self.add_css_class('pill')
+        self.add_css_class('bar-widget')
       },
       ...rest,
     },
@@ -45,9 +46,9 @@ const time = Observable.interval(1000)
 const DateTime = () => (
   <PanelButton
     tooltipText={binding(time.map((t) => t.date))}
-    className="date-time"
+    cssClasses={['date-time']}
   >
-    <Label label={binding(time.map((t) => t.clock))} />
+    <label label={binding(time.map((t) => t.clock))} />
   </PanelButton>
 )
 
@@ -56,25 +57,25 @@ const battery = AstalBattery.get_default()
 const profiles = AstalPowerProfiles.get_default()
 
 export const PanelButtons = () => (
-  <Box>
+  <box>
     <PanelButton
       window="network-config"
       onClicked={() => App.toggle_window('network-config')}
     >
-      <Icon
+      <image
         tooltipText={bind(profiles, 'active_profile')}
         iconName={bind(profiles, 'iconName')}
         visible={bind(profiles, 'active_profile').as((p) => p != 'balanced')}
       />
-      <Icon
+      <image
         tooltipText={bind(wifi, 'ssid').as(String)}
         iconName={bind(wifi, 'iconName')}
       />
-      <Icon
+      <image
         tooltipText={bind(battery, 'percentage').as(String)}
         iconName={bind(battery, 'battery_icon_name')}
       />
     </PanelButton>
     <DateTime />
-  </Box>
+  </box>
 )

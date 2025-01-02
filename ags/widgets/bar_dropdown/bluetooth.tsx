@@ -1,7 +1,5 @@
-import { binding, obs } from 'rxbinding'
 import { Quicktoggle } from './quicktoggle'
 import { bind } from 'astal'
-import { Observable } from 'rx'
 import AstalBluetooth from 'gi://AstalBluetooth?version=0.1'
 
 const bluetooth = AstalBluetooth.get_default()

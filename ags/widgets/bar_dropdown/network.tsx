@@ -5,7 +5,6 @@ import { bind } from 'astal'
 import { Observable } from 'rx'
 import Gtk from 'gi://Gtk?version=4.0'
 import Adw from 'gi://Adw?version=1'
-import { Box, Button, Icon, Label } from 'widgets/types'
 import { ActionRow, ListBox } from 'widgets/adw'
 
 const network = AstalNetwork.get_default()
@@ -24,12 +23,12 @@ function subt(ssid: string) {
 function disconnect(ap: AstalNetwork.AccessPoint) {
   return activeSsid.map((active) =>
     active == ap.ssid ? (
-      <Button
+      <button
         css_classes={['icon-button', 'flat', 'circular']}
         iconName={'process-stop-symbolic'}
       />
     ) : (
-      <Button
+      <button
         css_classes={['icon-button', 'flat', 'circular']}
         iconName={'object-select-symbolic'}
       />
@@ -84,7 +83,7 @@ function List() {
                       iconName={bind(ap, 'icon_name')}
                       subtitle={binding(subt(ap.ssid), '')}
                     >
-                      <Box>{binding(disconnect(ap))}</Box>
+                      <box>{binding(disconnect(ap))}</box>
                     </ActionRow>
                   ))
               )
@@ -99,18 +98,18 @@ function NetworkPage() {
   return new Adw.NavigationPage({
     css_classes: ['list-page'],
     child: (
-      <Box orientation={Gtk.Orientation.VERTICAL}>
+      <box orientation={Gtk.Orientation.VERTICAL}>
         <Adw.HeaderBar
           cssClasses={['flat']}
           titleWidget={
-            <Box>
-              <Icon iconName={bind(network.wifi, 'iconName')} />
-              <Label label={binding(activeSsid)} className={'title'} />
-            </Box>
+            <box>
+              <image iconName={bind(network.wifi, 'iconName')} />
+              <label label={binding(activeSsid)} className={'title'} />
+            </box>
           }
         />
         <List />
-      </Box>
+      </box>
     ),
   })
 }

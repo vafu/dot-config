@@ -1,10 +1,10 @@
 import Astal from 'gi://Astal?version=4.0'
 import { App, Gtk } from 'astal/gtk4'
-import { Box } from 'widgets'
 import { NetworkQuicktoggle } from './network'
 import { PowerProfileQuicktoggle } from './power_profile'
 import { BluetoothQuicktoggle } from './bluetooth'
 import Adw from 'gi://Adw?version=1'
+import { exec } from 'astal'
 
 const toggles = [
   NetworkQuicktoggle((page) => navigation.push(page)),
@@ -14,21 +14,32 @@ const toggles = [
 
 function Quicktoggles() {
   return (
-    <Box className="quicktoggle-container">
-      <Box orientation={Gtk.Orientation.VERTICAL}>
+    <box className="quicktoggle-container">
+      <box orientation={Gtk.Orientation.VERTICAL}>
         {toggles.filter((_, i) => i % 2 == 0)}
-      </Box>
-      <Box orientation={Gtk.Orientation.VERTICAL}>
+      </box>
+      <box orientation={Gtk.Orientation.VERTICAL}>
         {toggles.filter((_, i) => i % 2 != 0)}
-      </Box>
-    </Box>
+      </box>
+    </box>
   )
 }
 
 function Main() {
   return (
     <Adw.NavigationPage>
-      <Quicktoggles />
+      <box orientation={Gtk.Orientation.VERTICAL}>
+        <box>
+          <box hexpand={true} />
+          <button
+            hexpand={false}
+            cssClasses={['flat', 'circular', 'icon-button']}
+            onClicked={() => exec('systemctl suspend')}
+            iconName={'system-shutdown-symbolic'}
+          />
+        </box>
+        <Quicktoggles />
+      </box>
     </Adw.NavigationPage>
   )
 }
@@ -40,7 +51,7 @@ export default () => (
   <window
     visible={false}
     name="network-config"
-    className="bar-dropdown"
+    cssClasses={['bar-dropdown']}
     application={App}
     resizable={false}
     layer={Astal.Layer.OVERLAY}
