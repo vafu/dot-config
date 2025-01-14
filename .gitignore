@@ -3,6 +3,7 @@
 !.gitignore
 
 !ags/**
+!foot/**
 !hypr/**
 !scripts/**
 !nvim

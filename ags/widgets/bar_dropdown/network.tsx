@@ -83,7 +83,6 @@ function List() {
                       iconName={bind(ap, 'icon_name')}
                       subtitle={binding(subt(ap.ssid), '')}
                     >
-                      <box>{binding(disconnect(ap))}</box>
                     </ActionRow>
                   ))
               )
