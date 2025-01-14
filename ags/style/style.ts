@@ -16,7 +16,6 @@ AstalIO.monitor_file('./style', (f: string, event: Gio.FileMonitorEvent) => {
 })
 
 function compileCss() {
-  const pwd = exec('pwd')
   const gtk_colors = readFile('./style/gtk_colors.css')
   const gtk_color_bindings = gtk_colors
     .split('\n')
@@ -24,9 +23,14 @@ function compileCss() {
     .map((s) => '$' + s.replace(regex, '$1: "@$1";'))
     .join('\n')
 
-  const scss_files = exec('fd .scss ./style/')
+  exec("rm -rf /tmp/style/")
+  exec("mkdir /tmp/style/")
+  const scss_files = exec('fdfind .scss style/')
     .split(/\s+/)
-    .map((f) => `@import '${pwd}/${f}';`)
+    .map((f) => {
+        exec(`cp ${f} /tmp/style/`)
+        return `@import '${f}';`
+     })
     .join('\n')
 
   writeFile(sass_input, gtk_color_bindings + '\n' + scss_files)

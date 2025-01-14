@@ -2,7 +2,7 @@
   "name": "astal-shell",
   "dependencies": {
     "@types/rx": "^4.1.4",
-    "rx": "^4.1.0",
-    "astal": "/usr/share/astal/gjs/"
+    "astal": "/usr/share/astal/gjs/",
+    "rx": "^4.1.0"
   }
 }
