@@ -1,5 +1,6 @@
 import { astalify, type ConstructProps, Gtk } from 'astal/gtk4'
 import Adw from 'gi://Adw?version=1'
+import { type } from '../../../../../usr/share/astal/gjs/gtk4/astalify'
 
 export type ActionRowProps = ConstructProps<
   Adw.ActionRow,
@@ -10,9 +11,23 @@ export const ActionRow = astalify<
   Adw.ActionRow.ConstructorProps
 >(Adw.ActionRow, {
   setChildren(self, children) {
-    self.add_suffix(children[0])
+    const a = children.flat(Infinity)[0]
+    self.add_suffix(a)
   },
 })
+
+const id = (() => {
+  let currentId = 0
+  const map = new WeakMap()
+
+  return (object) => {
+    if (!map.has(object)) {
+      map.set(object, ++currentId)
+    }
+
+    return map.get(object)
+  }
+})()
 
 export type ListBoxProps = ConstructProps<
   Gtk.ListBox,
@@ -23,7 +38,11 @@ export const ListBox = astalify<Gtk.ListBox, Gtk.ListBox.ConstructorProps>(
   {
     setChildren(self, children) {
       self.remove_all()
-      children.forEach((w) => self.append(w))
+      children.flat(Infinity).forEach((w) => {
+        if (w instanceof Gtk.Widget) {
+          self.append(w)
+        }
+      })
     },
   }
 )
