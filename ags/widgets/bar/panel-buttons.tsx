@@ -29,8 +29,8 @@ const PanelButton = (
     },
   )
 
-const clockFormat = '%H:%M'
-const dateFormat = '%a %d %b'
+const dateFormat = '%a %b %d'
+const clockFormat = `${dateFormat} %H:%M`
 const time = Observable.interval(1000)
   .startWith(0)
   .map(() => {

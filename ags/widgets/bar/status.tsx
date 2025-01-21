@@ -1,10 +1,10 @@
 import { exec, Variable } from "astal"
 
 const CPU = Variable("0")
-  .poll(5000, () => exec("bash scripts/cpu.sh"))
+  .poll(3000, () => exec("bash scripts/cpu.sh"))
 
 const RAM = Variable("0")
-  .poll(5000, () => exec("bash scripts/ram.sh"))
+  .poll(3000, () => exec("bash scripts/ram.sh"))
 
 export const Status = () => <box>
   <box cssClasses={['bar-widget']}>
