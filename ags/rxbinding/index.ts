@@ -43,3 +43,7 @@ export function binding<T>(observable: Observable<T>, initial = null): Binding<T
     get: () => value,
   })
 }
+
+export function disposeOnDestroy(widget: Gtk.Widget, disposable: Disposable) {
+  widget.connect("destroy", () => disposable.dispose())
+}
