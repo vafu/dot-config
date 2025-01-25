@@ -34,7 +34,10 @@ export function asObservable<Value>(
   })
 }
 
-export function binding<T>(observable: Observable<T>, initial = null): Binding<T> {
+export function binding<T>(
+  observable: Observable<T>,
+  initial = null
+): Binding<T> {
   let value: T | null = initial
   const shared = observable.doOnNext((v) => (value = v)).shareReplay(1)
 
@@ -43,3 +46,12 @@ export function binding<T>(observable: Observable<T>, initial = null): Binding<T
     get: () => value,
   })
 }
+
+export function disposeOnDestroy(widget: Gtk.Widget, disposable: Disposable) {
+  widget.connect('destroy', () => disposable.dispose())
+}
+
+export function bindProp<T, K extends keyof T>(obs: Observable<T>, name: K) {
+  return binding(obs.map((v) => v[name]))
+}
+

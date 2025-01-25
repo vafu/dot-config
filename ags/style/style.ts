@@ -25,7 +25,7 @@ function compileCss() {
 
   exec("rm -rf /tmp/style/")
   exec("mkdir /tmp/style/")
-  const scss_files = exec('fdfind .scss style/')
+  const scss_files = exec('fd .scss style/')
     .split(/\s+/)
     .map((f) => {
         exec(`cp ${f} /tmp/style/`)

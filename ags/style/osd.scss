@@ -1,0 +1,28 @@
+@import 'common.scss';
+
+window.OSD {
+    padding: 10px;
+    box.OSD {
+        border-radius: 24px;
+        background-color: #{$bg_deep};
+        padding: 13px 16px;
+        margin: 50px;
+        /* Nice shadow, copy it */
+        box-shadow: 3px 3px 7px 0 rgba(0,0,0,.4);
+    } 
+
+    image {
+        padding: 12px;
+    }
+
+    levelbar {
+
+        trough {
+            margin: 1 .6rem;
+        }
+
+        block {
+            min-height: 2rem;
+        }
+    }
+}

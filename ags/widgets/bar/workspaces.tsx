@@ -6,7 +6,8 @@ import { Observable } from 'rx'
 
 const workspaceService = Service('workspace')
 
-const workspaces = range(7).map((idx) => {
+const workspaces = () => 
+   range(7).map((idx) => {
   const ws = workspaceService.activeWorkroom.map((wr) => wr.getWs(idx))
   return (
     <label
@@ -24,6 +25,6 @@ const workspaces = range(7).map((idx) => {
   )
 })
 
-export const Workspaces = () => (
-  <box cssClasses={['workspaces', 'bar-widget']}>{workspaces}</box>
-)
+export const Workspaces = () => {
+  return <box cssClasses={['workspaces', 'bar-widget']}>{workspaces()}</box>
+}
