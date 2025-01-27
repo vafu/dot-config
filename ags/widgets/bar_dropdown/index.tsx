@@ -1,5 +1,5 @@
 import Astal from 'gi://Astal?version=4.0'
-import { App, Gtk } from 'astal/gtk4'
+import { App, Gdk, Gtk } from 'astal/gtk4'
 import { NetworkQuicktoggle } from './network'
 import { PowerProfileQuicktoggle } from './power_profile'
 import { BluetoothQuicktoggle } from './bluetooth'
@@ -14,7 +14,7 @@ const toggles = [
 
 function Quicktoggles() {
   return (
-    <box cssClasses={["quicktoggle-container"]}>
+    <box cssClasses={['quicktoggle-container']}>
       <box orientation={Gtk.Orientation.VERTICAL}>
         {toggles.filter((_, i) => i % 2 == 0)}
       </box>
@@ -55,8 +55,10 @@ export default () => (
     application={App}
     resizable={false}
     layer={Astal.Layer.OVERLAY}
-    exclusivity={Astal.Exclusivity.EXCLUSIVE}
+    exclusivity={Astal.Exclusivity.NORMAL}
+    keymode={Astal.Keymode.EXCLUSIVE}
     anchor={Astal.WindowAnchor.TOP | Astal.WindowAnchor.RIGHT}
+    onKeyPressed={(_, k, c) => {if (k == Gdk.KEY_Escape) App.toggle_window('network-config')}}
   >
     {navigation}
   </window>

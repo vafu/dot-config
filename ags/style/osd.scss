@@ -1,21 +1,18 @@
 @import 'common.scss';
 
 window.OSD {
+    padding: 10px;
     box.OSD {
-        border-radius: 100px;
+        border-radius: 24px;
         background-color: #{$bg_deep};
         padding: 13px 16px;
-        margin: 13px;
+        margin: 50px;
         /* Nice shadow, copy it */
         box-shadow: 3px 3px 7px 0 rgba(0,0,0,.4);
-    }
+    } 
 
-    icon {
-        font-size: 4rem;
-    }
-
-    label {
-        font-size: 2.4rem;
+    image {
+        padding: 12px;
     }
 
     levelbar {
