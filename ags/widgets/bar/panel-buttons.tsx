@@ -54,9 +54,33 @@ const { wifi } = AstalNetwork.get_default()
 const battery = AstalBattery.get_default()
 const profiles = AstalPowerProfiles.get_default()
 
-const isMuted = obs(AstalWp.get_default(), 'default_speaker').flatMapLatest(
-  (s) => obs(s, 'mute')
-)
+const isMuted = obs(AstalWp.get_default(), 'default_speaker').flatMapLatest(s => obs(s, 'mute'))
+
+const wired = obs(AstalNetwork.get_default(), 'wired')
+  .flatMapLatest(w => obs(w, 'state'))
+  .shareReplay(1)
+
+const ethIcon = wired.map(s => {
+  switch (s) {
+    case AstalNetwork.DeviceState.ACTIVATED: return "network-wired-symbolic"
+    case AstalNetwork.DeviceState.IP_CHECK:
+    case AstalNetwork.DeviceState.IP_CONFIG:
+    case AstalNetwork.DeviceState.CONFIG:
+    case AstalNetwork.DeviceState.SECONDARIES:
+    case AstalNetwork.DeviceState.PREPARE: return "network-wired-acquiring-symbolic"
+    case AstalNetwork.DeviceState.FAILED:
+    case AstalNetwork.DeviceState.NEED_AUTH:
+    case AstalNetwork.DeviceState.UNMANAGED:
+    case AstalNetwork.DeviceState.UNKNOWN: return "network-wired-no-route-symbolic"
+    default: return "network-wired-disconnected-symbolic"
+  }
+})
+
+const ethEnabled = wired.map(s => s != AstalNetwork.DeviceState.DISCONNECTED)
+
+const ethSpeed = obs(AstalNetwork.get_default(), 'wired')
+  .flatMapLatest(w => obs(w, 'speed'))
+  .map(s => s.toString())
 
 export const PanelButtons = () => (
   <box>
@@ -66,6 +90,7 @@ export const PanelButtons = () => (
     >
       <box>
         <image iconName="audio-volume-muted" visible={binding(isMuted)} />
+        <image iconName={binding(ethIcon)} visible={binding(ethEnabled)} tooltipText={binding(ethSpeed)} />
         <image
           tooltipText={bind(profiles, 'active_profile')}
           iconName={bind(profiles, 'iconName')}
