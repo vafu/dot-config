@@ -1,6 +1,6 @@
 import { App, Astal, Gdk } from 'astal/gtk4'
 import { Hidden, OnScreenProgress, State } from './OSD'
-import { obs } from 'rxbinding'
+import { binding, obs } from 'rxbinding'
 import obtainService from 'services'
 import AstalWp from 'gi://AstalWp?version=0.1'
 import { Observable } from 'rx'
@@ -34,7 +34,7 @@ export default function OSD(monitor: Gdk.Monitor) {
 
   return (
     <window
-      visible={true}
+      visible={binding(source.delay(100).map(s => s != Hidden))}
       gdkmonitor={monitor}
       cssClasses={['OSD']}
       name={'OSD'}
@@ -46,5 +46,4 @@ export default function OSD(monitor: Gdk.Monitor) {
     >
       <OnScreenProgress states={source} />
     </window>
-  )
-}
+  )}

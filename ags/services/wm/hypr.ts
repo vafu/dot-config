@@ -80,12 +80,15 @@ class HyprWS implements WS {
   urgent: Observable<boolean> = Observable.just(false)
 
   constructor(id: number) {
-    this.active = focusedWorkspace.map((w) => w.id == id).shareReplay(1)
+    this.active = focusedWorkspace
+      .map((w) => w.id == id)
+      .distinctUntilChanged()
+      .shareReplay(1)
 
     this.occupied = workspaces
-      .map((w) => w.map((ws) => ws.id))
+      .map((w) => w.map((ws) => [ws.id, ws.clients.length == 0]))
       .distinctUntilChanged()
-      .map((ws) => ws.some((i) => i == id))
+      .map((ws) => ws.some(([i, isEmpty]) => i == id && !isEmpty))
       .shareReplay(1)
 
     this.urgent = urgentWs
