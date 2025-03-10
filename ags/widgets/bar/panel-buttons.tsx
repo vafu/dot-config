@@ -8,6 +8,7 @@ import AstalBattery from 'gi://AstalBattery?version=0.1'
 import AstalPowerProfiles from 'gi://AstalPowerProfiles?version=0.1'
 import { Box, Button, ButtonProps } from 'astal/gtk4/widget'
 import AstalWp from 'gi://AstalWp?version=0.1'
+import { SysTray } from './tray'
 
 type PanelButtonProps = ButtonProps & {
   window?: string
@@ -84,6 +85,7 @@ const ethSpeed = obs(AstalNetwork.get_default(), 'wired')
 
 export const PanelButtons = () => (
   <box>
+    <SysTray />
     <PanelButton
       window="network-config"
       onClicked={() => App.toggle_window('network-config')}
