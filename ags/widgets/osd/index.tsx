@@ -22,7 +22,10 @@ const audio = obs(AstalWp.get_default(), 'default_speaker')
   }))
 
 export default function OSD(monitor: Gdk.Monitor) {
-  const source = Observable.merge(audio, brightness).flatMapLatest((s) =>
+  const source = Observable.merge(
+    audio,
+    brightness
+  ).flatMapLatest((s) =>
     Observable.merge<State>(
       Observable.just(s),
       Observable.just(Hidden).delay(2000)
@@ -31,16 +34,16 @@ export default function OSD(monitor: Gdk.Monitor) {
 
   return (
     <window
-      visible={binding(source.delay(100).map((a) => a != Hidden))}
+      visible={binding(source.delay(100).map(s => s != Hidden))}
       gdkmonitor={monitor}
       cssClasses={['OSD']}
       name={'OSD'}
       application={App}
       layer={Astal.Layer.OVERLAY}
-      exclusivity={Astal.Exclusivity.NORMAL}
+      exclusivity={Astal.Exclusivity.IGNORE}
+      focusable={false}
       anchor={Astal.WindowAnchor.BOTTOM}
     >
       <OnScreenProgress states={source} />
     </window>
-  )
-}
+  )}

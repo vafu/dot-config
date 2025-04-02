@@ -1,31 +1,42 @@
-import { bind } from "astal"
+import { bind, GObject } from "astal"
+import { Gtk } from "astal/gtk4"
 import Tray from "gi://AstalTray"
 import { binding, obs } from "rxbinding"
 
 export function SysTray() {
   const tray = Tray.get_default()
 
-  return <box cssClasses={["SysTray"]} >
-    {
-      binding(obs(tray, "items").map(items => items.map(item => {
-        console.log("item", item)
-        return <menubutton
-          cssClasses={["flat", "bar-widget"]}
-          tooltipMarkup={bind(item, "tooltipMarkup")}
-          actionGroup={bind(item, "actionGroup").as(ag => ["dbusmenu", ag])}
-          menuModel={bind(item, "menuModel")}
-          setup={w => {
-            const c = bind(item, "actionGroup").subscribe(ag => {
-              w.insert_action_group("dbusmenu", null)
-              w.insert_action_group("dbusmenu", ag)
-            }
-            )
-            w.connect("destroy", c)
-          }}
-        >
-          <image gicon={bind(item, "gicon")} />
-        </menubutton>
-      })))
+  const traybox = new Gtk.Box({ cssClasses: ["SysTray"] })
+  const trayItems = new Map<string, Gtk.MenuButton>()
+  const itemAdded = tray.connect('item-added', (_, id) => {
+    const item = tray.get_item(id)
+    const popover = Gtk.PopoverMenu.new_from_model(item.menuModel)
+    const icon = new Gtk.Image()
+    const button = new Gtk.MenuButton({ popover, child: icon, cssClasses: ["flat", "circular",] })
+
+    item.bind_property('gicon', icon, 'gicon', GObject.BindingFlags.SYNC_CREATE)
+    popover.insert_action_group('dbusmenu', item.actionGroup)
+    item.connect("notify::action-group", () => {
+      popover.insert_action_group("dbusmenu", item.action_group)
+    })
+
+    trayItems.set(id, button)
+    traybox.append(button)
+  })
+
+  const itemRemoved = tray.connect("item-removed", (_, id) => {
+    const button = trayItems.get(id)
+    if (button) {
+      traybox.remove(button)
+      button.run_dispose()
+      trayItems.delete(id)
     }
-  </box >
+  })
+
+  traybox.connect('destroy', () => {
+    tray.disconnect(itemAdded)
+    tray.disconnect(itemRemoved)
+  })
+
+  return traybox
 }

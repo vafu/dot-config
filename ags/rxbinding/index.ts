@@ -19,7 +19,7 @@ export function obs<T extends Connectable, P extends keyof T>(
     throw Error(
       `Trying to create observable for ${String(property)} from null!`
     )
-  return asObservable(bind(object, property))
+  return asObservable(bind(object, property)).filter(p => p != null)
 }
 
 export function asObservable<Value>(
