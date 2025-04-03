@@ -1,5 +1,11 @@
 import { Gio, readFile } from 'astal'
 import { AstalIO, bind, exec, Variable } from 'astal'
+import {
+  DeviceClasses,
+  MajorDeviceClass,
+  parseCoD,
+  ParsedDeviceClass,
+} from 'commons'
 import AstalBluetooth from 'gi://AstalBluetooth'
 import { binding, obs } from 'rxbinding'
 
@@ -8,6 +14,10 @@ const CPU = Variable('0').poll(3000, () => exec('bash scripts/cpu.sh'))
 const RAM = Variable('0').poll(3000, () => exec('bash scripts/ram.sh'))
 
 const bt = AstalBluetooth.get_default()
+
+console.log(
+  bt.devices.map((d) => d.name + MajorDeviceClass[parseCoD(d.class)?.major])
+)
 
 export const Status = () => (
   <box>
@@ -21,8 +31,11 @@ export const Status = () => (
       <label label={RAM().as((c) => c + '%')} />
     </box>
     {[
-      BtDeviceBattery("Sofle", "input-keyboard-symbolic"),
-      BatteryFromHid('input-touchpad-symbolic', '')
+      BtDeviceBattery(
+        (c) => c.major === MajorDeviceClass.PERIPHERAL
+        'input-keyboard-symbolic'
+      ),
+      BatteryFromHid('input-touchpad-symbolic', ''),
     ]}
   </box>
 )
@@ -44,30 +57,31 @@ function BatteryFromHid(icon: string, hid: string) {
     }
   })
 
-  return <box cssClasses={['bar-widget']}
-    visible={bind(visible)}>
-    <image iconName={icon} />
-    <label
-      label={bind(capacity).as(
-        (p) => p.trim() + '%'
-      )}
-    />
-  </box>
+  return (
+    <box cssClasses={['bar-widget']} visible={bind(visible)}>
+      <image iconName={icon} />
+      <label label={bind(capacity).as((p) => p.trim() + '%')} />
+    </box>
+  )
 }
 
-function BtDeviceBattery(name: string, icon: string) {
-  const device = obs(bt, 'devices').map(d => d.find(dev => dev.name == name)).filter(d => d != null).shareReplay(1)
-  const connected = device.flatMapLatest(d => obs(d, 'connected')).startWith(false)
-  const charge = device.flatMapLatest(d => obs(d, 'batteryPercentage'))
+function BtDeviceBattery(
+  matcher: (c: ParsedDeviceClass) => Boolean,
+  icon: string
+) {
+  const device = obs(bt, 'devices')
+    .map((d) => d.find((dev) => matcher(parseCoD(dev.class))))
+    .filter((d) => d != null)
+    .shareReplay(1)
+  const connected = device
+    .flatMapLatest((d) => obs(d, 'connected'))
+    .startWith(false)
+  const charge = device.flatMapLatest((d) => obs(d, 'batteryPercentage'))
 
-  return <box cssClasses={['bar-widget']}
-    visible={binding(connected)}>
-    <image iconName={icon} />
-    <label
-      label={binding(charge).as(
-        (p) => (p * 100).toString() + '%'
-      )}
-    />
-  </box>
+  return (
+    <box cssClasses={['bar-widget']} visible={binding(connected)}>
+      <image iconName={icon} />
+      <label label={binding(charge).as((p) => (p * 100).toString() + '%')} />
+    </box>
+  )
 }
-
