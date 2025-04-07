@@ -1,12 +1,12 @@
 import { Gio, readFile } from 'astal'
 import { AstalIO, bind, exec, Variable } from 'astal'
-import { BluetoothDeviceType, getDeviceType } from 'commons'
+import { batteryStatusFor, BluetoothDeviceType, getDeviceType } from 'commons/bluetooth'
 import AstalBluetooth from 'gi://AstalBluetooth'
 import { binding, obs } from 'rxbinding'
 
 const CPU = Variable('0').poll(3000, () => exec('bash scripts/cpu.sh'))
-
 const RAM = Variable('0').poll(3000, () => exec('bash scripts/ram.sh'))
+
 
 const btDevices = obs(AstalBluetooth.get_default(), 'devices')
   .map(devices => devices.map(d => ({ device: d, type: getDeviceType(d) })))
@@ -24,7 +24,7 @@ export const Status = () => (
       <label label={RAM().as((c) => c + '%')} />
     </box>
     {[
-      BtDeviceBattery(t => t == BluetoothDeviceType.INPUT_KEYBOARD),
+      SplitKb(),
       BtDeviceBattery(t => [BluetoothDeviceType.AUDIO_HEADPHONES, BluetoothDeviceType.AUDIO_HEADSET].includes(t)),
       BatteryFromHid('input-touchpad-symbolic', ''),
     ]}
@@ -56,6 +56,34 @@ function BatteryFromHid(icon: string, hid: string) {
   )
 }
 
+
+
+function SplitKb() {
+  const device = btDevices
+    .map(devices => devices.find(d => d.device.name == "Sofle"))
+    .filter((d) => d != null)
+    .shareReplay(1)
+
+  const connected = device
+    .flatMapLatest((d) => obs(d.device, 'connected'))
+    .startWith(false)
+
+  const battery = device
+    .flatMapLatest(d => batteryStatusFor(d.device))
+    .map(p => p.char0011.toString() + "/" + p.char0016)
+    .startWith("/")
+    .shareReplay(1)
+
+  const icon = device.map(d => d.type.icon)
+
+  return (
+    <box cssClasses={['bar-widget']} visible={binding(connected)}>
+      <image iconName={binding(icon)} />
+      <label label={binding(battery)} />
+    </box>
+  )
+}
+
 function BtDeviceBattery(
   matcher: (c: BluetoothDeviceType) => Boolean,
 ) {
@@ -79,3 +107,4 @@ function BtDeviceBattery(
     </box>
   )
 }
+
