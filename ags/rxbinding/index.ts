@@ -1,8 +1,6 @@
 import { Disposable, Observable } from 'rx'
 import Binding, { bind, Connectable } from 'astal/binding'
 import Gtk from 'gi://Gtk?version=4.0'
-import { Astal } from 'astal/gtk4'
-import { Process, subprocess } from 'astal'
 
 export function subscribeTo<W extends Gtk.Widget, T>(
   widget: W,
@@ -55,12 +53,5 @@ export function disposeOnDestroy(widget: Gtk.Widget, disposable: Disposable) {
 
 export function bindProp<T, K extends keyof T>(obs: Observable<T>, name: K) {
   return binding(obs.map((v) => v[name]))
-}
-
-export function launchScript(path: string): Observable<string> {
-  return Observable.create(o => {
-    const p = subprocess(path, s => o.onNext(s), e => o.onError(Error(e)))
-    return Disposable.create(() => p.signal(15))
-  })
 }
 
