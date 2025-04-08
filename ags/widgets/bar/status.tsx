@@ -1,7 +1,9 @@
 import { Gio, readFile } from 'astal'
 import { AstalIO, bind, exec, Variable } from 'astal'
 import { BluetoothDeviceType, getDeviceType } from 'commons'
+import { queryBatteryServiceFor } from 'commons/bluetooth/glib-battery'
 import AstalBluetooth from 'gi://AstalBluetooth'
+import { Observable } from 'rx'
 import { binding, obs } from 'rxbinding'
 
 const CPU = Variable('0').poll(3000, () => exec('bash scripts/cpu.sh'))
@@ -9,7 +11,7 @@ const CPU = Variable('0').poll(3000, () => exec('bash scripts/cpu.sh'))
 const RAM = Variable('0').poll(3000, () => exec('bash scripts/ram.sh'))
 
 const btDevices = obs(AstalBluetooth.get_default(), 'devices')
-  .map(devices => devices.map(d => ({ device: d, type: getDeviceType(d) })))
+  .map((devices) => devices.map((d) => ({ device: d, type: getDeviceType(d) })))
   .shareReplay(1)
 
 export const Status = () => (
@@ -24,12 +26,49 @@ export const Status = () => (
       <label label={RAM().as((c) => c + '%')} />
     </box>
     {[
-      BtDeviceBattery(t => t == BluetoothDeviceType.INPUT_KEYBOARD),
-      BtDeviceBattery(t => [BluetoothDeviceType.AUDIO_HEADPHONES, BluetoothDeviceType.AUDIO_HEADSET].includes(t)),
+      Sofle(),
+      BtDeviceBattery((t) =>
+        [
+          BluetoothDeviceType.AUDIO_HEADPHONES,
+          BluetoothDeviceType.AUDIO_HEADSET,
+        ].includes(t)
+      ),
       BatteryFromHid('input-touchpad-symbolic', ''),
     ]}
   </box>
 )
+
+function Sofle() {
+  const device = btDevices
+    .map((devices) => devices.find((d) => d.device.name == 'Sofle'))
+    .filter((d) => d != null)
+    .shareReplay(1)
+
+  const connected = device
+    .flatMapLatest((d) => obs(d.device, 'connected'))
+    .startWith(false)
+
+  const icon = device.map((d) => d.type.icon)
+
+  const stats = device
+    .flatMapLatest((d) =>
+      obs(d.device, 'connected').flatMapLatest((connected) => {
+        if (connected) {
+          return queryBatteryServiceFor(d.device)
+        } else {
+          return Observable.just([])
+        }
+      })
+    )
+    .map((s) => s.join('/'))
+
+  return (
+    <box cssClasses={['bar-widget']} visible={binding(connected)}>
+      <image iconName={binding(icon)} />
+      <label label={binding(stats)} />
+    </box>
+  )
+}
 
 function BatteryFromHid(icon: string, hid: string) {
   const path = '/sys/class/power_supply/hid-08:65:18:b9:2b:96-battery/capacity'
@@ -56,11 +95,9 @@ function BatteryFromHid(icon: string, hid: string) {
   )
 }
 
-function BtDeviceBattery(
-  matcher: (c: BluetoothDeviceType) => Boolean,
-) {
+function BtDeviceBattery(matcher: (c: BluetoothDeviceType) => Boolean) {
   const device = btDevices
-    .map(devices => devices.find(d => matcher(d.type)))
+    .map((devices) => devices.find((d) => matcher(d.type)))
     .filter((d) => d != null)
     .shareReplay(1)
 
@@ -70,7 +107,7 @@ function BtDeviceBattery(
 
   const charge = device.flatMapLatest((d) => obs(d.device, 'batteryPercentage'))
 
-  const icon = device.map(d => d.type.icon)
+  const icon = device.map((d) => d.type.icon)
 
   return (
     <box cssClasses={['bar-widget']} visible={binding(connected)}>
