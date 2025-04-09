@@ -1,7 +1,7 @@
 import { Gio, readFile } from 'astal'
 import { AstalIO, bind, exec, Variable } from 'astal'
 import { BluetoothDeviceType, getDeviceType } from 'commons'
-import { queryBatteryServiceFor } from 'commons/bluetooth/glib-battery'
+import { queryBatteryStats } from 'commons/bluetooth/glib-battery'
 import AstalBluetooth from 'gi://AstalBluetooth'
 import { Observable } from 'rx'
 import { binding, obs } from 'rxbinding'
@@ -54,7 +54,7 @@ function Sofle() {
     .flatMapLatest((d) =>
       obs(d.device, 'connected').flatMapLatest((connected) => {
         if (connected) {
-          return queryBatteryServiceFor(d.device)
+          return queryBatteryStats(d.device.address)
         } else {
           return Observable.just([])
         }
@@ -69,6 +69,8 @@ function Sofle() {
     </box>
   )
 }
+
+queryBatteryStats("08:65:18:b9:2b:96").subscribe((stats) => console.log(stats))
 
 function BatteryFromHid(icon: string, hid: string) {
   const path = '/sys/class/power_supply/hid-08:65:18:b9:2b:96-battery/capacity'
