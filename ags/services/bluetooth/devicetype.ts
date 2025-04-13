@@ -1,6 +1,6 @@
 import AstalBluetooth from "gi://AstalBluetooth?version=0.1";
 
-export const BluetoothDeviceType = {
+export const BluetoothDeviceTypes = {
   COMPUTER: { icon: "computer" },
   PHONE: { icon: "phone" },
   MODEM: { icon: "modem" },
@@ -21,7 +21,7 @@ export const BluetoothDeviceType = {
   SCANNER: { icon: "scanner" },
 } as const;
 
-export type BluetoothDeviceType = typeof BluetoothDeviceType[keyof typeof BluetoothDeviceType];
+export type BluetoothDeviceType = typeof BluetoothDeviceTypes[keyof typeof BluetoothDeviceTypes];
 
 
 // For classToIcon (Bluetooth Classic Class of Device)
@@ -54,7 +54,7 @@ function parseClass(deviceClass: number): BluetoothDeviceType | null {
 
   switch (majorDeviceClass) {
     case 0x01: // Computer Major Class
-      return BluetoothDeviceType.COMPUTER;
+      return BluetoothDeviceTypes.COMPUTER;
     case 0x02: // Phone Major Class
       // Extract Minor Device Class for Phone (bits 2-7 -> values 0-63)
       const phoneMinorClass = (deviceClass & COD_MINOR_AUDIO_MASK) >> COD_MINOR_AUDIO_SHIFT;
@@ -63,29 +63,29 @@ function parseClass(deviceClass: number): BluetoothDeviceType | null {
         case 0x02: // Cordless
         case 0x03: // Smartphone
         case 0x05: // Common ISDN Access
-          return BluetoothDeviceType.PHONE;
+          return BluetoothDeviceTypes.PHONE;
         case 0x04: // Wired modem or voice gateway
-          return BluetoothDeviceType.MODEM;
+          return BluetoothDeviceTypes.MODEM;
       }
       break; // Important: break if no minor class matched within phone
     case 0x03: // LAN/Network Access Point Major Class
-      return BluetoothDeviceType.NETWORK_WIRELESS;
+      return BluetoothDeviceTypes.NETWORK_WIRELESS;
     case 0x04: // Audio/Video Major Class
       // Extract Minor Device Class for AV (bits 2-7 -> values 0-63)
       const audioMinorClass = (deviceClass & COD_MINOR_AUDIO_MASK) >> COD_MINOR_AUDIO_SHIFT;
       switch (audioMinorClass) {
         case 0x01: // Wearable Headset Device
         case 0x02: // Hands-free Device
-          return BluetoothDeviceType.AUDIO_HEADSET;
+          return BluetoothDeviceTypes.AUDIO_HEADSET;
         case 0x06: // Headphones
-          return BluetoothDeviceType.AUDIO_HEADPHONES;
+          return BluetoothDeviceTypes.AUDIO_HEADPHONES;
         case 0x0b: // VCR
         case 0x0c: // Video Camera
         case 0x0d: // Camcorder
-          return BluetoothDeviceType.CAMERA_VIDEO;
+          return BluetoothDeviceTypes.CAMERA_VIDEO;
         default:
           // Other audio device cases fall through here
-          return BluetoothDeviceType.AUDIO_CARD;
+          return BluetoothDeviceTypes.AUDIO_CARD;
       }
       break;
     case 0x05: // Peripheral Major Class (keyboards, mice, etc.)
@@ -99,18 +99,18 @@ function parseClass(deviceClass: number): BluetoothDeviceType | null {
           switch (peripheralSubType) {
             case 0x01: // Joystick
             case 0x02: // Gamepad
-              return BluetoothDeviceType.INPUT_GAMING;
+              return BluetoothDeviceTypes.INPUT_GAMING;
           }
           break; // Break inner switch
         case 0x01: // Keyboard
-          return BluetoothDeviceType.INPUT_KEYBOARD;
+          return BluetoothDeviceTypes.INPUT_KEYBOARD;
         case 0x02: // Pointing device
           switch (peripheralSubType) {
             case 0x05: // Digitizer tablet
-              return BluetoothDeviceType.INPUT_TABLET;
+              return BluetoothDeviceTypes.INPUT_TABLET;
             default:
               // Includes Mouse (0x04 according to spec, but handled by default here)
-              return BluetoothDeviceType.INPUT_MOUSE;
+              return BluetoothDeviceTypes.INPUT_MOUSE;
           }
           // Break technically not needed after return
           break;
@@ -118,9 +118,9 @@ function parseClass(deviceClass: number): BluetoothDeviceType | null {
       break; // Important: break if no type/subtype matched within peripheral
     case 0x06: // Imaging Major Class
       if (deviceClass & COD_IMAGING_PRINTER_BIT) // Check bit 7
-        return BluetoothDeviceType.PRINTER;
+        return BluetoothDeviceTypes.PRINTER;
       if (deviceClass & COD_IMAGING_CAMERA_BIT) // Check bit 5
-        return BluetoothDeviceType.CAMERA_PHOTO;
+        return BluetoothDeviceTypes.CAMERA_PHOTO;
       break; // Important: break if no imaging bit matched
   }
 
@@ -133,37 +133,37 @@ function parseAppearance(appearance: number): BluetoothDeviceType | null {
 
   switch (category) {
     case 0x00: // Unknown
-      return BluetoothDeviceType.UNKNOWN;
+      return BluetoothDeviceTypes.UNKNOWN;
     case 0x01: // Generic Phone
-      return BluetoothDeviceType.PHONE;
+      return BluetoothDeviceTypes.PHONE;
     case 0x02: // Generic Computer
-      return BluetoothDeviceType.COMPUTER;
+      return BluetoothDeviceTypes.COMPUTER;
     case 0x05: // Generic Display
-      return BluetoothDeviceType.VIDEO_DISPLAY;
+      return BluetoothDeviceTypes.VIDEO_DISPLAY;
     case 0x0a: // Generic Media Player
-      return BluetoothDeviceType.MULTIMEDIA_PLAYER;
+      return BluetoothDeviceTypes.MULTIMEDIA_PLAYER;
     case 0x0b: // Generic Scanner (Barcode)
       // Note: C code maps this to multimedia-player, but spec says Barcode Scanner. Let's use SCANNER.
       // Adjusted based on likely intent. Check C code comment if source available.
       // Original C code returned "multimedia-player" here, which seems potentially incorrect based on spec value 0x0A.
       // Let's assume the C code had a typo and map 0x0B (Barcode Scanner) to SCANNER.
       // If the C code's mapping of 0x0A to multimedia-player was intended, adjust case 0x0a above.
-      return BluetoothDeviceType.SCANNER;
+      return BluetoothDeviceTypes.SCANNER;
     case GAP_APPEARANCE_HID_GENERIC_CATEGORY: // HID Generic (0x0f or 15)
       // Extract Sub-category (lower 6 bits: 0-5)
       const subCategory = appearance & GAP_APPEARANCE_SUBCATEGORY_MASK;
       switch (subCategory) {
         case 0x01: // Keyboard
-          return BluetoothDeviceType.INPUT_KEYBOARD;
+          return BluetoothDeviceTypes.INPUT_KEYBOARD;
         case 0x02: // Mouse
-          return BluetoothDeviceType.INPUT_MOUSE;
+          return BluetoothDeviceTypes.INPUT_MOUSE;
         case 0x03: // Joystick
         case 0x04: // Gamepad
-          return BluetoothDeviceType.INPUT_GAMING;
+          return BluetoothDeviceTypes.INPUT_GAMING;
         case 0x05: // Digitizer Tablet
-          return BluetoothDeviceType.INPUT_TABLET;
+          return BluetoothDeviceTypes.INPUT_TABLET;
         case 0x08: // Barcode Scanner (HID Sub-category)
-          return BluetoothDeviceType.SCANNER;
+          return BluetoothDeviceTypes.SCANNER;
       }
       break; // Important: break if no HID sub-category matched
     // Add more top-level categories here if needed
@@ -174,6 +174,6 @@ function parseAppearance(appearance: number): BluetoothDeviceType | null {
 }
 
 export function getDeviceType(device: AstalBluetooth.Device): BluetoothDeviceType {
-  return parseClass(device.class) ?? parseAppearance(device.appearance) ?? BluetoothDeviceType.UNKNOWN
+  return parseClass(device.class) ?? parseAppearance(device.appearance) ?? BluetoothDeviceTypes.UNKNOWN
 }
 

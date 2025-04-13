@@ -1,18 +1,15 @@
-import { logNext, onErrorEmpty } from 'commons/rx'
+import { onErrorEmpty } from 'commons/rx'
 import Gio from 'gi://Gio?version=2.0'
 import GLib from 'gi://GLib?version=2.0'
 import {
   combineLatest,
-  filter,
-  interval,
-  map,
+  EMPTY,
   Observable,
   of,
+  retry,
   shareReplay,
-  startWith,
   switchMap,
-  take,
-  tap,
+  timer,
 } from 'rxjs'
 
 const BATTERY_LEVEL_UUID = '00002a19-0000-1000-8000-00805f9b34fb'
@@ -177,22 +174,32 @@ function query(address: string): Observable<number[]> {
     ),
     switchMap(() => {
       const chars = findCharacteristics(bus, devicePath, BATTERY_LEVEL_UUID)
-      return combineLatest(
-        Object.keys(chars)
-          .sort()
-          .map((path) => batteryStatusForChar(bus, path, chars[path]))
-      )
+      if (Object.keys(chars).length == 0) {
+        return EMPTY
+      } else {
+        return combineLatest(
+          Object.keys(chars)
+            .sort()
+            .map((path) => batteryStatusForChar(bus, path, chars[path]))
+        )
+      }
     }),
     onErrorEmpty()
   )
 }
 
-function retryUntilTrue(predicate: () => boolean): Observable<void> {
-  return interval(1000).pipe(
-    startWith(0),
-    filter(() => predicate()),
-    take(1),
-    map(() => {}),
+function retryUntilTrue(predicate: () => boolean): Observable<Boolean> {
+  if (predicate()) return of(true)
+
+  return timer(1000).pipe(
+    switchMap(
+      () =>
+        new Observable<boolean>((o) => {
+          if (predicate()) o.next(true)
+          else o.error(new Error('predicate not resolved'))
+        })
+    ),
+    retry(2),
     onErrorEmpty()
   )
 }

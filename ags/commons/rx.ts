@@ -1,7 +1,5 @@
 import {
   EMPTY,
-  Observable,
-  onErrorResumeNext,
   onErrorResumeNextWith,
   OperatorFunction,
   tap,
@@ -14,3 +12,4 @@ export function onErrorEmpty<T>(): OperatorFunction<T, T> {
 export function logNext<T>(logger: (v: T) => string): OperatorFunction<T, T> {
   return tap({ next: (v) => console.log(logger(v)) })
 }
+

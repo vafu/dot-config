@@ -1,3 +1,5 @@
+export * from './util'
+
 import {
   filter,
   map,
@@ -47,7 +49,7 @@ export function asObservable<Value>(
 
 export function bindAs<T, R>(
   observable: Observable<T>,
-  mapper: (T) => R
+  mapper: (value: T) => R
 ): Binding<R> {
   return binding(observable.pipe(map(mapper)))
 }
@@ -86,4 +88,3 @@ export function fromChain<T extends Connectable, P extends keyof T>(
 ): Observable<T[P]> {
   return observable.pipe(switchMap((obj) => fromConnectable(obj, prop)))
 }
-
