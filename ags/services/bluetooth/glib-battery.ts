@@ -1,8 +1,19 @@
-import AstalBluetooth from 'gi://AstalBluetooth?version=0.1'
-import AstalIO from 'gi://AstalIO?version=0.1'
+import { logNext, onErrorEmpty } from 'commons/rx'
 import Gio from 'gi://Gio?version=2.0'
 import GLib from 'gi://GLib?version=2.0'
-import { Disposable, Observable } from 'rx'
+import {
+  combineLatest,
+  filter,
+  interval,
+  map,
+  Observable,
+  of,
+  shareReplay,
+  startWith,
+  switchMap,
+  take,
+  tap,
+} from 'rxjs'
 
 const BATTERY_LEVEL_UUID = '00002a19-0000-1000-8000-00805f9b34fb'
 const ADAPTER_PATH = '/org/bluez/hci0'
@@ -92,12 +103,12 @@ function batteryStatusForChar(
   path: string,
   proxy: Gio.DBusProxy
 ): Observable<number> {
-  return Observable.create<number>((o) => {
-    o.onNext(readBatteryLevel(proxy))
+  return new Observable<number>((o) => {
+    o.next(readBatteryLevel(proxy))
     if (
       !proxy.get_cached_property('Flags').unpack<string[]>().includes('notify')
     ) {
-      o.onCompleted()
+      o.complete()
       return
     }
     const sub = bus.signal_subscribe(
@@ -117,16 +128,16 @@ function batteryStatusForChar(
       ) => {
         if (params.n_children() === 3) {
           const l = params.get_child_value(1).lookup_value('Value', null)
-          if (l != null) o.onNext(l.get_data_as_bytes().get_data()[0])
+          if (l != null) o.next(l.get_data_as_bytes().get_data()[0])
         }
       }
     )
 
     proxy.call_sync('StartNotify', null, Gio.DBusCallFlags.NONE, -1, null)
-    return Disposable.create(() => {
+    return () => {
       proxy.call_sync('StopNotify', null, Gio.DBusCallFlags.NONE, -1, null)
       bus.signal_unsubscribe(sub)
-    })
+    }
   })
 }
 
@@ -135,7 +146,7 @@ const deviceMap = new Map<string, Observable<number[]>>()
 export function queryBatteryStats(address: string): Observable<number[]> {
   const cached = deviceMap.get(address)
   if (cached) return cached
-  const n = query(address).shareReplay(1)
+  const n = query(address).pipe(shareReplay(1))
   deviceMap.set(address, n)
   return n
 }
@@ -158,30 +169,30 @@ function query(address: string): Observable<number[]> {
 
   return retryUntilTrue(() =>
     deviceProxy.get_cached_property('Connected').unpack<boolean>()
-  )
-    .flatMapLatest(() =>
+  ).pipe(
+    switchMap(() =>
       retryUntilTrue(() =>
         deviceProxy.get_cached_property('ServicesResolved').unpack<boolean>()
       )
-    )
-    .flatMapLatest(() => {
+    ),
+    switchMap(() => {
       const chars = findCharacteristics(bus, devicePath, BATTERY_LEVEL_UUID)
-      return Observable.combineLatest(
+      return combineLatest(
         Object.keys(chars)
           .sort()
           .map((path) => batteryStatusForChar(bus, path, chars[path]))
       )
-    })
-    .doOnError((e) => console.log(e))
-    .onErrorResumeNext(Observable.empty())
+    }),
+    onErrorEmpty()
+  )
 }
 
 function retryUntilTrue(predicate: () => boolean): Observable<void> {
-  return Observable.interval(1000)
-    .startWith(0)
-    .doOnNext((a) => console.log('kej', a))
-    .filter(() => predicate())
-    .take(1)
-    .map(() => {})
-    .onErrorResumeNext(Observable.empty())
+  return interval(1000).pipe(
+    startWith(0),
+    filter(() => predicate()),
+    take(1),
+    map(() => {}),
+    onErrorEmpty()
+  )
 }

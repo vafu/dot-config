@@ -1,18 +1,18 @@
-import { WorkspaceService, WR, WS } from './workspace'
+import { WorkspaceService, WR, WS, ActiveWindow, WindowService } from './types'
 import AstalHyprland from 'gi://AstalHyprland?version=0.1'
-import { ActiveWindow, WindowService } from './window'
-import { Disposable, Observable } from 'rx'
-import { obs } from 'rxbinding'
+import { filter, Observable, shareReplay, startWith, take } from 'rxjs'
+import { fromConnectable } from 'rxbinding'
+import { distinctUntilChanged, map, of, switchMap } from 'rxjs'
 
 const hypr = AstalHyprland.get_default()
 
-const focusedClient = obs(hypr, 'focusedClient').shareReplay(1)
+const focusedClient = fromConnectable(hypr, 'focusedClient')
 const activeWindow: ActiveWindow = {
-  cls: focusedClient.flatMapLatest((c) =>
-    c == null ? Observable.just('') : obs(c, 'class')
+  cls: focusedClient.pipe(
+    switchMap((c) => (c == null ? of('') : fromConnectable(c, 'class')))
   ),
-  title: focusedClient.flatMapLatest((c) =>
-    c == null ? Observable.just('') : obs(c, 'title')
+  title: focusedClient.pipe(
+    switchMap((c) => (c == null ? of('') : fromConnectable(c, 'title')))
   ),
 }
 
@@ -20,16 +20,15 @@ export const windowService: WindowService = {
   active: activeWindow,
 }
 
-const focusedWorkspace = obs(hypr, 'focusedWorkspace').shareReplay(1)
+const focusedWorkspace = fromConnectable(hypr, 'focusedWorkspace')
+const workspaces = fromConnectable(hypr, 'workspaces')
 
-const workspaces = obs(hypr, 'workspaces').shareReplay(1)
-
-const urgentWs = Observable.create<number>((o) => {
+const urgentWs = new Observable<number>((o) => {
   const id = hypr.connect('urgent', (s, id) => {
     const wsid = s.get_workspaces().find((w) => w.get_last_client() === id)?.id
-    o.onNext(wsid)
+    o.next(wsid)
   })
-  return Disposable.create(() => hypr.disconnect(id))
+  return () => hypr.disconnect(id)
 })
 
 class HyprWorkspaceService implements WorkspaceService {
@@ -45,9 +44,10 @@ class HyprWorkspaceService implements WorkspaceService {
     return this.getWorkroom(wr)
   }
 
-  activeWorkroom: Observable<WR> = focusedWorkspace
-    .map((w) => this.getWr(w.id))
-    .distinctUntilChanged()
+  activeWorkroom: Observable<WR> = focusedWorkspace.pipe(
+    map((w) => this.getWr(w.id)),
+    distinctUntilChanged()
+  )
 
   getWorkroom(idx: number) {
     if (!this._workrooms.get(idx)) {
@@ -77,30 +77,33 @@ class HyprWR implements WR {
 class HyprWS implements WS {
   active: Observable<boolean>
   occupied: Observable<boolean>
-  urgent: Observable<boolean> = Observable.just(false)
+  urgent: Observable<boolean> = of(false)
 
   constructor(id: number) {
-    this.active = focusedWorkspace
-      .map((w) => w.id == id)
-      .distinctUntilChanged()
-      .shareReplay(1)
+    this.active = focusedWorkspace.pipe(
+      map((w) => w.id == id),
+      distinctUntilChanged(),
+      shareReplay(1)
+    )
+    this.occupied = workspaces.pipe(
+      map((w) => w.map((ws) => [ws.id, ws.clients.length == 0])),
+      distinctUntilChanged(),
+      map((ws) => ws.some(([i, isEmpty]) => i == id && !isEmpty)),
+      shareReplay(1)
+    )
 
-    this.occupied = workspaces
-      .map((w) => w.map((ws) => [ws.id, ws.clients.length == 0]))
-      .distinctUntilChanged()
-      .map((ws) => ws.some(([i, isEmpty]) => i == id && !isEmpty))
-      .shareReplay(1)
-
-    this.urgent = urgentWs
-      .filter((i) => i == id)
-      .flatMapLatest(() =>
-        this.active
-          .filter((active) => active)
-          .map((active) => !active)
-          .take(1)
-          .startWith(true)
-      )
-      .startWith(false)
+    this.urgent = urgentWs.pipe(
+      filter((i) => i == id),
+      switchMap(() =>
+        this.active.pipe(
+          filter((active) => active),
+          map((active) => !active),
+          take(1),
+          startWith(true)
+        )
+      ),
+      startWith(false)
+    )
   }
 }
 

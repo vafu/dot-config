@@ -1,18 +1,19 @@
 import { Gio, readFile } from 'astal'
 import { AstalIO, bind, exec, Variable } from 'astal'
-import { BluetoothDeviceType, getDeviceType } from 'commons'
-import { queryBatteryStats } from 'commons/bluetooth/glib-battery'
+import {
+  batteryStatusFor,
+  BluetoothDeviceType,
+  getDeviceType,
+} from 'services/bluetooth'
 import AstalBluetooth from 'gi://AstalBluetooth'
-import { Observable } from 'rx'
-import { binding, obs } from 'rxbinding'
+import { binding, fromConnectable } from 'rxbinding'
+import { filter, map, shareReplay, startWith, switchMap, tap } from 'rxjs'
 
 const CPU = Variable('0').poll(3000, () => exec('bash scripts/cpu.sh'))
 
 const RAM = Variable('0').poll(3000, () => exec('bash scripts/ram.sh'))
 
-const btDevices = obs(AstalBluetooth.get_default(), 'devices')
-  .map((devices) => devices.map((d) => ({ device: d, type: getDeviceType(d) })))
-  .shareReplay(1)
+const btDevices = fromConnectable(AstalBluetooth.get_default(), 'devices')
 
 export const Status = () => (
   <box>
@@ -27,40 +28,32 @@ export const Status = () => (
     </box>
     {[
       Sofle(),
-      BtDeviceBattery((t) =>
-        [
-          BluetoothDeviceType.AUDIO_HEADPHONES,
-          BluetoothDeviceType.AUDIO_HEADSET,
-        ].includes(t)
-      ),
-      BatteryFromHid('input-touchpad-symbolic', ''),
+      // BtDeviceBattery((t) =>
+      //   [
+      //     BluetoothDeviceType.AUDIO_HEADPHONES,
+      //     BluetoothDeviceType.AUDIO_HEADSET,
+      //   ].includes(t)
+      // ),
+      // BatteryFromHid('input-touchpad-symbolic', ''),
     ]}
   </box>
 )
 
 function Sofle() {
-  const device = btDevices
-    .map((devices) => devices.find((d) => d.device.name == 'Sofle'))
-    .filter((d) => d != null)
-    .shareReplay(1)
+  const device = btDevices.pipe(
+    map((devices) => devices.find((d) => d.name == 'Sofle')),
+    filter((d) => d != null),
+    shareReplay(1)
+  )
 
-  const connected = device
-    .flatMapLatest((d) => obs(d.device, 'connected'))
-    .startWith(false)
+  const connected = device.pipe(
+    switchMap((d) => fromConnectable(d, 'connected')),
+    startWith(false),
+  )
 
-  const icon = device.map((d) => d.type.icon)
+  const icon = device.pipe(map((d) => getDeviceType(d).icon))
 
-  const stats = device
-    .flatMapLatest((d) =>
-      obs(d.device, 'connected').flatMapLatest((connected) => {
-        if (connected) {
-          return queryBatteryStats(d.device.address)
-        } else {
-          return Observable.just([])
-        }
-      })
-    )
-    .map((s) => s.join('/'))
+  const stats = batteryStatusFor(device).pipe(map((s) => s.join('/')))
 
   return (
     <box cssClasses={['bar-widget']} visible={binding(connected)}>
@@ -96,18 +89,22 @@ function BatteryFromHid(icon: string, hid: string) {
 }
 
 function BtDeviceBattery(matcher: (c: BluetoothDeviceType) => Boolean) {
-  const device = btDevices
-    .map((devices) => devices.find((d) => matcher(d.type)))
-    .filter((d) => d != null)
-    .shareReplay(1)
+  const device = btDevices.pipe(
+    map((devices) => devices.find((d) => matcher(getDeviceType(d)))),
+    filter((d) => d != null),
+    shareReplay(1)
+  )
 
-  const connected = device
-    .flatMapLatest((d) => obs(d.device, 'connected'))
-    .startWith(false)
+  const connected = device.pipe(
+    switchMap((d) => fromConnectable(d, 'connected')),
+    startWith(false)
+  )
 
-  const charge = device.flatMapLatest((d) => obs(d.device, 'batteryPercentage'))
+  const charge = device.pipe(
+    switchMap((d) => fromConnectable(d, 'batteryPercentage'))
+  )
 
-  const icon = device.map((d) => d.type.icon)
+  const icon = device.pipe(map((d) => d.type.icon))
 
   return (
     <box cssClasses={['bar-widget']} visible={binding(connected)}>
