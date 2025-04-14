@@ -1,7 +1,7 @@
 import AstalPowerProfiles from 'gi://AstalPowerProfiles?version=0.1'
 import { Quicktoggle } from './quicktoggle'
 import { bind } from '../../../../../../usr/share/astal/gjs'
-import { obs, subscribeTo } from 'rxbinding'
+import { fromConnectable, subscribeTo } from 'rxbinding'
 
 const p = AstalPowerProfiles.get_default()
 const profiles = p.get_profiles()
@@ -20,7 +20,7 @@ export function PowerProfileQuicktoggle() {
       label={bind(p, 'active_profile')}
       onClicked={() => cycleProfiles()}
       setup={(self) => {
-        subscribeTo(self, obs(p, 'active_profile'), (profile) => {
+        subscribeTo(self, fromConnectable(p, 'active_profile'), (profile) => {
           profiles.forEach((p) => self.remove_css_class(p.profile))
           self.add_css_class(profile)
         })

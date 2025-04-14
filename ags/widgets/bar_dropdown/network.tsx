@@ -1,37 +1,37 @@
 import AstalNetwork from 'gi://AstalNetwork?version=0.1'
-import { binding, obs } from 'rxbinding'
+import { binding, fromChain as chain, fromConnectable } from 'rxbinding'
 import { Quicktoggle } from './quicktoggle'
 import { bind } from 'astal'
-import { Observable } from 'rx'
+import { map, Observable, of, switchMap } from 'rxjs'
 import Gtk from 'gi://Gtk?version=4.0'
 import Adw from 'gi://Adw?version=1'
 import { ActionRow, ListBox } from 'widgets/adw'
 
 const network = AstalNetwork.get_default()
-const wifi = obs(network, 'wifi').shareReplay(1)
-const wifiEnabled = wifi.flatMapLatest((w) => obs(w, 'enabled'))
-const activeSsid = wifiEnabled.flatMapLatest((enabled) =>
-  enabled
-    ? wifi.flatMapLatest((w) => obs(w, 'ssid'))
-    : Observable.just('WiFi off')
+const wifi = fromConnectable(network, 'wifi')
+const wifiEnabled = chain(wifi, 'enabled')
+const activeSsid = wifiEnabled.pipe(
+  switchMap((enabled) =>
+    enabled
+      ? wifi.pipe(switchMap((w) => fromConnectable(w, 'ssid')))
+      : of('WiFi off')
+  )
 )
 
-function subt(ssid: string) {
-  return activeSsid.map((active) => (active == ssid ? 'Connected' : 'adsf'))
-}
-
 function disconnect(ap: AstalNetwork.AccessPoint) {
-  return activeSsid.map((active) =>
-    active == ap.ssid ? (
-      <button
-        css_classes={['icon-button', 'flat', 'circular']}
-        iconName={'process-stop-symbolic'}
-      />
-    ) : (
-      <button
-        css_classes={['icon-button', 'flat', 'circular']}
-        iconName={'object-select-symbolic'}
-      />
+  return activeSsid.pipe(
+    map((active) =>
+      active == ap.ssid ? (
+        <button
+          css_classes={['icon-button', 'flat', 'circular']}
+          iconName={'process-stop-symbolic'}
+        />
+      ) : (
+        <button
+          css_classes={['icon-button', 'flat', 'circular']}
+          iconName={'object-select-symbolic'}
+        />
+      )
     )
   )
 }
@@ -69,9 +69,8 @@ function List() {
           selectionMode={Gtk.SelectionMode.NONE}
         >
           {binding(
-            wifi
-              .flatMapLatest((w) => obs(w, 'access_points'))
-              .map((n) =>
+            chain(wifi, 'access_points').pipe(
+              map((n) =>
                 n
                   .filter(
                     (a) => a != null && a.ssid != null && a.ssid.length > 0
@@ -81,11 +80,11 @@ function List() {
                     <ActionRow
                       title={ap.ssid}
                       iconName={bind(ap, 'icon_name')}
-                      subtitle={binding(subt(ap.ssid), '')}
-                    >
-                    </ActionRow>
+                      // subtitle={binding(subt(ap.ssid), '')}
+                    ></ActionRow>
                   ))
               )
+            )
           )}
         </ListBox>
       </Adw.Clamp>

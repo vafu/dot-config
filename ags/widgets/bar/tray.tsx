@@ -1,7 +1,6 @@
-import { bind, GObject } from "astal"
+import { GObject } from "astal"
 import { Gtk } from "astal/gtk4"
 import Tray from "gi://AstalTray"
-import { binding, obs } from "rxbinding"
 
 export function SysTray() {
   const tray = Tray.get_default()

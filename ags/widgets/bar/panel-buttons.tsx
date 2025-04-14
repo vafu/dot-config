@@ -1,12 +1,18 @@
-import { Observable } from 'rx'
+import { interval, map, shareReplay, startWith, switchMap } from 'rxjs'
 import GLib from 'gi://GLib?version=2.0'
-import { binding, bindProp, obs } from 'rxbinding'
+import {
+  bindAs,
+  binding,
+  bindString,
+  fromChain as chain,
+  fromConnectable,
+} from 'rxbinding'
 import { App, Gtk } from 'astal/gtk4'
 import AstalNetwork from 'gi://AstalNetwork?version=0.1'
-import { bind, Binding } from 'astal'
+import { bind } from 'astal'
 import AstalBattery from 'gi://AstalBattery?version=0.1'
 import AstalPowerProfiles from 'gi://AstalPowerProfiles?version=0.1'
-import { Box, Button, ButtonProps } from 'astal/gtk4/widget'
+import { Button, ButtonProps } from 'astal/gtk4/widget'
 import AstalWp from 'gi://AstalWp?version=0.1'
 import { SysTray } from './tray'
 
@@ -31,23 +37,24 @@ const PanelButton = (
 
 const dateFormat = '%a %b %d'
 const clockFormat = `${dateFormat} %H:%M`
-const time = Observable.interval(1000)
-  .startWith(0)
-  .map(() => {
+const time = interval(1000).pipe(
+  startWith(0),
+  map(() => {
     const time = GLib.DateTime.new_now_local()
     return {
       clock: time.format(clockFormat),
       date: time.format(dateFormat),
     }
-  })
-  .shareReplay(1)
+  }),
+  shareReplay(1)
+)
 
 const DateTime = () => (
   <PanelButton
-    tooltipText={binding(time.map((t) => t.date))}
+    tooltipText={bindAs(time, (t) => t.date)}
     cssClasses={['date-time']}
   >
-    <label label={binding(time.map((t) => t.clock))} />
+    <label label={bindAs(time, (t) => t.clock)} />
   </PanelButton>
 )
 
@@ -55,33 +62,46 @@ const { wifi } = AstalNetwork.get_default()
 const battery = AstalBattery.get_default()
 const profiles = AstalPowerProfiles.get_default()
 
-const isMuted = obs(AstalWp.get_default(), 'default_speaker').flatMapLatest(s => obs(s, 'mute'))
+const isMuted = chain(
+  fromConnectable(AstalWp.get_default(), 'default_speaker'),
+  'mute'
+)
 
-const wired = obs(AstalNetwork.get_default(), 'wired')
-  .flatMapLatest(w => obs(w, 'state'))
-  .shareReplay(1)
+const wired = chain(
+  fromConnectable(AstalNetwork.get_default(), 'wired'),
+  'state'
+)
 
-const ethIcon = wired.map(s => {
-  switch (s) {
-    case AstalNetwork.DeviceState.ACTIVATED: return "network-wired-symbolic"
-    case AstalNetwork.DeviceState.IP_CHECK:
-    case AstalNetwork.DeviceState.IP_CONFIG:
-    case AstalNetwork.DeviceState.CONFIG:
-    case AstalNetwork.DeviceState.SECONDARIES:
-    case AstalNetwork.DeviceState.PREPARE: return "network-wired-acquiring-symbolic"
-    case AstalNetwork.DeviceState.FAILED:
-    case AstalNetwork.DeviceState.NEED_AUTH:
-    case AstalNetwork.DeviceState.UNMANAGED:
-    case AstalNetwork.DeviceState.UNKNOWN: return "network-wired-no-route-symbolic"
-    default: return "network-wired-disconnected-symbolic"
-  }
-})
+const ethIcon = wired.pipe(
+  map((s) => {
+    switch (s) {
+      case AstalNetwork.DeviceState.ACTIVATED:
+        return 'network-wired-symbolic'
+      case AstalNetwork.DeviceState.IP_CHECK:
+      case AstalNetwork.DeviceState.IP_CONFIG:
+      case AstalNetwork.DeviceState.CONFIG:
+      case AstalNetwork.DeviceState.SECONDARIES:
+      case AstalNetwork.DeviceState.PREPARE:
+        return 'network-wired-acquiring-symbolic'
+      case AstalNetwork.DeviceState.FAILED:
+      case AstalNetwork.DeviceState.NEED_AUTH:
+      case AstalNetwork.DeviceState.UNMANAGED:
+      case AstalNetwork.DeviceState.UNKNOWN:
+        return 'network-wired-no-route-symbolic'
+      default:
+        return 'network-wired-disconnected-symbolic'
+    }
+  })
+)
 
-const ethEnabled = wired.map(s => s != AstalNetwork.DeviceState.DISCONNECTED)
+const ethEnabled = wired.pipe(
+  map((s) => s != AstalNetwork.DeviceState.DISCONNECTED)
+)
 
-const ethSpeed = obs(AstalNetwork.get_default(), 'wired')
-  .flatMapLatest(w => obs(w, 'speed'))
-  .map(s => s.toString())
+const ethSpeed = chain(
+  fromConnectable(AstalNetwork.get_default(), 'wired'),
+  'speed'
+)
 
 export const PanelButtons = () => (
   <box>
@@ -92,7 +112,11 @@ export const PanelButtons = () => (
     >
       <box>
         <image iconName="audio-volume-muted" visible={binding(isMuted)} />
-        <image iconName={binding(ethIcon)} visible={binding(ethEnabled)} tooltipText={binding(ethSpeed)} />
+        <image
+          iconName={binding(ethIcon)}
+          visible={binding(ethEnabled)}
+          tooltipText={bindString(ethSpeed)}
+        />
         <image
           tooltipText={bind(profiles, 'active_profile')}
           iconName={bind(profiles, 'iconName')}

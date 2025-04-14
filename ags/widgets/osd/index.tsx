@@ -1,40 +1,52 @@
 import { App, Astal, Gdk } from 'astal/gtk4'
 import { Hidden, OnScreenProgress, State } from './OSD'
-import { binding, obs } from 'rxbinding'
+import { binding, fromConnectable } from 'rxbinding'
 import obtainService from 'services'
 import AstalWp from 'gi://AstalWp?version=0.1'
-import { Observable } from 'rx'
+import {
+  combineLatest,
+  delay,
+  map,
+  merge,
+  Observable,
+  of,
+  switchMap,
+} from 'rxjs'
 
-const brightness = obs(obtainService('brightness'), 'screen').map((b) => ({
-  type: 'level',
-  value: b,
-  iconName: 'display-brightness-symbolic',
-}))
-
-const audio = obs(AstalWp.get_default(), 'default_speaker')
-  .flatMapLatest((s) =>
-    Observable.combineLatest(obs(s, 'volume'), obs(s, 'volume_icon'))
-  )
-  .map(([volume, icon]) => ({
+const brightness = fromConnectable(obtainService('brightness'), 'screen').pipe(
+  map((b) => ({
+    type: 'level',
+    value: b,
+    iconName: 'display-brightness-symbolic',
+  }))
+)
+const audio = fromConnectable(AstalWp.get_default(), 'default_speaker').pipe(
+  switchMap((s) =>
+    combineLatest([
+      fromConnectable(s, 'volume'),
+      fromConnectable(s, 'volume_icon'),
+    ])
+  ),
+  map(([volume, icon]) => ({
     type: 'level',
     value: volume,
     iconName: icon,
   }))
+)
 
 export default function OSD(monitor: Gdk.Monitor) {
-  const source = Observable.merge(
-    audio,
-    brightness
-  ).flatMapLatest((s) =>
-    Observable.merge<State>(
-      Observable.just(s),
-      Observable.just(Hidden).delay(2000)
-    )
+  const source = merge(audio, brightness).pipe(
+    switchMap((s) => merge(of(s), of(Hidden).pipe(delay(2000))))
+  )
+
+  const visible = source.pipe(
+    delay(100),
+    map((s) => s != Hidden)
   )
 
   return (
     <window
-      visible={binding(source.delay(100).map(s => s != Hidden))}
+      visible={binding(visible)}
       gdkmonitor={monitor}
       cssClasses={['OSD']}
       name={'OSD'}
@@ -46,4 +58,5 @@ export default function OSD(monitor: Gdk.Monitor) {
     >
       <OnScreenProgress states={source} />
     </window>
-  )}
+  )
+}
