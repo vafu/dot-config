@@ -13,6 +13,7 @@ import {
 import { fromConnectable, fromFile } from 'rxbinding'
 import { queryBatteryStats as batteryFromDbus } from './dbus-battery'
 import { switchIfEmpty } from 'rxjs-etc/dist/esm/operators'
+import { SignalMethods } from '@girs/gjs'
 
 export function batteryStatusFor(
   device: Observable<AstalBluetooth.Device>
@@ -49,7 +50,7 @@ function handleConnected(
 }
 
 export type SingleBattery = { primary: number }
-export type DualBattery = { primary: number; secondary: number }
+export type DualBattery = SingleBattery & { secondary: number }
 export type NoBattery = {}
 
 export type BatteryStatus = SingleBattery | DualBattery | NoBattery

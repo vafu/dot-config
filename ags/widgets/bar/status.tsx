@@ -10,7 +10,8 @@ import {
 import AstalBluetooth from 'gi://AstalBluetooth'
 import { bindAs, binding, fromConnectable } from 'rxbinding'
 import { filter, map, share, shareReplay, startWith, switchMap } from 'rxjs'
-import { logNext } from 'commons/rx'
+import { Gtk } from 'astal/gtk4'
+import { CircularIndicator } from 'widgets/circularstatus'
 
 const CPU = Variable('0').poll(3000, () => exec('bash scripts/cpu.sh'))
 
@@ -44,6 +45,9 @@ export const Status = () => (
           BluetoothDeviceTypes.INPUT_MOUSE,
         ].includes(t)
       ),
+      <CircularIndicator
+        levels={CPU().as((c) => ({ level: parseFloat(c) }))}
+      />,
     ]}
   </box>
 )

@@ -240,7 +240,7 @@ function fromPropertyNotifications(opts: {
         if (params == null) return
         if (params.n_children() === 3) {
           const l = params.get_child_value(1).lookup_value(opts.prop, null)
-          if (l != null) return l.get_data_as_bytes().get_data()[0]
+          if (l != null) o.next(l.get_data_as_bytes().get_data()[0])
         }
       }
     )
