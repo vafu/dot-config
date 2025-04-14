@@ -4,10 +4,12 @@ import {
   BluetoothDeviceType,
   BluetoothDeviceTypes,
   getDeviceType,
+  hasBattery,
+  hasDualBattery,
 } from 'services/bluetooth'
 import AstalBluetooth from 'gi://AstalBluetooth'
 import { bindAs, binding, fromConnectable } from 'rxbinding'
-import { filter, map, shareReplay, startWith, switchMap } from 'rxjs'
+import { filter, map, share, shareReplay, startWith, switchMap } from 'rxjs'
 import { logNext } from 'commons/rx'
 
 const CPU = Variable('0').poll(3000, () => exec('bash scripts/cpu.sh'))
@@ -64,7 +66,19 @@ function BtDeviceBattery(matcher: (c: BluetoothDeviceType) => Boolean) {
   return (
     <box cssClasses={['bar-widget']} visible={binding(connected)}>
       <image iconName={binding(icon)} />
-      <label label={bindAs(charge, (a) => a.join('/'))} />
+      <label
+        visible={bindAs(charge, (c) => hasBattery(c))}
+        label={bindAs(charge, (a) => {
+          switch (true) {
+            case hasDualBattery(a):
+              return `${a.primary}/${a.secondary}`
+            case hasBattery(a):
+              return `${a.primary}`
+            default:
+              return ''
+          }
+        })}
+      />
     </box>
   )
 }

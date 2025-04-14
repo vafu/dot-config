@@ -1,13 +1,22 @@
 export * from './devicetype'
 import AstalBluetooth from 'gi://AstalBluetooth?version=0.1'
-import { map, Observable, of, switchMap } from 'rxjs'
+import {
+  delay,
+  map,
+  Observable,
+  of,
+  retry,
+  retryWhen,
+  switchMap,
+  tap,
+} from 'rxjs'
 import { fromConnectable, fromFile } from 'rxbinding'
 import { queryBatteryStats as batteryFromDbus } from './dbus-battery'
 import { switchIfEmpty } from 'rxjs-etc/dist/esm/operators'
 
 export function batteryStatusFor(
   device: Observable<AstalBluetooth.Device>
-): Observable<number[]> {
+): Observable<BatteryStatus> {
   return device.pipe(
     switchMap((d) =>
       fromConnectable(d, 'connected').pipe(
@@ -15,7 +24,7 @@ export function batteryStatusFor(
           if (connected) {
             return handleConnected(d)
           } else {
-            return of([] as number[])
+            return of({})
           }
         })
       )
@@ -23,15 +32,34 @@ export function batteryStatusFor(
   )
 }
 
-function handleConnected(device: AstalBluetooth.Device): Observable<number[]> {
+function handleConnected(
+  device: AstalBluetooth.Device
+): Observable<BatteryStatus> {
   return batteryFromDbus(device.address).pipe(
     switchIfEmpty(
-      fromFile(
-        `/sys/class/power_supply/hid-${device.address.toLowerCase()}-battery/capacity`
-      ).pipe(map((v) => [parseInt(v)]))
+      fromConnectable(device, 'batteryPercentage').pipe(
+        map((v) => ({ primary: v }))
+      )
     ),
-    switchIfEmpty(
-      fromConnectable(device, 'batteryPercentage').pipe(map((v) => [v]))
-    )
+    retry({
+      count: 10,
+      delay: 1000,
+    })
   )
+}
+
+export type SingleBattery = { primary: number }
+export type DualBattery = { primary: number; secondary: number }
+export type NoBattery = {}
+
+export type BatteryStatus = SingleBattery | DualBattery | NoBattery
+
+export function hasBattery(
+  status: BatteryStatus
+): status is SingleBattery | DualBattery {
+  return (<SingleBattery>status).primary !== undefined
+}
+
+export function hasDualBattery(status: BatteryStatus): status is DualBattery {
+  return (<DualBattery>status).secondary !== undefined
 }
