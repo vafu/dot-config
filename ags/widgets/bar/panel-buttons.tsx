@@ -9,7 +9,7 @@ import {
 } from 'rxbinding'
 import { App, Gtk } from 'astal/gtk4'
 import AstalNetwork from 'gi://AstalNetwork?version=0.1'
-import { bind } from 'astal'
+import { bind, exec } from 'astal'
 import AstalBattery from 'gi://AstalBattery?version=0.1'
 import AstalPowerProfiles from 'gi://AstalPowerProfiles?version=0.1'
 import { Button, ButtonProps } from 'astal/gtk4/widget'
@@ -53,6 +53,7 @@ const DateTime = () => (
   <PanelButton
     tooltipText={bindAs(time, (t) => t.date)}
     cssClasses={['date-time']}
+    onClicked={() => exec(["swaync-client", "-t"])}
   >
     <label label={bindAs(time, (t) => t.clock)} />
   </PanelButton>
@@ -132,6 +133,6 @@ export const PanelButtons = () => (
         />
       </box>
     </PanelButton>
-    <DateTime />
+    <DateTime/>
   </box>
 )

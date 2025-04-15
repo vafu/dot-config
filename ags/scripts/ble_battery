@@ -1,0 +1,337 @@
+#!/usr/bin/env python3
+
+import sys
+import time
+import argparse
+import json
+from gi.repository import GLib
+import pydbus
+import signal
+
+# --- Configuration ---
+BATTERY_LEVEL_UUID = "00002a19-0000-1000-8000-00805f9b34fb"
+ADAPTER_PATH = "/org/bluez/hci0"  # Assumes hci0 adapter
+SERVICE_RESOLVE_TIMEOUT = 15  # Seconds
+RETRY_PAUSE = 1  # Seconds
+
+# --- Global Variables ---
+bus = None
+device_proxy = None
+mloop = None
+battery_chars = {}  # {path: proxy_object}
+battery_levels = {}  # {identifier: level_or_none} - Stores the last known level
+subscriptions = []
+
+# --- JSON Output ---
+
+
+def output_json(data):
+    """Prints data as a JSON string to stdout, ensuring it's flushed."""
+    try:
+        print(json.dumps(data), flush=True)
+    except TypeError as e:
+        print(json.dumps(
+            {"error": f"JSON Serialization Error: {e}"}), flush=True)
+
+
+def output_error_json(message):
+    """Prints an error message as JSON to stdout."""
+    output_json({"error": str(message)})
+
+# --- Argument Parsing ---
+
+
+def parse_args():
+    """Parses command-line arguments."""
+    parser = argparse.ArgumentParser(
+        description="Monitor BLE device battery levels and output JSON.")
+    parser.add_argument(
+        "mac_address", help="MAC address of the Bluetooth device.")
+    return parser.parse_args()
+
+# --- Core Logic Functions (Setup runs silently, raises exceptions on error) ---
+
+
+def setup_dbus():
+    """Connects to the system D-Bus."""
+    try:
+        return pydbus.SystemBus()
+    except GLib.Error as e:
+        raise RuntimeError(f"Could not connect to System D-Bus: {e}") from e
+
+
+def get_device_proxy(system_bus, device_path):
+    """Gets the BlueZ device proxy object."""
+    try:
+        proxy = system_bus.get('org.bluez', device_path)['org.bluez.Device1']
+        if not hasattr(proxy, 'Connected'):
+            raise RuntimeError(
+                f"Obtained invalid D-Bus proxy object for {device_path}")
+        return proxy
+    except GLib.Error as e:
+        raise RuntimeError(f"Could not get device proxy for {
+                           device_path}: {e}") from e
+
+
+def check_connection(proxy):
+    """Checks if device is connected."""
+    try:
+        if not proxy.Connected:
+            raise ConnectionError(f"Device {proxy.Address} is not connected.")
+    except GLib.Error as e:
+        raise ConnectionError(
+            f"Error checking device connection status: {e}") from e
+
+
+def wait_for_services(proxy, timeout):
+    """Waits for services to resolve."""
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        try:
+            if proxy.ServicesResolved:
+                return True
+            else:
+                time.sleep(RETRY_PAUSE)
+        except GLib.Error as e:
+            raise ConnectionAbortedError(
+                f"Device disconnected or D-Bus error while waiting for services: {e}") from e
+    raise TimeoutError(f"Timed out waiting for services ({timeout}s).")
+
+
+def find_battery_characteristics(system_bus, device_path, uuid):
+    """Finds characteristics matching the UUID."""
+    found_chars = {}
+    try:
+        managed_objects = system_bus.get(
+            'org.bluez', '/')['org.freedesktop.DBus.ObjectManager'].GetManagedObjects()
+        for path, interfaces in managed_objects.items():
+            if 'org.bluez.GattCharacteristic1' in interfaces and path.startswith(device_path):
+                char_props = interfaces['org.bluez.GattCharacteristic1']
+                if char_props['UUID'].lower() == uuid.lower():
+                    try:
+                        proxy = system_bus.get('org.bluez', path)[
+                            'org.bluez.GattCharacteristic1']
+                        found_chars[path] = proxy
+                    except GLib.Error:
+                        pass  # Silently ignore char if proxy fails
+    except GLib.Error as e:
+        raise RuntimeError(
+            f"Error getting managed objects from BlueZ: {e}") from e
+    return found_chars
+
+
+def read_characteristic_value(proxy):
+    """Reads the value of a characteristic, returns int level or None."""
+    try:
+        value_bytes = proxy.ReadValue({})
+        if value_bytes and len(value_bytes) > 0:
+            return int(value_bytes[0])
+        else:
+            return None
+    except (GLib.Error, ValueError, IndexError, AttributeError):
+        return None
+
+
+def perform_initial_read_and_output(characteristics_dict):
+    """Reads all characteristics once, updates global state, and outputs JSON."""
+    global battery_levels  # Ensure modification of global state
+    levels = {}
+    for path, proxy in characteristics_dict.items():
+        level = read_characteristic_value(proxy)
+        identifier = path.split('/')[-1]
+        levels[identifier] = level
+    battery_levels = levels  # Set global state
+    output_json(battery_levels)  # Output initial state
+
+
+def enable_notifications(characteristics):
+    """Enables notifications using StartNotify. Raises exception on complete failure."""
+    if not characteristics:
+        return True
+    errors = []
+    success_count = 0
+    for path, proxy in characteristics.items():
+        char_identifier = path.split('/')[-1]
+        try:
+            if "notify" not in proxy.Flags:
+                continue
+            proxy.StartNotify()
+            success_count += 1
+        except GLib.Error as e:
+            errors.append(f"StartNotify failed for {char_identifier}: {e}")
+        except Exception as e:
+            errors.append(f"Unexpected error enabling notifications for {
+                          char_identifier}: {e}")
+
+    # Raise error only if *no* notifications could be started for characteristics that support it
+    notify_capable_count = sum(
+        1 for p in characteristics.values() if "notify" in p.Flags)
+    if errors and success_count == 0 and notify_capable_count > 0:
+        raise RuntimeError(f"Failed to enable notifications. Errors: {
+                           '; '.join(errors)}")
+
+    return True
+
+
+def subscribe_to_battery_updates(system_bus, characteristics, handler_func):
+    """Subscribes to PropertiesChanged signals. Raises exception on complete failure."""
+    if not characteristics:
+        return []
+    subs = []
+    prop_interface = 'org.freedesktop.DBus.Properties'
+    char_interface = 'org.bluez.GattCharacteristic1'
+    errors = []
+
+    for path in characteristics.keys():
+        try:
+            sub = system_bus.subscribe(sender='org.bluez',
+                                       iface=prop_interface,
+                                       signal='PropertiesChanged',
+                                       object=path,
+                                       arg0=char_interface,
+                                       signal_fired=lambda sender, object_path, iface_signal, signal_name, params:
+                                       handler_func(params[0], params[1], params[2], object_path))
+            subs.append(sub)
+        except Exception as e:
+            errors.append(f"Subscription failed for {path}: {e}")
+
+    if errors and not subs:
+        raise RuntimeError(f"Failed to subscribe to any characteristics. Errors: {
+                           '; '.join(errors)}")
+    return subs
+
+
+def stop_notifications(characteristics):
+    """Calls StopNotify silently during cleanup."""
+    if not characteristics:
+        return
+    for char_path in list(characteristics.keys()):
+        if char_path not in characteristics:
+            continue
+        char_proxy = characteristics[char_path]
+        try:
+            char_proxy.StopNotify()
+        except (GLib.Error, AttributeError, Exception):
+            pass
+
+# --- Callback and Cleanup (Silent) ---
+
+
+def properties_changed_handler(interface_name, changed_properties, invalidated_properties, path):
+    """Signal handler: Parses notified value, updates state if changed, outputs JSON."""
+    global battery_levels  # Requires access to global state
+
+    if "Value" not in changed_properties:
+        return  # Ignore signals without a Value change
+
+    value_bytes = changed_properties["Value"]
+    if not value_bytes or len(value_bytes) == 0:
+        return  # Ignore empty updates
+
+    try:
+        new_level = int(value_bytes[0])
+        identifier = path.split('/')[-1]
+
+        # Check if identifier exists and if value is actually different
+        # or if it's the first time we're seeing this identifier
+        if identifier not in battery_levels or battery_levels[identifier] != new_level:
+            # Update state
+            battery_levels[identifier] = new_level
+            # Output the *entire* current state dictionary
+            output_json(battery_levels)
+
+    except (ValueError, IndexError, KeyError):
+        # Silently ignore errors parsing value or if identifier somehow missing
+        pass
+
+
+def cleanup(signum=None, frame=None):
+    """Signal handler - performs cleanup silently and exits."""
+    global mloop, subscriptions, battery_chars
+
+    # Unsubscribe silently
+    for sub in subscriptions:
+        try:
+            sub.unsubscribe()
+        except:
+            pass
+    subscriptions = []
+
+    # Stop Notifications silently
+    stop_notifications(battery_chars)
+
+    # Stop the main loop silently
+    if mloop and mloop.is_running():
+        try:
+            mloop.quit()
+        except:
+            pass
+
+    sys.exit(0)  # Exit cleanly
+
+# --- Main Execution ---
+
+
+def main():
+    """Main function to orchestrate the battery listener setup."""
+    # Declare globals used within main's scope
+    global bus, device_proxy, battery_chars, subscriptions, battery_levels
+
+    args = parse_args()
+    device_mac = args.mac_address
+    device_address_path_part = device_mac.replace(":", "_")
+    device_path = f"{ADAPTER_PATH}/dev_{device_address_path_part}"
+
+    # Setup signal handlers
+    signal.signal(signal.SIGINT, cleanup)
+    signal.signal(signal.SIGTERM, cleanup)
+
+    try:
+        bus = setup_dbus()
+        device_proxy = get_device_proxy(bus, device_path)
+
+        # Raises ConnectionError if not connected
+        check_connection(device_proxy)
+
+        # Raises on failure/timeout
+        wait_for_services(device_proxy, SERVICE_RESOLVE_TIMEOUT)
+
+        battery_chars = find_battery_characteristics(
+            bus, device_path, BATTERY_LEVEL_UUID)
+        if not battery_chars:
+            output_json({})  # Output empty JSON if no battery service found
+            return 0  # Exit cleanly
+
+        # Initialize battery_levels state dictionary (needed before subscribe/initial read)
+        battery_levels = {path.split('/')[-1]: None for path in battery_chars}
+
+        # Raises RuntimeError on complete failure
+        enable_notifications(battery_chars)
+
+        subscriptions = subscribe_to_battery_updates(
+            bus, battery_chars, properties_changed_handler)
+        if not subscriptions and battery_chars:
+            raise RuntimeError(
+                "Subscriptions failed despite characteristics found.")
+
+        # --- Initial Read and Output ---
+        perform_initial_read_and_output(battery_chars)
+
+        # --- Run Main Loop ---
+        global mloop
+        mloop = GLib.MainLoop()
+        mloop.run()  # Blocks until cleanup is called by signal
+
+    except Exception as e:
+        output_error_json(e)  # Output error as JSON
+        # Attempt minimal cleanup (stop notify) before exiting with error code
+        # Subscriptions might not be valid if setup failed partway
+        if 'battery_chars' in globals() and battery_chars:
+            stop_notifications(battery_chars)
+        return 1  # Indicate error
+
+    return 0  # Should not be reached if loop runs; cleanup exits
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -4,17 +4,14 @@ import GLib from 'gi://GLib?version=2.0'
 import {
   combineLatestAll,
   defer,
-  delay,
   EMPTY,
   map,
   Observable,
   of,
   OperatorFunction,
   retry,
-  retryWhen,
   shareReplay,
   switchMap,
-  timer,
 } from 'rxjs'
 import { BatteryStatus } from '.'
 import { fromArrayLike } from 'rxjs/internal/observable/innerFrom'
@@ -63,7 +60,7 @@ function queryUpower(address: string): Observable<BatteryStatus> {
     startWithDeferred(() =>
       deviceProxy.get_cached_property('Percentage').unpack<number>()
     ),
-    map((v) => ({ primary: v })),
+    map((v) => ({ type: 'single', primary: v } as BatteryStatus)),
     onErrorEmpty()
   )
 }
@@ -257,7 +254,6 @@ function retryUntilTrue(predicate: () => boolean): Observable<boolean> {
   if (predicate()) return of(true)
 
   return new Observable<boolean>((o) => {
-    console.log('running predicate')
     if (predicate()) {
       o.next(true)
     } else {
@@ -273,14 +269,14 @@ function retryUntilTrue(predicate: () => boolean): Observable<boolean> {
 }
 
 function mapAsBatteryStatus(): OperatorFunction<number[], BatteryStatus> {
-  return map((values) => {
+  return map<number[], BatteryStatus>((values) => {
     switch (true) {
       case values.length == 1:
-        return { primary: values[0] }
+        return { type: 'single', primary: values[0] }
       case values.length == 2:
-        return { primary: values[0], secondary: values[1] }
+        return { type: 'dual', primary: values[0], secondary: values[1] }
       default:
-        return {}
+        return { type: 'none' }
     }
   })
 }

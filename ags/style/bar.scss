@@ -25,6 +25,11 @@ $outline-offset: $label-margin * 0.5;
   }
 }
 
+.level-indicator {
+  min-height: 32px;
+  min-width: 32px;
+}
+
 .window-title {
   label {
     font-weight: bolder;
