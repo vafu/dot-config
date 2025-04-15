@@ -8,7 +8,7 @@ import {
 import AstalBluetooth from 'gi://AstalBluetooth'
 import { bindAs, binding, fromConnectable } from 'rxbinding'
 import { filter, map, share, shareReplay, startWith, switchMap } from 'rxjs'
-import { CircularIndicator } from 'widgets/circularstatus'
+import { CircularIndicator, Levels } from 'widgets/circularstatus'
 import { logNext } from 'commons/rx'
 import { type } from 'astal/gtk4/astalify'
 
@@ -45,7 +45,7 @@ export const Status = () => (
         ].includes(t)
       ),
       <CircularIndicator
-        levels={CPU().as((c) => ({ level: parseFloat(c) }))}
+        levels={CPU().as((c) => ({ type: 'single', level: parseFloat(c) }))}
       />,
     ]}
   </box>

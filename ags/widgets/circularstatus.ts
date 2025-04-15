@@ -1,7 +1,9 @@
 import { GObject } from 'astal'
 import { astalify, Gdk, Gtk } from 'astal/gtk4'
+import { type } from 'astal/gtk4/astalify'
 import cairo from 'gi://cairo?version=1.0'
 import { min } from 'rxjs'
+import { combineLatestObject } from 'rxjs-etc'
 
 // --- Default values (used if CSS doesn't provide them) ---
 const DEFAULT_LEVEL_COLOR_CSS = new Gdk.RGBA({
@@ -57,21 +59,9 @@ function getNumericCssProp(
 }
 
 
-export type Levels = { type: "single", level: "number" }
+export type Levels = { type: "single", level: number }
   | { type: "dual", left: number, right: number }
   | { type: "none" }
-
-function isSingle(v: Levels): v is Single {
-  return (<Single>v).level !== undefined
-}
-
-function isDual(v: Levels): v is Dual {
-  return (<Dual>v).left !== undefined
-}
-
-function isEmpty(v: Levels): boolean {
-  return !isSingle(v) && !isDual(v)
-}
 
 type InternalProps = Gtk.Overlay.ConstructorProps & {
   levels?: Levels
@@ -249,15 +239,17 @@ class CircularLevelIndicator extends Gtk.Overlay {
       negative: boolean
     }) {
       const direction = props.negative ? -1 : 1
+      const from = degToRad(props.fromDeg)
+      const span = degToRad(props.spanDeg)
       cr.save()
       Gdk.cairo_set_source_rgba(cr, this._cssTrackColor) // Use CSS value
-      const drawArc = negative ? cr.arcNegative.bind(cr) : cr.arc.bind(cr)
+      const drawArc = props.negative ? cr.arcNegative.bind(cr) : cr.arc.bind(cr)
       const to = from + span * direction
       drawArc(centerX, centerY, arcRadius, from, to)
       cr.stroke()
       cr.restore()
-      //
-      if (levels.level >= this._minValue) {
+
+      if (props.value >= this._minValue) {
         const levelEndAngle =
           from + span * (value / (this._minValue + this._maxValue)) * direction
         cr.save()
@@ -269,10 +261,27 @@ class CircularLevelIndicator extends Gtk.Overlay {
     }
 
     if (levels.type == "single") {
-      draw.bind(this)(levels.level, 45 * Math.PI / 180, this._cssArcTotalSpanRad / 2, true)
+      console.log(levels.level)
+      draw({ 
+        value: levels.level,
+        fromDeg: 135,
+        spanDeg: 270,
+        negative: false
+      })
     } else {
-      draw.bind(this)(levels.left, 45 * Math.PI / 180, this._cssArcTotalSpanRad / 2, false)
-      draw.bind(this)(levels.right, 45 * Math.PI / 180, this._cssArcTotalSpanRad / 2, true)
+      draw({
+        value: levels.left,
+        fromDeg: 135,
+        spanDeg: 90,
+        negative: false
+      })
+
+      draw({
+        value: levels.right,
+        fromDeg: 45,
+        spanDeg: 90,
+        negative: true
+      })
     }
   }
 }
@@ -281,3 +290,7 @@ export const CircularIndicator = astalify<
   CircularLevelIndicator,
   InternalProps
 >(CircularLevelIndicator)
+
+function degToRad(degrees: number): number {
+  return degrees * Math.PI / 180
+}
