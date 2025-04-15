@@ -254,7 +254,6 @@ function retryUntilTrue(predicate: () => boolean): Observable<boolean> {
   if (predicate()) return of(true)
 
   return new Observable<boolean>((o) => {
-    console.log('running predicate')
     if (predicate()) {
       o.next(true)
     } else {
