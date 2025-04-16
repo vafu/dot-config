@@ -20,7 +20,7 @@ $outline-offset: $label-margin * 0.5;
     font-weight: bold;
   }
 
-  > box > image {
+  >box>image {
     margin: 0 2px;
   }
 }
@@ -28,7 +28,15 @@ $outline-offset: $label-margin * 0.5;
 .level-indicator {
   min-height: 32px;
   min-width: 32px;
-  color: #0ff;
+
+  >.track {
+    color: #fff;
+  }
+
+  >.level {
+    color: #0f0;
+  }
+
 }
 
 .window-title {

@@ -1,4 +1,4 @@
-import { GObject } from 'astal'
+import { GObject, timeout } from 'astal'
 import { astalify, Gdk, Gtk } from 'astal/gtk4'
 import { type } from 'astal/gtk4/astalify'
 import cairo from 'gi://cairo?version=1.0'
@@ -60,7 +60,7 @@ type RenderStyle = Style & CssStyle
 // - Props -
 // Interface for constructor properties, merging with Gtk.DrawingArea constructor props
 // GObject properties themselves are defined in the static block
-export interface LevelIndicatorProps extends Gtk.DrawingArea.ConstructorProps {
+export interface LevelIndicatorProps extends Gtk.Overlay.ConstructorProps {
   level?: number
   min?: number
   max?: number
@@ -142,7 +142,7 @@ function getCssColor(
 }
 
 
-export class LevelIndicatorWidget extends Gtk.DrawingArea {
+export class LevelIndicatorWidget extends Gtk.Overlay {
   static {
     GObject.registerClass(
       {
@@ -188,6 +188,9 @@ export class LevelIndicatorWidget extends Gtk.DrawingArea {
   private _maxValue: number
   // Style state, initialized with defaults then overwritten by CSS parser
   private _style: RenderStyle
+
+  private _trackView = new Gtk.DrawingArea()
+  private _levelView = new Gtk.DrawingArea()
   // - Constructor -
   constructor(props: Partial<LevelIndicatorProps> = {}) {
 
@@ -210,12 +213,18 @@ export class LevelIndicatorWidget extends Gtk.DrawingArea {
       ...DEFAULT_STYLE,
       ...style,
     }
-    // this._updateStyle()
-    this.set_content_width(1)
-    this.set_content_height(1)
+    this._trackView.add_css_class("track")
+    this._levelView.add_css_class("level")
+    this.add_overlay(this._trackView)
+    this.add_overlay(this._levelView)
 
+    // // this._updateStyle()
+    // this.set_content_width(1)
+    // this.set_content_height(1)
+    //
     // Read initial style and set draw function
-    this.set_draw_func(this._draw)
+    this._trackView.set_draw_func(this._drawTrack)
+    this._levelView.set_draw_func(this._draw)
   }
 
   // - GObject Property Accessors -
@@ -267,23 +276,44 @@ export class LevelIndicatorWidget extends Gtk.DrawingArea {
   }
 
   private _updateStyle() {
-    const style = this._style
-    const context = this.get_style_context()
-    const cssStyle: CssStyle = {
-      thickness: getCssLength(context, 'border-width', DEFAULT_THICKNESS),
-      radius: getCssLength(context, 'border-radius', DEFAULT_THICKNESS),
-      trackColor: getCssColor(context, 'background-color', DEFAULT_TRACK_COLOR),
-      levelColor: getCssColor(context, 'color', DEFAULT_LEVEL_COLOR),
+    // const style = this.
+    // const cssStyle: CssStyle = {
+    //   thickness: getCssLength(context, 'border-width', DEFAULT_THICKNESS),
+    //   radius: getCssLength(context, 'border-radius', DEFAULT_THICKNESS),
+    //   trackColor: getCssColor(context, 'background-color', DEFAULT_TRACK_COLOR),
+    //   levelColor: this.get_style_context().get_color(),
+    // }
+    // this._style = {
+    //   ...style,
+    //   ...cssStyle
+    // }
+  }
+
+  private _drawTrack = (
+    w: Gtk.DrawingArea,
+    cr: cairo.Context,
+    width: number,
+    height: number
+  ): void => {
+    if (width <= 0 || height <= 0) return // Don't draw if no space
+    const level = this._level
+    this._level = this._maxValue
+
+    switch (this._style.style) {
+      case 'arc':
+        this._drawArc(this._style, w.get_color(), cr, width, height)
+        break
+      case 'line':
+      default: // Fallback to line
+        this._drawLine(this._style, w.get_color(), cr, width, height)
+        break
     }
-    this._style = {
-      ...style,
-      ...cssStyle
-    }
+    this._level = level
   }
 
   // - Drawing -
   private _draw = (
-    _: Gtk.DrawingArea,
+    w: Gtk.DrawingArea,
     cr: cairo.Context,
     width: number,
     height: number
@@ -292,11 +322,11 @@ export class LevelIndicatorWidget extends Gtk.DrawingArea {
 
     switch (this._style.style) {
       case 'arc':
-        this._drawArc(this._style, cr, width, height)
+        this._drawArc(this._style, w.get_color(), cr, width, height)
         break
       case 'line':
       default: // Fallback to line
-        this._drawLine(this._style, cr, width, height)
+        this._drawLine(this._style, w.get_color(), cr, width, height)
         break
     }
   }
@@ -304,6 +334,7 @@ export class LevelIndicatorWidget extends Gtk.DrawingArea {
   // - Line Drawing Implementation -
   private _drawLine(
     style: LineStyle,
+    color: Gdk.RGBA,
     cr: cairo.Context,
     width: number,
     height: number
@@ -379,19 +410,19 @@ export class LevelIndicatorWidget extends Gtk.DrawingArea {
       }
     }
 
-    // Draw Track
-    cr.save()
-    Gdk.cairo_set_source_rgba(cr, style.trackColor)
-    cr.moveTo(x1, y1)
-    cr.lineTo(x2, y2)
-    cr.stroke()
-    cr.restore()
+    // // Draw Track
+    // cr.save()
+    // Gdk.cairo_set_source_rgba(cr, style.trackColor)
+    // cr.moveTo(x1, y1)
+    // cr.lineTo(x2, y2)
+    // cr.stroke()
+    // cr.restore()
 
     // Draw Level
     if (fraction > 0 && levelLength > 0) {
       // Check levelLength too
       cr.save()
-      Gdk.cairo_set_source_rgba(cr, style.levelColor)
+      Gdk.cairo_set_source_rgba(cr, color)
       cr.moveTo(lx1, ly1)
       cr.lineTo(lx2, ly2)
       cr.stroke()
@@ -400,6 +431,7 @@ export class LevelIndicatorWidget extends Gtk.DrawingArea {
   }
   private _drawArc(
     style: ArcStyle,
+    color: Gdk.RGBA,
     cr: cairo.Context,
     width: number,
     height: number
@@ -468,16 +500,16 @@ export class LevelIndicatorWidget extends Gtk.DrawingArea {
     const drawArc =
       sweepDirection > 0 ? cr.arc.bind(cr) : cr.arcNegative.bind(cr)
 
-    cr.save()
-    Gdk.cairo_set_source_rgba(cr, style.trackColor)
-    drawArc(arcCenterX, arcCenterY, safeRadius, trackStartRad, trackEndRad)
-
-    cr.stroke()
-    cr.restore()
+    // cr.save()
+    // Gdk.cairo_set_source_rgba(cr, style.trackColor)
+    // // drawArc(arcCenterX, arcCenterY, safeRadius, trackStartRad, trackEndRad)
+    //
+    // cr.stroke()
+    // cr.restore()
 
     if (fraction > 0) {
       cr.save()
-      Gdk.cairo_set_source_rgba(cr, style.levelColor)
+      Gdk.cairo_set_source_rgba(cr, color)
 
       // Calculate end angle based on fraction of the *calculated* arcSpanRad
       const levelSweepAngle = arcSpanRad * fraction * sweepDirection
