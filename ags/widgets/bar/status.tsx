@@ -1,6 +1,5 @@
 import { exec, Variable } from 'astal'
 import {
-  BatteryStatus,
   batteryStatusFor,
   BluetoothDeviceType,
   BluetoothDeviceTypes,
@@ -9,17 +8,14 @@ import {
 import AstalBluetooth from 'gi://AstalBluetooth'
 import { bindAs, binding, fromConnectable } from 'rxbinding'
 import {
-  defaultIfEmpty,
+  distinctUntilChanged,
   filter,
   map,
-  share,
   shareReplay,
   startWith,
   switchMap,
 } from 'rxjs'
-import { LevelIndicator, Levels } from 'widgets/circularstatus'
-import { logNext } from 'commons/rx'
-import { CircularProgress } from 'astal/gtk3/widget'
+import { LevelIndicator, RenderStyle } from 'widgets/circularstatus'
 
 const CPU = Variable('0').poll(3000, () => exec('bash scripts/cpu.sh'))
 
@@ -27,32 +23,56 @@ const RAM = Variable('0').poll(3000, () => exec('bash scripts/ram.sh'))
 
 const btDevices = fromConnectable(AstalBluetooth.get_default(), 'devices')
 
+const stages = [
+  { level: 35, class: 'warn' },
+  { level: 50, class: 'high' },
+  { level: 80, class: 'danger' },
+  { level: 90, class: 'critical' },
+]
+
+const STYLE: Partial<RenderStyle> = {
+  thickness: 2
+}
+
+const ARC_STYLE: Partial<RenderStyle> = {
+  style: 'arc',
+  radius: 16,
+  ...STYLE,
+}
+
 export const Status = () => (
   <box>
     <box cssClasses={['bar-widget']}>
-      <image iconName="utilities-system-monitor-symbolic" />
-      <label label={CPU().as((c) => c + '%')} />
-    </box>
-
-    <box cssClasses={['bar-widget']}>
-      <image iconName="system-software-install-symbolic" />
-      <label label={RAM().as((c) => c + '%')} />
+      <LevelIndicator
+        cssClasses={['sys']}
+        stages={stages}
+        style={ARC_STYLE}
+        level={CPU().as((v) => parseInt(v))}
+        // stages={stages}
+      />
+      <image iconName="computer-symbolic" />
+      <LevelIndicator
+        cssClasses={['sys']}
+        stages={stages}
+        style={{ ...ARC_STYLE, curveDirection: 'start' }}
+        level={RAM().as((v) => parseInt(v))}
+      />
     </box>
     {[
       BtDeviceBattery((t) => t === BluetoothDeviceTypes.INPUT_KEYBOARD),
-      // BtDeviceBattery((t) =>
-      //   [
-      //     BluetoothDeviceTypes.AUDIO_HEADPHONES,
-      //     BluetoothDeviceTypes.AUDIO_HEADSET,
-      //     BluetoothDeviceTypes.AUDIO_CARD,
-      //   ].includes(t)
-      // ),
-      // BtDeviceBattery((t) =>
-      //   [
-      //     BluetoothDeviceTypes.INPUT_TABLET,
-      //     BluetoothDeviceTypes.INPUT_MOUSE,
-      //   ].includes(t)
-      // ),
+      BtDeviceBattery((t) =>
+        [
+          BluetoothDeviceTypes.AUDIO_HEADPHONES,
+          BluetoothDeviceTypes.AUDIO_HEADSET,
+          BluetoothDeviceTypes.AUDIO_CARD,
+        ].includes(t)
+      ),
+      BtDeviceBattery((t) =>
+        [
+          BluetoothDeviceTypes.INPUT_TABLET,
+          BluetoothDeviceTypes.INPUT_MOUSE,
+        ].includes(t)
+      ),
     ]}
   </box>
 )
@@ -71,43 +91,64 @@ function BtDeviceBattery(matcher: (c: BluetoothDeviceType) => Boolean) {
 
   const charge = batteryStatusFor(device)
   const icon = device.pipe(map((d) => getDeviceType(d).icon))
+  const stages = [{ level: 5, class: 'ok' }]
   return (
-    <overlay
+    <box
       tooltipText={bindAs(device, (d) => d.name)}
       cssClasses={['bar-widget']}
     >
-      <LevelIndicator
-        cssClasses={['level-indicator', 'arc']}
-        // level={bindAs<BatteryStatus, Levels>(charge, (c) => {
-        //   switch (c.type) {
-        //     case 'none':
-        //       return 0
-        //     default:
-        //       return c.primary
-        //     //   return { type: 'none' }
-        //   }
-        // })}
-        level={50}
-        min={0}
-        max={100}
-      />
-    </overlay>
+      {binding(
+        charge.pipe(
+          map((v) => v.type),
+          distinctUntilChanged(),
+          map((v) => {
+            switch (v) {
+              case 'single':
+                const battery = charge.pipe(
+                  filter((v) => v.type === 'single'),
+                  map((v) => v.primary)
+                )
+                return [
+                  <image iconName={binding(icon)} />,
+                  <LevelIndicator
+                    cssClasses={['battery']}
+                    stages={stages}
+                    style={{ style: 'line', ...STYLE }}
+                    level={binding(battery)}
+                  />,
+                ]
+
+              case 'dual':
+                const left = charge.pipe(
+                  filter((v) => v.type === 'dual'),
+                  map((v) => v.primary)
+                )
+                const right = charge.pipe(
+                  filter((v) => v.type === 'dual'),
+                  map((v) => v.secondary)
+                )
+
+                return [
+                  <LevelIndicator
+                    cssClasses={['battery']}
+                    style={ARC_STYLE}
+                    level={binding(left)}
+                    stages={stages}
+                  />,
+                  <image iconName={binding(icon)} />,
+                  <LevelIndicator
+                    cssClasses={['battery']}
+                    style={{ ...ARC_STYLE, curveDirection: 'start' }}
+                    level={binding(right)}
+                    stages={stages}
+                  />,
+                ]
+              case 'none':
+                return [<image iconName={binding(icon)} />]
+            }
+          })
+        )
+      )}
+    </box>
   )
-  //
-  //        // return (
-  //   <box cssClasses={['bar-widget']} visible={binding(connected)}>
-  //     <image iconName={binding(icon)} />
-  //     <label
-  //       visible={bindAs(charge, (c) => c.type !== 'none')}
-  //       label={bindAs(charge, (a) => {
-  //         switch (a.type) {
-  //           case 'dual': return `${a.primary}/${a.secondary}`
-  //           case 'single': return `${a.primary}`
-  //           default:
-  //             return ''
-  //         }
-  //       })}
-  //     />
-  //   </box>
-  // )
 }

@@ -1,19 +1,16 @@
 export * from './devicetype'
 import AstalBluetooth from 'gi://AstalBluetooth?version=0.1'
 import {
-  delay,
   map,
   Observable,
   of,
   retry,
-  retryWhen,
+  shareReplay,
   switchMap,
-  tap,
 } from 'rxjs'
-import { fromConnectable, fromFile } from 'rxbinding'
+import { fromConnectable } from 'rxbinding'
 import { queryBatteryStats as batteryFromDbus } from './dbus-battery'
 import { switchIfEmpty } from 'rxjs-etc/dist/esm/operators'
-import { type } from 'astal/gtk4/astalify'
 
 export function batteryStatusFor(
   device: Observable<AstalBluetooth.Device>
@@ -25,11 +22,12 @@ export function batteryStatusFor(
           if (connected) {
             return handleConnected(d)
           } else {
-            return of({ type: 'none' })
+            return of<BatteryStatus>({ type: 'none' })
           }
         })
       )
-    )
+    ),
+    shareReplay(1)
   )
 }
 
@@ -39,7 +37,7 @@ function handleConnected(
   return batteryFromDbus(device.address).pipe(
     switchIfEmpty(
       fromConnectable(device, 'batteryPercentage').pipe(
-        map((v) => ({ type: 'single', primary: v * 100 }))
+        map((v) => ({ type: 'single', primary: v * 100 }) as BatteryStatus)
       )
     ),
     retry({
@@ -53,13 +51,16 @@ export type SingleBattery = { primary: number }
 export type DualBattery = SingleBattery & { secondary: number }
 export type NoBattery = {}
 
-export type BatteryStatus = {
-  type: "single"
-  primary: number
-} | {
-  type: "dual"
-  primary: number
-  secondary: number
-} | {
-  type: "none"
-}
+export type BatteryStatus =
+  | {
+      type: 'single'
+      primary: number
+    }
+  | {
+      type: 'dual'
+      primary: number
+      secondary: number
+    }
+  | {
+      type: 'none'
+    }
