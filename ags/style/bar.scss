@@ -20,23 +20,57 @@ $outline-offset: $label-margin * 0.5;
     font-weight: bold;
   }
 
-  >box>image {
+  > box > image {
     margin: 0 2px;
   }
 }
 
-.level-indicator {
-  min-height: 32px;
-  min-width: 32px;
-
-  >.track {
-    color: #fff;
+levelindicator {
+  min-height: 8px;
+  min-width: 8px;
+  > .track {
+    color: #{$bat_track};
   }
 
-  >.level {
-    color: #0f0;
+  &.line {
+    padding-top: 8px;
+    padding-bottom: 8px;
   }
 
+  &.arc {
+    padding-top: 6px;
+    padding-bottom: 6px;
+    padding-left: 2px;
+    padding-right: 2px;
+  }
+
+  &.sys {
+    > .level {
+      &.warn {
+        color: #{$sys_warn};
+      }
+      &.high {
+        color: #{$sys_high};
+      }
+      &.danger {
+        color: #{$sys_danger};
+      }
+      &.critical {
+        color: #{$sys_critical};
+      }
+    }
+  }
+
+  &.battery {
+    > .level {
+      &.default {
+        color: #{$bat_low};
+      }
+      &.ok {
+        color: #{$bat_normal};
+      }
+    }
+  }
 }
 
 .window-title {

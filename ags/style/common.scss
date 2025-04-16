@@ -4,6 +4,7 @@ $spread: 0px;
 @mixin animate {
   transition: 150ms;
 }
+
 @mixin elevation-0 {
   box-shadow: none;
 }
@@ -22,4 +23,12 @@ $spread: 0px;
 
 .test {
   background-color: #f0f;
+}
+
+.material-icon {
+  font-family: "Material Icons";
+}
+
+.txt-norm {
+  font-size: 1.5rem;
 }

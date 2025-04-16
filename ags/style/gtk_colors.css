@@ -18,5 +18,16 @@
 @define-color performance @warning_bg_color;
 @define-color performance_fg @warning_fg_color;
 
+@define-color bat_low @red_2;
+@define-color bat_normal @theme_fg_color;
+@define-color bat_track alpha(@theme_fg_color, 0.3);
+
+
+@define-color sys_warn @yellow_1;
+@define-color sys_ok @green_1;
+@define-color sys_high @yellow_2;
+@define-color sys_danger @red_1;
+@define-color sys_critical @red_2;
+
 /* global */
 @define-color shadow @shade_color;
