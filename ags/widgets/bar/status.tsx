@@ -49,9 +49,8 @@ export const Status = () => (
         stages={stages}
         style={ARC_STYLE}
         level={CPU().as((v) => parseInt(v))}
-      // stages={stages}
       />
-      <MaterialIcon icon="memory" />
+      <MaterialIcon icon="memory" tinted={true} />
       <LevelIndicator
         cssClasses={['sys']}
         stages={stages}
@@ -92,8 +91,10 @@ function BtDeviceBattery(matcher: (c: BluetoothDeviceType) => Boolean) {
   )
 
   const charge = batteryStatusFor(device)
-  const icon = device.pipe(map((d) => getDeviceType(d).icon))
+  const iconname = device.pipe(map((d) => getDeviceType(d).icon))
   const stages = [{ level: 5, class: 'ok' }]
+  const icon =
+    <MaterialIcon icon={binding(iconname)} tinted={bindAs(connected, c => !c)} />
   return (
     <box
       tooltipText={bindAs(device, (d) => d.name)}
@@ -111,7 +112,7 @@ function BtDeviceBattery(matcher: (c: BluetoothDeviceType) => Boolean) {
                   map((v) => v.primary)
                 )
                 return [
-                  <image iconName={binding(icon)} />,
+                  icon,
                   <LevelIndicator
                     cssClasses={['battery']}
                     stages={stages}
@@ -137,7 +138,7 @@ function BtDeviceBattery(matcher: (c: BluetoothDeviceType) => Boolean) {
                     level={binding(left)}
                     stages={stages}
                   />,
-                  <image iconName={binding(icon)} />,
+                  icon,
                   <LevelIndicator
                     cssClasses={['battery']}
                     style={{ ...ARC_STYLE, curveDirection: 'start' }}
@@ -146,7 +147,7 @@ function BtDeviceBattery(matcher: (c: BluetoothDeviceType) => Boolean) {
                   />,
                 ]
               case 'none':
-                return [<image iconName={binding(icon)} />]
+                return [icon]
             }
           })
         )

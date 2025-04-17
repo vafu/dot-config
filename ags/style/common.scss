@@ -25,10 +25,22 @@ $spread: 0px;
   background-color: #f0f;
 }
 
-.material-icon {
+materialicon {
   font-family: "Material Icons";
-}
 
-.txt-norm {
-  font-size: 1.5rem;
+  &.tinted {
+    color: #{$mi_tinted};
+  }
+
+  &.size-regular {
+    font-size: 1.5rem;
+  }
+
+  &.size-large {
+    font-size: 2rem;
+  }
+
+  &.size-small {
+    font-size: 1rem;
+  }
 }

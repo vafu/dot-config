@@ -5,14 +5,14 @@ export const BluetoothDeviceTypes = {
   PHONE: { icon: "phone" },
   MODEM: { icon: "modem" },
   NETWORK_WIRELESS: { icon: "network-wireless" },
-  AUDIO_HEADSET: { icon: "audio-headset-symbolic" },
-  AUDIO_HEADPHONES: { icon: "audio-headphones-symbolic" },
+  AUDIO_HEADSET: { icon: "headset_mic" },
+  AUDIO_HEADPHONES: { icon: "headphones" },
   CAMERA_VIDEO: { icon: "camera-video" },
-  AUDIO_CARD: { icon: "audio-card" }, // Represents default or other audio device
+  AUDIO_CARD: { icon: "media_bluetooth_on" }, // Represents default or other audio device
   INPUT_GAMING: { icon: "input-gaming" },
-  INPUT_KEYBOARD: { icon: "input-keyboard-symbolic" },
-  INPUT_TABLET: { icon: "input-touchpad-symbolic" },
-  INPUT_MOUSE: { icon: "input-mouse" }, // Represents default or other pointing device
+  INPUT_KEYBOARD: { icon: "keyboard" },
+  INPUT_TABLET: { icon: "mouse" },
+  INPUT_MOUSE: { icon: "mouse" }, // Represents default or other pointing device
   PRINTER: { icon: "printer" },
   CAMERA_PHOTO: { icon: "camera-photo" },
   UNKNOWN: { icon: "unknown" },
