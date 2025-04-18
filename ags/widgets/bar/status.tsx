@@ -16,6 +16,7 @@ import {
   switchMap,
 } from 'rxjs'
 import { LevelIndicator, RenderStyle } from 'widgets/circularstatus'
+import { MaterialIcon } from 'widgets/materialicon'
 
 const CPU = Variable('0').poll(3000, () => exec('bash scripts/cpu.sh'))
 
@@ -31,7 +32,7 @@ const stages = [
 ]
 
 const STYLE: Partial<RenderStyle> = {
-  thickness: 2
+  thickness: 2,
 }
 
 const ARC_STYLE: Partial<RenderStyle> = {
@@ -48,9 +49,8 @@ export const Status = () => (
         stages={stages}
         style={ARC_STYLE}
         level={CPU().as((v) => parseInt(v))}
-        // stages={stages}
       />
-      <image iconName="computer-symbolic" />
+      <MaterialIcon icon="memory" cssClasses={["p24"]} />
       <LevelIndicator
         cssClasses={['sys']}
         stages={stages}
@@ -79,7 +79,11 @@ export const Status = () => (
 
 function BtDeviceBattery(matcher: (c: BluetoothDeviceType) => Boolean) {
   const device = btDevices.pipe(
-    map((devices) => devices.find((d) => matcher(getDeviceType(d)))),
+    map((devices) =>
+      devices
+        .sort((a, b) => Number(b.connected) - Number(a.connected))
+        .find((d) => matcher(getDeviceType(d)))
+    ),
     filter((d) => d != null),
     shareReplay(1)
   )
@@ -90,8 +94,14 @@ function BtDeviceBattery(matcher: (c: BluetoothDeviceType) => Boolean) {
   )
 
   const charge = batteryStatusFor(device)
-  const icon = device.pipe(map((d) => getDeviceType(d).icon))
+  const iconname = device.pipe(map((d) => getDeviceType(d).icon))
   const stages = [{ level: 5, class: 'ok' }]
+  const icon = (
+    <MaterialIcon
+      icon={binding(iconname)}
+      tinted={bindAs(connected, (c) => !c)}
+    />
+  )
   return (
     <box
       tooltipText={bindAs(device, (d) => d.name)}
@@ -109,7 +119,7 @@ function BtDeviceBattery(matcher: (c: BluetoothDeviceType) => Boolean) {
                   map((v) => v.primary)
                 )
                 return [
-                  <image iconName={binding(icon)} />,
+                  icon,
                   <LevelIndicator
                     cssClasses={['battery']}
                     stages={stages}
@@ -135,7 +145,7 @@ function BtDeviceBattery(matcher: (c: BluetoothDeviceType) => Boolean) {
                     level={binding(left)}
                     stages={stages}
                   />,
-                  <image iconName={binding(icon)} />,
+                  icon,
                   <LevelIndicator
                     cssClasses={['battery']}
                     style={{ ...ARC_STYLE, curveDirection: 'start' }}
@@ -144,7 +154,7 @@ function BtDeviceBattery(matcher: (c: BluetoothDeviceType) => Boolean) {
                   />,
                 ]
               case 'none':
-                return [<image iconName={binding(icon)} />]
+                return [icon]
             }
           })
         )

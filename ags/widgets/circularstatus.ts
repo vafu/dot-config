@@ -130,6 +130,7 @@ export class LevelIndicatorWidget extends Gtk.Overlay {
     this.add_css_class(this._style.style)
   }
 
+
   private _drawTrack = (
     w: Gtk.DrawingArea,
     cr: cairo.Context,
