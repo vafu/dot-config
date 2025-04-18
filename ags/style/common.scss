@@ -26,7 +26,9 @@ $spread: 0px;
 }
 
 materialicon {
-  font-family: "Material Icons";
+  font-family: "Material Icons Outlined";
+  min-height: 24;
+  min-width: 24;
 
   &.tinted {
     color: #{$mi_tinted};

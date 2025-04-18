@@ -20,7 +20,7 @@ $outline-offset: $label-margin * 0.5;
     font-weight: bold;
   }
 
-  > box > image {
+  >box>image {
     margin: 0 2px;
   }
 }
@@ -28,8 +28,11 @@ $outline-offset: $label-margin * 0.5;
 levelindicator {
   min-height: 8px;
   min-width: 8px;
-  > .track {
+  color: #fff;
+
+  >.track {
     color: #{$bat_track};
+    /* background-color: #f0f; */
   }
 
   &.line {
@@ -40,21 +43,24 @@ levelindicator {
   &.arc {
     padding-top: 6px;
     padding-bottom: 6px;
-    padding-left: 2px;
-    padding-right: 2px;
+    /* padding-left: 2px; */
+    /* padding-right: 2px; */
   }
 
   &.sys {
-    > .level {
+    >.level {
       &.warn {
         color: #{$sys_warn};
       }
+
       &.high {
         color: #{$sys_high};
       }
+
       &.danger {
         color: #{$sys_danger};
       }
+
       &.critical {
         color: #{$sys_critical};
       }
@@ -62,10 +68,11 @@ levelindicator {
   }
 
   &.battery {
-    > .level {
+    >.level {
       &.default {
         color: #{$bat_low};
       }
+
       &.ok {
         color: #{$bat_normal};
       }
