@@ -20,7 +20,7 @@ type PanelButtonProps = ButtonProps & {
   window?: string
 }
 
-const PanelButton = (
+export const PanelButton = (
   { window = '', ...rest }: PanelButtonProps,
   child: Gtk.Widget
 ) =>

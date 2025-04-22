@@ -1,0 +1,12 @@
+[Icon Theme]
+Name=Material
+Comment=Icon theme to display Material Symbols
+Inherits=Adwaita,hicolor
+
+Directories=symbolic
+
+[symbolic]
+Size=20
+MinSize=8
+MaxSize=512
+Type=Scalable 

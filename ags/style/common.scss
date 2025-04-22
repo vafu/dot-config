@@ -21,28 +21,13 @@ $spread: 0px;
   box-shadow: 0px 6px $blur $spread #{$shadow};
 }
 
-.test {
-  background-color: #f0f;
-}
-
 materialicon {
-  font-family: "Material Icons Outlined";
-  min-height: 24;
-  min-width: 24;
-
+  -gtk-icon-size: 20px;
   &.tinted {
     color: #{$mi_tinted};
   }
 
-  &.size-regular {
-    font-size: 1.5rem;
-  }
-
-  &.size-large {
-    font-size: 2rem;
-  }
-
-  &.size-small {
-    font-size: 1rem;
+  &.p24 {
+    -gtk-icon-size: 24px;
   }
 }

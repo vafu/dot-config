@@ -1,4 +1,4 @@
-import { exec, Variable } from 'astal'
+import { bind, exec, Gio, GLib, GObject, Variable } from 'astal'
 import {
   batteryStatusFor,
   BluetoothDeviceType,
@@ -17,6 +17,12 @@ import {
 } from 'rxjs'
 import { LevelIndicator, RenderStyle } from 'widgets/circularstatus'
 import { MaterialIcon } from 'widgets/materialicon'
+import { PanelButton } from './panel-buttons'
+import { Gtk } from 'astal/gtk4'
+import { Label } from 'astal/gtk4/widget'
+import { ActionRow, ListBox } from 'widgets/adw'
+import Adw from 'gi://Adw?version=1'
+import { fromPromise } from 'rxjs/internal/observable/innerFrom'
 
 const CPU = Variable('0').poll(3000, () => exec('bash scripts/cpu.sh'))
 
@@ -32,7 +38,7 @@ const stages = [
 ]
 
 const STYLE: Partial<RenderStyle> = {
-  thickness: 2
+  thickness: 2,
 }
 
 const ARC_STYLE: Partial<RenderStyle> = {
@@ -50,7 +56,7 @@ export const Status = () => (
         style={ARC_STYLE}
         level={CPU().as((v) => parseInt(v))}
       />
-      <MaterialIcon icon="memory" tinted={true} />
+      <MaterialIcon icon="memory" cssClasses={["p24"]} />
       <LevelIndicator
         cssClasses={['sys']}
         stages={stages}
@@ -78,12 +84,14 @@ export const Status = () => (
 )
 
 function BtDeviceBattery(matcher: (c: BluetoothDeviceType) => Boolean) {
-  const device = btDevices.pipe(
+  const devices = btDevices.pipe(
     map((devices) =>
-      devices.sort((a, b) => Number(b.connected) - Number(a.connected)).find((d) => matcher(getDeviceType(d)))),
+      devices.sort((a, b) => Number(b.connected) - Number(a.connected)).filter(d => matcher(getDeviceType(d)))
+    ),
     filter((d) => d != null),
     shareReplay(1)
   )
+  const device = devices.pipe(map(a => a.find(d => matcher(getDeviceType(d)))), shareReplay(1))
 
   const connected = device.pipe(
     switchMap((d) => fromConnectable(d, 'connected')),
@@ -93,12 +101,17 @@ function BtDeviceBattery(matcher: (c: BluetoothDeviceType) => Boolean) {
   const charge = batteryStatusFor(device)
   const iconname = device.pipe(map((d) => getDeviceType(d).icon))
   const stages = [{ level: 5, class: 'ok' }]
-  const icon =
-    <MaterialIcon icon={binding(iconname)} tinted={bindAs(connected, c => !c)} />
-  return (
+  const icon = (
+    <MaterialIcon
+      icon={binding(iconname)}
+      tinted={bindAs(connected, (c) => !c)}
+    />
+  )
+  const indicator = (
     <box
       tooltipText={bindAs(device, (d) => d.name)}
-      cssClasses={['bar-widget']}
+      halign={Gtk.Align.CENTER}
+      cssClasses={["bar-widget"]}
     >
       {binding(
         charge.pipe(
@@ -118,6 +131,7 @@ function BtDeviceBattery(matcher: (c: BluetoothDeviceType) => Boolean) {
                     stages={stages}
                     style={{ style: 'line', ...STYLE }}
                     level={binding(battery)}
+                    visible={binding(connected)}
                   />,
                 ]
 
@@ -137,6 +151,7 @@ function BtDeviceBattery(matcher: (c: BluetoothDeviceType) => Boolean) {
                     style={ARC_STYLE}
                     level={binding(left)}
                     stages={stages}
+                    visible={binding(connected)}
                   />,
                   icon,
                   <LevelIndicator
@@ -144,6 +159,7 @@ function BtDeviceBattery(matcher: (c: BluetoothDeviceType) => Boolean) {
                     style={{ ...ARC_STYLE, curveDirection: 'start' }}
                     level={binding(right)}
                     stages={stages}
+                    visible={binding(connected)}
                   />,
                 ]
               case 'none':
@@ -154,4 +170,14 @@ function BtDeviceBattery(matcher: (c: BluetoothDeviceType) => Boolean) {
       )}
     </box>
   )
+  const popover = new Gtk.Popover({
+    cssClasses: ["menu"],
+    child: <ListBox setup={w => w.connect("row-activated", (_, b) => AstalBluetooth.get_default().devices.find(d => d.address == b.name).connect_device(null))
+    }>
+      {binding(devices.pipe(map(a => a.map(d => <ActionRow title={d.name} activatable={true} name={d.address} />))))}
+    </ListBox >
+  })
+
+  const button = new Gtk.MenuButton({ popover: popover, child: indicator, cssClasses: ["flat", "circular"] })
+  return button
 }

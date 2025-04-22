@@ -28,11 +28,9 @@ $outline-offset: $label-margin * 0.5;
 levelindicator {
   min-height: 8px;
   min-width: 8px;
-  color: #fff;
 
   >.track {
     color: #{$bat_track};
-    /* background-color: #f0f; */
   }
 
   &.line {
@@ -43,8 +41,6 @@ levelindicator {
   &.arc {
     padding-top: 6px;
     padding-bottom: 6px;
-    /* padding-left: 2px; */
-    /* padding-right: 2px; */
   }
 
   &.sys {
