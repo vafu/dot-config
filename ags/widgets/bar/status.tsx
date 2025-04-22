@@ -8,9 +8,11 @@ import {
 import AstalBluetooth from 'gi://AstalBluetooth'
 import { bindAs, binding, fromConnectable } from 'rxbinding'
 import {
+  combineLatest,
   distinctUntilChanged,
   filter,
   map,
+  of,
   shareReplay,
   startWith,
   switchMap,
@@ -86,20 +88,22 @@ export const Status = () => (
 function BtDeviceBattery(matcher: (c: BluetoothDeviceType) => Boolean) {
   const devices = btDevices.pipe(
     map((devices) =>
-      devices.sort((a, b) => Number(b.connected) - Number(a.connected)).filter(d => matcher(getDeviceType(d)))
+      devices.sort((a, b) => Number(b.connected) - Number(a.connected))
+        .map(d => ({ device: d, type: getDeviceType(d) }))
+        .filter(d => matcher(d.type))
     ),
-    filter((d) => d != null),
+    filter((d) => d != null && d.length > 0),
     shareReplay(1)
   )
-  const device = devices.pipe(map(a => a.find(d => matcher(getDeviceType(d)))), shareReplay(1))
+  const device = devices.pipe(map(a => a[0]), shareReplay(1))
 
   const connected = device.pipe(
-    switchMap((d) => fromConnectable(d, 'connected')),
+    switchMap((d) => fromConnectable(d.device, 'connected')),
     startWith(false)
   )
 
-  const charge = batteryStatusFor(device)
-  const iconname = device.pipe(map((d) => getDeviceType(d).icon))
+  const charge = batteryStatusFor(device.pipe(map(a => a.device)))
+  const iconname = device.pipe(map((d) => d.type.icon))
   const stages = [{ level: 5, class: 'ok' }]
   const icon = (
     <MaterialIcon
@@ -109,7 +113,7 @@ function BtDeviceBattery(matcher: (c: BluetoothDeviceType) => Boolean) {
   )
   const indicator = (
     <box
-      tooltipText={bindAs(device, (d) => d.name)}
+      tooltipText={bindAs(device, (d) => d.device.name)}
       halign={Gtk.Align.CENTER}
       cssClasses={["bar-widget"]}
     >
@@ -170,11 +174,40 @@ function BtDeviceBattery(matcher: (c: BluetoothDeviceType) => Boolean) {
       )}
     </box>
   )
+
+  const devicesForView = devices.pipe(
+    distinctUntilChanged((a, b) => a.map(d => d.device.address) == b.map(d => d.device.address)),
+    map(a => a.map(d =>
+      <ActionRow
+        title={bind(d.device, 'name')}
+        activatable={true}
+        name={d.device.address}
+        subtitle={
+          binding(
+            fromConnectable(d.device, "connected").pipe(
+              switchMap(connected => connected ? of("Connected") :
+                fromConnectable(d.device, "connecting").pipe(
+                  map(connecting => connecting ? "Connecting..." : "")))
+            )
+          )
+        } />
+    )
+    )
+  )
   const popover = new Gtk.Popover({
     cssClasses: ["menu"],
-    child: <ListBox setup={w => w.connect("row-activated", (_, b) => AstalBluetooth.get_default().devices.find(d => d.address == b.name).connect_device(null))
+    child: <ListBox setup={w => w.connect("row-activated", (_, b) => {
+      const d =
+        AstalBluetooth.get_default().devices.find(d => d.address == b.name)
+      if (d.connected) {
+        d.disconnect_device(null)
+      } else {
+        d.connect_device(null)
+      }
+    }
+    )
     }>
-      {binding(devices.pipe(map(a => a.map(d => <ActionRow title={d.name} activatable={true} name={d.address} />))))}
+      {binding(devicesForView)}
     </ListBox >
   })
 
