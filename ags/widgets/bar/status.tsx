@@ -176,7 +176,7 @@ function BtDeviceBattery(matcher: (c: BluetoothDeviceType) => Boolean) {
   )
 
   const devicesForView = devices.pipe(
-    distinctUntilChanged((a, b) => a.map(d => d.device.address) == b.map(d => d.device.address)),
+    distinctUntilChanged((a, b) => a.map(d => d.device.address + d.device.connected) == b.map(d => d.device.address + d.device.connected)),
     map(a => a.map(d =>
       <ActionRow
         title={bind(d.device, 'name')}
