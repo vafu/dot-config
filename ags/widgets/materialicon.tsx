@@ -18,8 +18,6 @@ export type MaterialIconProps = Gtk.Label.ConstructorProps & {
   tinted: boolean
 } & IconStyle
 
-console.log(GLib.get_user_data_dir())
-
 const themedir = Gio.file_new_for_path(
   GLib.get_user_data_dir() + '/icons/Material/'
 )

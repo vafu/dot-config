@@ -25,6 +25,7 @@ import { Label } from 'astal/gtk4/widget'
 import { ActionRow, ListBox } from 'widgets/adw'
 import Adw from 'gi://Adw?version=1'
 import { fromPromise } from 'rxjs/internal/observable/innerFrom'
+import { logNext } from 'commons/rx'
 
 const CPU = Variable('0').poll(3000, () => exec('bash scripts/cpu.sh'))
 
