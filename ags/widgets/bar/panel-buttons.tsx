@@ -1,4 +1,4 @@
-import { interval, map, shareReplay, startWith, switchMap } from 'rxjs'
+import { interval, map, shareReplay, startWith } from 'rxjs'
 import GLib from 'gi://GLib?version=2.0'
 import {
   bindAs,
@@ -7,14 +7,15 @@ import {
   fromChain as chain,
   fromConnectable,
 } from 'rxbinding'
-import { App, Gtk } from 'astal/gtk4'
+import { Gtk } from 'astal/gtk4'
 import AstalNetwork from 'gi://AstalNetwork?version=0.1'
 import { bind, exec } from 'astal'
 import AstalBattery from 'gi://AstalBattery?version=0.1'
 import AstalPowerProfiles from 'gi://AstalPowerProfiles?version=0.1'
-import { Button, ButtonProps } from 'astal/gtk4/widget'
+import { Button, ButtonProps, MenuButton, Popover } from 'astal/gtk4/widget'
 import AstalWp from 'gi://AstalWp?version=0.1'
 import { SysTray } from './tray'
+import { QuicktoggleMenu } from 'widgets/bar_dropdown'
 
 type PanelButtonProps = ButtonProps & {
   window?: string
@@ -107,10 +108,7 @@ const ethSpeed = chain(
 export const PanelButtons = () => (
   <box>
     <SysTray />
-    <PanelButton
-      window="network-config"
-      onClicked={() => App.toggle_window('network-config')}
-    >
+    <MenuButton cssClasses={["panel-button", "flat", "pill", "bar-widget"]} >
       <box>
         <image iconName="audio-volume-muted" visible={binding(isMuted)} />
         <image
@@ -132,7 +130,10 @@ export const PanelButtons = () => (
           iconName={bind(battery, 'battery_icon_name')}
         />
       </box>
-    </PanelButton>
-    <DateTime/>
+      <Popover onKeyPressed={(_, k) => console.log(k)}>
+        <QuicktoggleMenu />
+      </Popover>
+    </MenuButton>
+    <DateTime />
   </box>
 )

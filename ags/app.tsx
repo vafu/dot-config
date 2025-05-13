@@ -29,6 +29,5 @@ App.start({
     })
 
     // NotificationPopups(App.get_monitors()[0])
-    NetworkConfig()
   },
 })
