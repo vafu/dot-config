@@ -3,11 +3,12 @@ import { App, Gtk } from 'astal/gtk4'
 import Adw from 'gi://Adw?version=1'
 import Bar from 'widgets/bar'
 import style from './style/style'
-import NetworkConfig from 'widgets/bar_dropdown'
 import OSD from 'widgets/osd'
-import { GLib } from 'astal'
 import { logDebug } from 'logger'
-
+import { fromConnectable } from 'rxbinding'
+import { withPrevious } from 'commons/rx'
+import AstalHyprland from 'gi://AstalHyprland?version=0.1'
+import { map, retry } from 'rxjs'
 
 App.start({
   css: style,
@@ -19,10 +20,21 @@ App.start({
     s.set_property("gtk-icon-theme-name", "Material")
     console.log("using gtk theme", t.theme_name)
 
-    App.get_monitors().forEach((m) => {
-      console.log("Creating bar for ", m)
-      return Bar(m)
-    })
+
+    fromConnectable(AstalHyprland.get_default(), 'monitors').pipe(
+      map(monitors => monitors.map(m =>
+        App.get_monitors().find(am =>
+          am.description.startsWith(m.description) || m.description.startsWith(am.description)
+        )
+      )),
+      retry({
+        count: 2,
+        delay: 1000
+      }),
+      withPrevious([]),
+      map(([p, c]) => c.filter(current => !p.includes(current)))
+    ).subscribe(monitors => monitors.forEach(m => Bar(m)))
+
     App.get_monitors().forEach((m) => {
       console.log("Creating OSD for")
       return OSD(m)
