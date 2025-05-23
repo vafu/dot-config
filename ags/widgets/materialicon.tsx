@@ -18,8 +18,6 @@ export type MaterialIconProps = Gtk.Label.ConstructorProps & {
   tinted: boolean
 } & IconStyle
 
-console.log(GLib.get_user_data_dir())
-
 const themedir = Gio.file_new_for_path(
   GLib.get_user_data_dir() + '/icons/Material/'
 )
@@ -41,7 +39,7 @@ class MaterialIconInternal extends Gtk.Image {
   }
 
   _style: IconStyle = {
-    size: 20,
+    size: 48,
     style: 'outlined',
     fill: true,
     wght: 400,
@@ -49,25 +47,16 @@ class MaterialIconInternal extends Gtk.Image {
   }
 
   set icon(icon: string) {
-    const [_, name] = fetchForProps(icon, this._style)
-    this.iconName = name
-    console.log(this.iconName)
-    this.queue_draw()
+    fetchForProps(icon, this._style, (name) => {
+      console.log(name)
+      this.iconName = name
+      this.queue_draw()
+    })
   }
 
   set style(style: IconStyle) {
     this._style = style
     // this.queue_draw()
-  }
-
-  set size(size: MaterialIconProps['size']) {
-    // this.remove_css_class(this._sizeCls)
-    // switch (size) {
-    //   case "regular": this._sizeCls = SIZE_REG_CLASS_NAME; break
-    //   case "small": this._sizeCls = SIZE_SMALL_CLASS_NAME; break
-    //   case "large": this._sizeCls = SIZE_LARGE_CLASS_NAME; break
-    // }
-    // this.add_css_class(this._sizeCls)
   }
 
   set tinted(tinted: boolean) {
@@ -79,13 +68,14 @@ class MaterialIconInternal extends Gtk.Image {
   }
 }
 
-function fetchForProps(name: string, props: IconStyle): [Gio.File, string] {
+function fetchForProps(name: string, props: IconStyle, onResolved: (name: string) => void) {
   const resourceName = iconFromStyle(name, props)
   const iconName = `${resourceName}-${props.style}-symbolic`
   const iconFile = iconcache.get_child(iconName + '.svg')
 
   if (iconFile.query_exists(null)) {
-    return [iconFile, iconName]
+    onResolved(iconName)
+    return
   }
   const remotedir = `${name}/materialsymbols${props.style}/`
   const path = remotedir + resourceName
@@ -101,16 +91,14 @@ function fetchForProps(name: string, props: IconStyle): [Gio.File, string] {
     .splice_async(
       result,
       Gio.OutputStreamSpliceFlags.CLOSE_SOURCE &
-        Gio.OutputStreamSpliceFlags.CLOSE_TARGET,
+      Gio.OutputStreamSpliceFlags.CLOSE_TARGET,
       1,
       null,
       () => {
-        console.log('updating', name)
-        console.log(exec(`gtk-update-icon-cache ${themedir.get_path()}`))
+        exec(`gtk-update-icon-cache ${themedir.get_path()}`)
+        onResolved(iconName)
       }
     )
-  console.log('returning', name)
-  return [iconFile, iconName]
 }
 
 function iconFromStyle(name: string, style: IconStyle): string {

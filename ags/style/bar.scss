@@ -15,12 +15,17 @@ $outline-offset: $label-margin * 0.5;
 }
 
 .panel-button {
+
   label {
     font-size: 12pt;
     font-weight: bold;
   }
 
-  >box>image {
+  >button {
+    padding: 0 8px;
+  }
+
+  image {
     margin: 0 2px;
   }
 }

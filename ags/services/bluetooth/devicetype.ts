@@ -10,7 +10,7 @@ export const BluetoothDeviceTypes = {
   CAMERA_VIDEO: { icon: "camera-video" },
   AUDIO_CARD: { icon: "media_bluetooth_on" }, // Represents default or other audio device
   INPUT_GAMING: { icon: "input-gaming" },
-  INPUT_KEYBOARD: { icon: "keyboard_alt" },
+  INPUT_KEYBOARD: { icon: "keyboard" },
   INPUT_TABLET: { icon: "trackpad_input" },
   INPUT_MOUSE: { icon: "mouse" }, // Represents default or other pointing device
   PRINTER: { icon: "printer" },

@@ -89,11 +89,11 @@ function queryBluez(address: string): Observable<BatteryStatus> {
   )
 
   return retryUntilTrue(() =>
-    deviceProxy.get_cached_property('Connected').unpack<boolean>()
+    deviceProxy.get_cached_property('Connected')?.unpack<boolean>() ?? false
   ).pipe(
     switchMap(() =>
       retryUntilTrue(() =>
-        deviceProxy.get_cached_property('ServicesResolved').unpack<boolean>()
+        deviceProxy.get_cached_property('ServicesResolved')?.unpack<boolean>() ?? false
       )
     ),
     switchMap(() => {
