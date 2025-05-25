@@ -1,0 +1,2 @@
+scrollback_pager nvim -c 'setlocal ft=man nonumber nolist showtabline=0 foldcolumn=0' -c "autocmd VimEnter * normal G" -
+map alt+s show_scrollback

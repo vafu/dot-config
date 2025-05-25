@@ -1,8 +1,0 @@
-window = { }
-import = [
-  "/usr/lib/node_modules/alacritty-themes/themes/Google.dark.toml"
-]
-
-[general]
-live_config_reload = true
-import = [ "alacritty-theme/themes/gruvbox_dark.toml" ]
