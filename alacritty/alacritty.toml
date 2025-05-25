@@ -1,0 +1,16 @@
+[general]
+import = [
+    "gruvbox_material_hard_light.toml",
+    "gruvbox_material.toml"
+]
+live_config_reload = true
+
+[font]
+normal = {family = "JetBrainsMono Nerd Font"}
+size = 10
+
+[window]
+padding = { x = 2, y = 2 } 
+dynamic_padding = true
+decorations = "none"
+

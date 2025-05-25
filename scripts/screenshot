@@ -48,7 +48,7 @@ done
 handle_notification_action() {
   local action=$(echo "$1" | cut -d "|" -f 2)
   case "$action" in
-  "open") eog "$file" & ;;
+  "open") loupe "$file" & ;;
   "edit") satty --filename "$file" & ;;
   esac
 }
