@@ -7,6 +7,8 @@ export ZSH_CUSTOM=$HOME/.oh-my-zsh/
 alias e="$EDITOR"
 alias se="sudoedit"
 
+source <(fzf --zsh)
+
 # Path to your oh-my-zsh installation.
 ZSH=/usr/share/oh-my-zsh/
 fpath+=($HOME/.zsh/pure)
@@ -96,7 +98,6 @@ zstyle ':completion:*' rehash true
 function reload_gtk_theme() {
   theme=$(gsettings get org.gnome.desktop.interface gtk-theme)
   gsettings set org.gnome.desktop.interface gtk-theme ''
-  sleep 1
   gsettings set org.gnome.desktop.interface gtk-theme $theme
 }
 
