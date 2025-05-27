@@ -61,6 +61,11 @@ class HyprWorkspaceService implements WorkspaceService {
 class HyprWR implements WR {
   private _workspaces: Map<number, WS> = new Map()
   private wr: number
+
+  get idx(): number {
+    return this.wr
+  }
+
   constructor(wr: number) {
     this.wr = wr
   }
