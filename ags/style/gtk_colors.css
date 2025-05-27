@@ -11,7 +11,7 @@
 @define-color ws_occupied alpha(@theme_fg_color, 0.8);
 @define-color ws_empty alpha(@theme_fg_color, 0.1);
 @define-color ws_urgent @red_2;
-@define-color app_title @dark_4;
+@define-color app_title @secondary_sidebar_fg_color;
 
 @define-color powersaver @success_bg_color;
 @define-color powersaver_fg @success_fg_color;
@@ -21,7 +21,6 @@
 @define-color bat_low @red_2;
 @define-color bat_normal @theme_fg_color;
 @define-color bat_track alpha(@theme_fg_color, 0.3);
-
 
 @define-color sys_warn @yellow_1;
 @define-color sys_ok @green_1;

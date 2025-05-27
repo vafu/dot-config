@@ -130,7 +130,7 @@ export const PanelButtons = () => (
           iconName={bind(battery, 'battery_icon_name')}
         />
       </box>
-      <Popover onKeyPressed={(_, k) => console.log(k)}>
+      <Popover onKeyPressed={(_, k) => console.log(k)} >
         <QuicktoggleMenu />
       </Popover>
     </MenuButton>
