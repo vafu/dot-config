@@ -127,6 +127,16 @@ levelindicator {
   }
 }
 
+.pomodoro {
+
+  label {
+    font-weight: bold;
+    font-size: 12pt;
+    margin-left: 4px;
+  }
+
+}
+
 @keyframes urgent {
   from {
     background-color: #{$ws_occupied};
