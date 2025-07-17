@@ -10,6 +10,7 @@ import { diffs, withPrevious } from 'commons/rx'
 import AstalHyprland from 'gi://AstalHyprland?version=0.1'
 import { map, Observable, retry } from 'rxjs'
 import { prepareTheme } from 'style/theming'
+import notes from 'widgets/notes'
 
 App.start({
   css: style,
@@ -28,7 +29,6 @@ App.start({
       .subscribe((monitors) => monitors.added.forEach((m) => Bar(m)))
 
     App.get_monitors().forEach((m) => {
-      console.log('Creating OSD for')
       return OSD(m)
     })
   },

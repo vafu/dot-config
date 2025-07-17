@@ -36,7 +36,7 @@ export const QuicktoggleMenu = () => {
             <button
               hexpand={false}
               cssClasses={['flat', 'circular', 'icon-button']}
-              onClicked={() => exec('systemctl suspend')}
+              onClicked={() => exec('bash scripts/suspend.sh')}
               icon_name={'system-shutdown-symbolic'}
             />
           </box>
