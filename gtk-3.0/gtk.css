@@ -1,61 +1,98 @@
-@define-color accent_color #fbf1c7;
-@define-color accent_bg_color #ebdbb2;
-@define-color accent_fg_color #282828;
-@define-color destructive_color #fb4934;
-@define-color destructive_bg_color #cc241d;
-@define-color destructive_fg_color #ebdbb2;
-@define-color success_color #b8bb26;
-@define-color success_bg_color #98971a;
-@define-color success_fg_color #ebdbb2;
-@define-color warning_color #fabd2f;
-@define-color warning_bg_color #d79921;
-@define-color warning_fg_color #282828;
-@define-color error_color #fb4934;
-@define-color error_bg_color #cc241d;
-@define-color error_fg_color #ffffff;
-@define-color window_bg_color #282828;
-@define-color window_fg_color #ebdbb2;
-@define-color view_bg_color #282828;
-@define-color view_fg_color #ebdbb2;
-@define-color headerbar_bg_color #3c3836;
-@define-color headerbar_fg_color #fbf1c7;
-@define-color headerbar_border_color #fbf1c7;
-@define-color headerbar_backdrop_color @window_bg_color;
-@define-color headerbar_shade_color rgba(0, 0, 0, 0.36);
-@define-color card_bg_color #3c3836;
-@define-color card_fg_color #ebdbb2;
-@define-color card_shade_color rgba(0, 0, 0, 0.36);
-@define-color dialog_bg_color #3c3836;
-@define-color dialog_fg_color #fbf1c7;
-@define-color popover_bg_color #3c3836;
-@define-color popover_fg_color #fbf1c7;
+/* --- Catppuccin Macchiato GTK Colors --- */
+
+/* State & Accent Colors */
+@define-color accent_color #8bd5ca;         /* Mapped to Teal */
+@define-color accent_bg_color #8bd5ca;        /* Mapped to Teal */
+@define-color accent_fg_color #181926;        /* Mapped to Crust for high contrast */
+
+@define-color destructive_color #ed8796;    /* Mapped to Red */
+@define-color destructive_bg_color #ed8796;   /* Mapped to Red */
+@define-color destructive_fg_color #181926;   /* Mapped to Crust for high contrast */
+
+@define-color success_color #a6da95;       /* Mapped to Green */
+@define-color success_bg_color #a6da95;      /* Mapped to Green */
+@define-color success_fg_color #181926;      /* Mapped to Crust for high contrast */
+
+@define-color warning_color #eed49f;       /* Mapped to Yellow */
+@define-color warning_bg_color #eed49f;      /* Mapped to Yellow */
+@define-color warning_fg_color #181926;      /* Mapped to Crust for high contrast */
+
+@define-color error_color #ed8796;          /* Mapped to Red */
+@define-color error_bg_color #ed8796;         /* Mapped to Red */
+@define-color error_fg_color #181926;         /* Mapped to Crust for high contrast */
+
+/* Core UI Colors */
+@define-color window_bg_color #24273a;      /* Base */
+@define-color window_fg_color #cad3f5;      /* Text */
+
+@define-color view_bg_color #24273a;          /* Base */
+@define-color view_fg_color #cad3f5;          /* Text */
+
+@define-color headerbar_bg_color #363a4f;    /* Surface0 */
+@define-color headerbar_fg_color #cad3f5;    /* Text */
+@define-color headerbar_border_color #494d64; /* Surface1 for a subtle border */
+@define-color headerbar_backdrop_color @window_bg_color; /* Aliased to Base */
+@define-color headerbar_shade_color rgba(0, 0, 0, 0.36); /* Kept original for generic shadow */
+
+@define-color card_bg_color #363a4f;          /* Surface0 */
+@define-color card_fg_color #cad3f5;          /* Text */
+@define-color card_shade_color rgba(0, 0, 0, 0.36); /* Kept original for generic shadow */
+
+@define-color dialog_bg_color #363a4f;        /* Surface0 */
+@define-color dialog_fg_color #cad3f5;        /* Text */
+
+@define-color popover_bg_color #363a4f;       /* Surface0 */
+@define-color popover_fg_color #cad3f5;       /* Text */
+
 @define-color shade_color rgba(0,0,0,0.36);
 @define-color scrollbar_outline_color rgba(0,0,0,0.5);
-@define-color sidebar_bg_color #282828;
-@define-color sidebar_fg_color #ebdbb2;
-@define-color sidebar_backdrop_color #282828;
-@define-color sidebar_shade_color rgba(0, 0, 0, 0.36);
-@define-color blue_1 #83a598;
-@define-color blue_2 #458588;
-@define-color green_1 #b8bb26;
-@define-color green_2 #98971a;
-@define-color yellow_1 #fabd2f;
-@define-color yellow_2 #d79921;
-@define-color orange_1 #fe8019;
-@define-color orange_2 #d65d0e;
-@define-color red_1 #fb4934;
-@define-color red_2 #cc241d;
-@define-color purple_1 #d3869b;
-@define-color purple_2 #b16286;
-@define-color aqua_1 #8ec07c;
-@define-color aqua_2 #689d6a;
-@define-color light_1 #fbf1c7;
-@define-color light_2 #ebdbb2;
-@define-color light_3 #d5c4a1;
-@define-color light_4 #bdae93;
-@define-color light_5 #a89984;
-@define-color dark_1 #282828;
-@define-color dark_2 #3c3836;
-@define-color dark_3 #504945;
-@define-color dark_4 #665c64;
-@define-color dark_5 #7c6f64;
+
+/* Sidebar */
+@define-color sidebar_bg_color #1e2030;      /* Mantle (slightly darker than Base) */
+@define-color sidebar_fg_color #cad3f5;      /* Text */
+@define-color sidebar_backdrop_color #1e2030; /* Mantle */
+@define-color sidebar_shade_color rgba(0, 0, 0, 0.36); /* Kept original */
+
+/* --- Direct Palette Mapping --- */
+
+/* Blues */
+@define-color blue_1 #8aadf4;                /* Blue */
+@define-color blue_2 #8aadf4;                /* Blue */
+
+/* Greens */
+@define-color green_1 #a6da95;               /* Green */
+@define-color green_2 #a6da95;               /* Green */
+
+/* Yellows */
+@define-color yellow_1 #eed49f;              /* Yellow */
+@define-color yellow_2 #eed49f;              /* Yellow */
+
+/* Oranges (Peach) */
+@define-color orange_1 #f5a97f;              /* Peach */
+@define-color orange_2 #f5a97f;              /* Peach */
+
+/* Reds */
+@define-color red_1 #ed8796;                  /* Red */
+@define-color red_2 #ed8796;                  /* Red */
+
+/* Purples (Mauve) */
+@define-color purple_1 #c6a0f6;              /* Mauve */
+@define-color purple_2 #c6a0f6;              /* Mauve */
+
+/* Aquas (Teal) */
+@define-color aqua_1 #8bd5ca;                /* Teal */
+@define-color aqua_2 #8bd5ca;                /* Teal */
+
+/* Light Tones (Text & Overlays) */
+@define-color light_1 #cad3f5;               /* Text (brightest) */
+@define-color light_2 #b8c0e0;               /* Subtext1 */
+@define-color light_3 #a5adce;               /* Subtext0 */
+@define-color light_4 #939ab7;               /* Overlay2 */
+@define-color light_5 #8087a2;               /* Overlay1 (dimmest) */
+
+/* Dark Tones (Backgrounds & Surfaces) */
+@define-color dark_1 #24273a;                 /* Base (main background) */
+@define-color dark_2 #363a4f;                 /* Surface0 */
+@define-color dark_3 #494d64;                 /* Surface1 */
+@define-color dark_4 #5b6078;                 /* Surface2 */
+@define-color dark_5 #6e738d;                 /* Overlay0 (lightest background) */
