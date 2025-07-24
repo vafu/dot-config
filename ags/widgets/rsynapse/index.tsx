@@ -42,9 +42,7 @@ export function Rsynapse(monitor: Gdk.Monitor) {
   const scrolledWindow = <Gtk.ScrolledWindow
     vscrollbarPolicy={Gtk.PolicyType.NEVER}
     name='scroll'
-    propagateNaturalWidth={true}
-    propagateNaturalHeight={true}
-    minContentHeight={1}
+    maxContentHeight={10}
   >
     {listView}
   </Gtk.ScrolledWindow>
@@ -92,9 +90,10 @@ export function Rsynapse(monitor: Gdk.Monitor) {
     layer={Astal.Layer.OVERLAY}
     exclusivity={Astal.Exclusivity.NORMAL}
     name={'rsynapse'}
-    keymode={Astal.Keymode.EXCLUSIVE}
+    keymode={Astal.Keymode.ON_DEMAND}
     cssClasses={['rsynapse']}
     valign={Gtk.Align.CENTER}
+    anchor={Astal.WindowAnchor.TOP}
     setup={self => {
       self.add_controller(keycontroller)
     }}
@@ -106,14 +105,6 @@ export function Rsynapse(monitor: Gdk.Monitor) {
   rsynapse.results.subscribe(i => {
     items.remove_all()
     i.forEach(entry => items.append(new ResultObject(entry)))
-
-    GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-      if (mainbox) {
-        const [, nat_height] = mainbox.get_preferred_size();
-        w.set_default_size(-1, nat_height.height);
-      }
-      return GLib.SOURCE_REMOVE;
-    });
   })
   return w
 }
