@@ -67,17 +67,14 @@ export function Rsynapse(monitor: Gdk.Monitor) {
       exclusivity={Astal.Exclusivity.IGNORE}
       name={'rsynapse'}
       // TODO: should be Exclusive
-      keymode={Astal.Keymode.ON_DEMAND}
+      keymode={Astal.Keymode.EXCLUSIVE}
       cssClasses={['rsynapse']}
       setup={self => {
         self.add_controller(keycontroller)
       }}
     >
       <box orientation={Gtk.Orientation.VERTICAL}>
-        <box
-        // canFocus={false}
-        // canTarget={false}
-        >
+        <box>
           <SearchEntry
             vexpand={false}
             canTarget={true}
