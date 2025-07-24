@@ -1,9 +1,8 @@
-import { Gio, GObject } from 'astal'
+import { Gio, GLib, GObject } from 'astal'
 import { App, Astal, Gdk, Gtk } from 'astal/gtk4'
 import Adw from 'gi://Adw?version=1'
-import { bindAs } from 'rxbinding'
 import { getRsynapseService, RsynapseResult } from 'services/rsynapse'
-import { Entry, SearchEntry } from 'widgets'
+import { SearchEntry } from 'widgets'
 import { ActionRow, ListBox } from 'widgets/adw'
 
 const rsynapse = getRsynapseService()
@@ -37,13 +36,41 @@ export function Rsynapse(monitor: Gdk.Monitor) {
 
   listView.connect("activate", (self, position) => {
     const item = selection.get_item(position) as ResultObject
-    console.log(item)
+    item.launch()
   })
 
-  rsynapse.results.subscribe(i => {
-    items.remove_all()
-    i.forEach(entry => items.append(new ResultObject(entry)))
-  })
+  const scrolledWindow = <Gtk.ScrolledWindow
+    vscrollbarPolicy={Gtk.PolicyType.NEVER}
+    name='scroll'
+    propagateNaturalWidth={true}
+    propagateNaturalHeight={true}
+    minContentHeight={1}
+  >
+    {listView}
+  </Gtk.ScrolledWindow>
+
+  const mainbox = <box orientation={Gtk.Orientation.VERTICAL}>
+    <SearchEntry
+      vexpand={false}
+      canTarget={true}
+      canFocus={true}
+      focusable={true}
+      setup={(self) => {
+        self.connect('search-changed', (e) => rsynapse.search(e.get_text()))
+        self.connect('activate', (e) => {
+          // TODO change to activate
+          (selection.get_item(selection.selected) as ResultObject).launch()
+          self.set_text("")
+          App.toggle_window("rsynapse")
+        })
+        self.connect('stop-search', (e) => {
+          self.set_text("")
+          App.toggle_window("rsynapse")
+        })
+      }}
+    />
+    {scrolledWindow}
+  </box>
 
   const keycontroller = new Gtk.EventControllerKey()
 
@@ -58,56 +85,37 @@ export function Rsynapse(monitor: Gdk.Monitor) {
     }
   })
 
-  return (
-    <window
-      gdkmonitor={monitor}
-      visible={false}
-      application={App}
-      layer={Astal.Layer.OVERLAY}
-      exclusivity={Astal.Exclusivity.IGNORE}
-      name={'rsynapse'}
-      // TODO: should be Exclusive
-      keymode={Astal.Keymode.EXCLUSIVE}
-      cssClasses={['rsynapse']}
-      setup={self => {
-        self.add_controller(keycontroller)
-      }}
-    >
-      <box orientation={Gtk.Orientation.VERTICAL}>
-        <box>
-          <SearchEntry
-            vexpand={false}
-            canTarget={true}
-            canFocus={true}
-            focusable={true}
-            hexpand={true}
-            setup={(self) => {
-              self.connect('search-changed', (e) => rsynapse.search(e.get_text()))
-              self.connect('activate', (e) => {
-                (selection.get_item(selection.selected) as ResultObject).launch()
-                self.set_text("")
-                App.toggle_window("rsynapse")
-              })
-              self.connect('stop-search', (e) => {
-                self.set_text("")
-                App.toggle_window("rsynapse")
-              })
-            }}
-          />
-        </box>
-        <Gtk.ScrolledWindow
-          vscrollbarPolicy={Gtk.PolicyType.NEVER}
-          name='scroll'
-          propagateNaturalWidth={true}
-          propagateNaturalHeight={true}
-          minContentHeight={10}
-          vexpand={false}
-        >
-          {listView}
-        </Gtk.ScrolledWindow>
-      </box>
-    </window>
-  )
+  const w: Gtk.Window = <window
+    gdkmonitor={monitor}
+    visible={false}
+    application={App}
+    layer={Astal.Layer.OVERLAY}
+    exclusivity={Astal.Exclusivity.NORMAL}
+    name={'rsynapse'}
+    keymode={Astal.Keymode.EXCLUSIVE}
+    cssClasses={['rsynapse']}
+    valign={Gtk.Align.CENTER}
+    setup={self => {
+      self.add_controller(keycontroller)
+    }}
+  >
+    {mainbox}
+  </window>
+
+
+  rsynapse.results.subscribe(i => {
+    items.remove_all()
+    i.forEach(entry => items.append(new ResultObject(entry)))
+
+    GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+      if (mainbox) {
+        const [, nat_height] = mainbox.get_preferred_size();
+        w.set_default_size(-1, nat_height.height);
+      }
+      return GLib.SOURCE_REMOVE;
+    });
+  })
+  return w
 }
 
 export class ResultObject extends GObject.Object {
