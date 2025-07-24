@@ -6,9 +6,10 @@ import style from './style/style'
 import OSD from 'widgets/osd'
 import { logDebug } from 'logger'
 import { fromConnectable } from 'rxbinding'
-import { diffs, withPrevious } from 'commons/rx'
+import { diffs } from 'commons/rx'
 import AstalHyprland from 'gi://AstalHyprland?version=0.1'
 import { map, Observable, retry } from 'rxjs'
+import { Rsynapse } from 'widgets/rsynapse'
 
 App.start({
   css: style,
@@ -24,9 +25,10 @@ App.start({
       monitors.added.forEach(m => Bar(m))
     )
 
+    Rsynapse(App.get_monitors()[0])
+
     App.get_monitors().forEach((m) => {
-      console.log("Creating OSD for")
-      return OSD(m)
+      OSD(m)
     })
   },
 })

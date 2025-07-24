@@ -1,9 +1,7 @@
 import { Gio } from "astal";
 import { Observable } from "rxjs";
-import { PomodoroWidget } from "widgets/bar/pomodoro";
 
 type State = 'pomodoro' | 'short-break' | 'long-break' | 'none'
-
 
 export type PomodoroState = {
   state: State
