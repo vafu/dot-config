@@ -16,6 +16,7 @@ import { Button, ButtonProps, MenuButton, Popover } from 'astal/gtk4/widget'
 import AstalWp from 'gi://AstalWp?version=0.1'
 import { SysTray } from './tray'
 import { QuicktoggleMenu } from 'widgets/bar_dropdown'
+import { PomodoroWidget } from './pomodoro'
 
 type PanelButtonProps = ButtonProps & {
   window?: string
@@ -107,6 +108,7 @@ const ethSpeed = chain(
 
 export const PanelButtons = () => (
   <box>
+    <PomodoroWidget/>
     <SysTray />
     <MenuButton cssClasses={["panel-button", "flat", "pill", "bar-widget"]} >
       <box>
@@ -130,7 +132,7 @@ export const PanelButtons = () => (
           iconName={bind(battery, 'battery_icon_name')}
         />
       </box>
-      <Popover onKeyPressed={(_, k) => console.log(k)} >
+      <Popover onKeyPressed={(_, k) => console.log(k)}>
         <QuicktoggleMenu />
       </Popover>
     </MenuButton>

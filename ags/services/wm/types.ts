@@ -6,7 +6,6 @@ export interface WorkspaceService {
 
 export interface WR {
   getWs(idx: number): WS
-  idx: number
 }
 
 export interface WS {

@@ -6,7 +6,7 @@ $outline-width: $label-margin * 0.5;
 $outline-offset: $label-margin * 0.5;
 
 .bar {
-  background: #{$bg};
+  background: transparent;
   min-height: 32px;
 
   .bar-widget {
@@ -125,6 +125,16 @@ levelindicator {
       animation-direction: alternate;
     }
   }
+}
+
+.pomodoro {
+
+  label {
+    font-weight: bold;
+    font-size: 12pt;
+    margin-left: 4px;
+  }
+
 }
 
 @keyframes urgent {

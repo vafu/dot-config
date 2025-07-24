@@ -4,14 +4,12 @@ import { PowerProfileQuicktoggle } from './power_profile'
 import { BluetoothQuicktoggle } from './bluetooth'
 import Adw from 'gi://Adw?version=1'
 import { exec } from 'astal'
-import { DarkLightQuicktoggle } from './darklight'
 
 export const QuicktoggleMenu = () => {
+
   const toggles = [
-    NetworkQuicktoggle((page) => navigation.push(page)),
-    <BluetoothQuicktoggle />,
+    NetworkQuicktoggle((page) => navigation.push(page)), <BluetoothQuicktoggle />,
     <PowerProfileQuicktoggle />,
-    <DarkLightQuicktoggle />,
   ]
 
   function Quicktoggles() {
@@ -36,7 +34,7 @@ export const QuicktoggleMenu = () => {
             <button
               hexpand={false}
               cssClasses={['flat', 'circular', 'icon-button']}
-              onClicked={() => exec('bash scripts/suspend.sh')}
+              onClicked={() => exec('systemctl suspend')}
               icon_name={'system-shutdown-symbolic'}
             />
           </box>

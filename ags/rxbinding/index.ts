@@ -1,6 +1,7 @@
 export * from './util'
 
 import {
+    distinctUntilChanged,
   filter,
   map,
   Observable,
@@ -51,7 +52,7 @@ export function bindAs<T, R>(
   observable: Observable<T>,
   mapper: (value: T) => R
 ): Binding<R> {
-  return binding(observable.pipe(map(mapper)))
+  return binding(observable.pipe(map(mapper), distinctUntilChanged()))
 }
 
 export function bindString<T>(observable: Observable<T>): Binding<string> {
