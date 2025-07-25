@@ -29,8 +29,8 @@ export default (gdkmonitor: Gdk.Monitor) => (
         <Status />
       </box>
       <box>
-        <RsynapseSearch />
         <WindowTitle visible={bindAs(rsynapseUi.active, (a) => !a)} />
+        <RsynapseSearch />
       </box>
       <PanelButtons />
     </centerbox>

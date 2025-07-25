@@ -40,23 +40,32 @@ export function Rsynapse(monitor: Gdk.Monitor) {
     item.launch()
   })
 
-  const scrolledWindow = (
+  const scrolledwindow = (
     <Gtk.ScrolledWindow
       vscrollbarPolicy={Gtk.PolicyType.NEVER}
       name="scroll"
       propagate_natural_width={true}
       propagate_natural_height={true}
       maxContentHeight={10}
+      css_classes={['rsynapse-items']}
     >
       {listView}
     </Gtk.ScrolledWindow>
   )
 
-  const mainbox = (
-    <box orientation={Gtk.Orientation.VERTICAL}>{scrolledWindow}</box>
-  )
+  const revealer = new Gtk.Revealer({
+    child: scrolledwindow,
+    revealChild: true,
+    transitionType: Gtk.RevealerTransitionType.SLIDE_DOWN,
+  })
 
-  const w: Gtk.Window = (
+  rsynapse.results.subscribe((i) => {
+    items.remove_all()
+    i.forEach((entry) => items.append(entry))
+    revealer.set_reveal_child(i.length > 0)
+  })
+
+  return (
     <window
       gdkmonitor={monitor}
       visible={binding(rsynapseUi.active)}
@@ -70,13 +79,7 @@ export function Rsynapse(monitor: Gdk.Monitor) {
       anchor={Astal.WindowAnchor.TOP}
       hexpand={true}
     >
-      {mainbox}
+      {revealer}
     </window>
   )
-
-  rsynapse.results.subscribe((i) => {
-    items.remove_all()
-    i.forEach((entry) => items.append(entry))
-  })
-  return w
 }
