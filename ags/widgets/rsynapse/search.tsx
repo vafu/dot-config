@@ -11,6 +11,8 @@ export const RsynapseSearch = () => (
   <revealer 
     revealChild={binding(rsynapseUi.active)}
     transitionType={Gtk.RevealerTransitionType.CROSSFADE}
+    halign={Gtk.Align.CENTER}
+    type='overlay'
   >
     <SearchEntry
       css_classes={['bar-widget', 'rsynapse-search']}

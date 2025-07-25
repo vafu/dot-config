@@ -28,10 +28,10 @@ export default (gdkmonitor: Gdk.Monitor) => (
         <Workspaces />
         <Status />
       </box>
-      <box>
+      <overlay>
         <WindowTitle visible={bindAs(rsynapseUi.active, (a) => !a)} />
         <RsynapseSearch />
-      </box>
+      </overlay>
       <PanelButtons />
     </centerbox>
   </window>
