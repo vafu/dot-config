@@ -7,7 +7,7 @@ $outline-offset: $label-margin * 0.5;
 
 .bar {
   min-height: 32px;
-  background-color: #{$bg_deep};
+  background-color: #{$bg};
 
   .bar-widget {
     padding: 0 6pt;
@@ -30,7 +30,7 @@ $outline-offset: $label-margin * 0.5;
   }
 }
 .rsynapse-search {
-  min-width: 300tt;
+  min-width: 300pt;
 }
 
 levelindicator {

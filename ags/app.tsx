@@ -9,17 +9,14 @@ import AstalHyprland from 'gi://AstalHyprland?version=0.1'
 import { filter, map, Observable, retry, Subject, take } from 'rxjs'
 import { Rsynapse } from 'widgets/rsynapse'
 import { handleRequest } from 'services/requests'
+import { prepareTheme } from 'style/theming'
 
 App.start({
   css: style,
   requestHandler: handleRequest,
   main() {
     Adw.init()
-    const d = App.get_monitors()[0].display
-    const t = Gtk.IconTheme.get_for_display(d)
-    const s = Gtk.Settings.get_for_display(d)
-    s.set_property('gtk-icon-theme-name', 'Material')
-    console.log('using gtk theme', t.theme_name)
+    prepareTheme()
 
     monitors()
       .pipe(diffs())
