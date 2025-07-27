@@ -11,14 +11,18 @@ export interface ActiveWindow {
 }
 
 export interface WorkspaceService {
-  activeWorkroom: Observable<WR>
+  getWorkspace(idx: number): Workspace
+  activeWorkspace: Observable<Workspace>
 }
 
-export interface WR {
-  getWs(idx: number): WS
+export interface Tab {
+  id: number
 }
 
-export interface WS {
+export interface Workspace {
+  tabs: Observable<Tab[]>
+  selectedTab: Observable<Tab>
+
   active: Observable<boolean>
   occupied: Observable<boolean>
   urgent: Observable<boolean>

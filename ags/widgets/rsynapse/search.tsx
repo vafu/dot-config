@@ -1,15 +1,6 @@
-import { exec } from 'astal'
 import { Gdk, Gtk } from 'astal/gtk4'
 import { binding } from 'rxbinding'
-import {
-  distinctUntilChanged,
-  map,
-  Observable,
-  of,
-  shareReplay,
-  switchMap,
-} from 'rxjs'
-import obtainWmService from 'services'
+import { Observable } from 'rxjs'
 import { getRsynapseService, RsynapseResult } from 'services/rsynapse'
 import { SearchEntry } from 'widgets'
 import rsynapseUi, { selection } from 'widgets/rsynapse'

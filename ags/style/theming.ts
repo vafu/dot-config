@@ -1,16 +1,16 @@
 import { exec, Gio } from 'astal'
 import { App, Gtk } from 'astal/gtk4'
-import obtainService from 'services'
+import obtainWmService from 'services'
 const settings = Gio.Settings.new('org.gnome.desktop.interface')
 const colors = ['green', 'red', 'purple']
 export function prepareTheme() {
   prepareGtk()
   prepareIcons()
-  obtainService('workspace').activeWorkroom.subscribe((wr) =>
-    exec(
-      `gsettings set org.gnome.desktop.interface accent-color '${colors[wr.idx]}'`
-    )
-  )
+  // obtainWmService('workspace').activeWorkroom.subscribe((wr) =>
+  //   exec(
+  //     `gsettings set org.gnome.desktop.interface accent-color '${colors[wr.idx]}'`
+  //   )
+  // )
 }
 function prepareGtk() {
   syncAccent(null)

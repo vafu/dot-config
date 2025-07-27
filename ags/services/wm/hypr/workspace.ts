@@ -11,7 +11,7 @@ import {
   take,
   startWith,
 } from 'rxjs'
-import { WorkspaceService, WR, WS } from '../types'
+import { WorkspaceService, Workspace, Tab } from '../types'
 
 const hypr = AstalHyprland.get_default()
 const focusedWorkspace = fromConnectable(hypr, 'focusedWorkspace')
@@ -26,54 +26,58 @@ const urgentWs = new Observable<number>((o) => {
 })
 
 class HyprWorkspaceService implements WorkspaceService {
-  private _workrooms: Map<number, HyprWR> = new Map()
+  private _workspaces: Map<number, Workspace> = new Map()
 
-  getWs = (int: number) => {
-    const ws = int % 10
-    return this.getWr(int).getWs(ws)
+  getWorkspace = (int: number) => {
+    if (!this._workspaces.get(int)) {
+      const ws = new HyprWS(int)
+      this._workspaces.set(int, ws)
+    }
+    return this._workspaces.get(int)!
   }
 
-  getWr = (int: number) => {
-    const wr = Math.floor(int / 10)
-    return this.getWorkroom(wr)
-  }
-
-  activeWorkroom: Observable<WR> = focusedWorkspace.pipe(
-    map((w) => this.getWr(w.id)),
-    distinctUntilChanged()
+  activeWorkspace: Observable<Workspace> = focusedWorkspace.pipe(
+    map((ws) => this.getWorkspace(getWsId(ws)))
   )
-
-  getWorkroom(idx: number) {
-    if (!this._workrooms.get(idx)) {
-      const wr = new HyprWR(idx)
-      this._workrooms.set(idx, wr)
-    }
-    return this._workrooms.get(idx)!
-  }
 }
 
-class HyprWR implements WR {
-  private _workspaces: Map<number, WS> = new Map()
-  private wr: number
-  constructor(wr: number) {
-    this.wr = wr
-  }
-
-  getWs(idx: number): WS {
-    if (!this._workspaces.get(idx)) {
-      const ws = new HyprWS(this.wr * 10 + idx)
-      this._workspaces.set(idx, ws)
-    }
-    return this._workspaces.get(idx)!
-  }
+function getWsId(ws: AstalHyprland.Workspace) {
+  return ws.id % 10
 }
 
-class HyprWS implements WS {
+function getTabId(ws: AstalHyprland.Workspace) {
+  return ws.id / 10
+}
+
+class HyprWS implements Workspace {
+  tabs: Observable<Tab[]>
+  selectedTab: Observable<Tab>
+
   active: Observable<boolean>
   occupied: Observable<boolean>
   urgent: Observable<boolean> = of(false)
 
+  private _selectedTab = 0
+
   constructor(id: number) {
+    this.tabs = workspaces.pipe(
+      map((w) =>
+        w.filter((ws) => getWsId(ws) == id).map((ws) => ({ id: ws.id }))
+      )
+    )
+
+    this.selectedTab = focusedWorkspace.pipe(
+      filter((w) => getWsId(w) == id),
+      map((w) => {
+        const tab = getTabId(w)
+        this._selectedTab = tab
+        return {
+          id: tab,
+        }
+      }),
+      startWith({ id: this._selectedTab })
+    )
+
     this.active = focusedWorkspace.pipe(
       map((w) => w.id == id),
       distinctUntilChanged(),
