@@ -1,4 +1,4 @@
-import { Gio, GLib, GObject } from 'astal'
+import { Binding, Gio, GLib, GObject } from 'astal'
 import { App, Astal, Gdk, Gtk } from 'astal/gtk4'
 import Adw from 'gi://Adw?version=1'
 import { binding } from 'rxbinding'
@@ -10,7 +10,7 @@ const rsynapse = getRsynapseService()
 const items = new Gio.ListStore({ item_type: RsynapseResult.$gtype })
 export const selection = new Gtk.SingleSelection({ model: items })
 
-export function Rsynapse(monitor: Gdk.Monitor) {
+export function Rsynapse(monitor: Binding<Gdk.Monitor>) {
   selection.set_autoselect(true)
 
   const factory = new Gtk.SignalListItemFactory()

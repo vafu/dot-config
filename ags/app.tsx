@@ -3,13 +3,12 @@ import Adw from 'gi://Adw?version=1'
 import Bar from 'widgets/bar'
 import style from './style/style'
 import OSD from 'widgets/osd'
-import { fromConnectable } from 'rxbinding'
+import { binding, fromConnectable } from 'rxbinding'
 import { diffs } from 'commons/rx'
-import AstalHyprland from 'gi://AstalHyprland?version=0.1'
-import { filter, map, Observable, retry, Subject, take } from 'rxjs'
 import { Rsynapse } from 'widgets/rsynapse'
 import { handleRequest } from 'services/requests'
 import { prepareTheme } from 'style/theming'
+import obtainWmService from 'services'
 
 App.start({
   css: style,
@@ -18,32 +17,13 @@ App.start({
     Adw.init()
     prepareTheme()
 
-    monitors()
+    const ms = obtainWmService('monitor')
+
+    ms.monitors
       .pipe(diffs())
       .subscribe((monitors) => monitors.added.forEach((m) => Bar(m)))
 
-    Rsynapse(App.get_monitors()[0])
-
-    App.get_monitors().forEach((m) => {
-      OSD(m)
-    })
+    Rsynapse(binding(ms.activeMonitor))
+    OSD(binding(ms.activeMonitor))
   },
 })
-
-function monitors(): Observable<Gdk.Monitor[]> {
-  return fromConnectable(AstalHyprland.get_default(), 'monitors').pipe(
-    map((monitors) =>
-      monitors.map((m) =>
-        App.get_monitors().find(
-          (am) =>
-            am.description.startsWith(m.description) ||
-            m.description.startsWith(am.description)
-        )
-      )
-    ),
-    retry({
-      count: 2,
-      delay: 1000,
-    })
-  )
-}

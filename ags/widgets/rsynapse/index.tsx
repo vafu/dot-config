@@ -7,13 +7,14 @@ const active = new BehaviorSubject(false)
 
 const controls = {
   active: active,
-  toggle: () => active.next(!active.getValue()),
-  hide: () => active.next(false)
+  show: () => active.next(true),
+  hide: () => active.next(false),
+  text: '',
 }
 
 export default controls
 
 requestsFor('rsynapse').subscribe((h) => {
-  controls.toggle()
+  controls.show()
   h({ status: 'ok' })
 })

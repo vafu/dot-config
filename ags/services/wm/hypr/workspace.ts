@@ -1,25 +1,19 @@
-import { WorkspaceService, WR, WS, ActiveWindow, WindowService } from './types'
 import AstalHyprland from 'gi://AstalHyprland?version=0.1'
-import { filter, Observable, shareReplay, startWith, take } from 'rxjs'
 import { fromConnectable } from 'rxbinding'
-import { distinctUntilChanged, map, of, switchMap } from 'rxjs'
+import {
+  Observable,
+  map,
+  distinctUntilChanged,
+  of,
+  shareReplay,
+  filter,
+  switchMap,
+  take,
+  startWith,
+} from 'rxjs'
+import { WorkspaceService, WR, WS } from '../types'
 
 const hypr = AstalHyprland.get_default()
-
-const focusedClient = fromConnectable(hypr, 'focusedClient')
-const activeWindow: ActiveWindow = {
-  cls: focusedClient.pipe(
-    switchMap((c) => (c == null ? of('') : fromConnectable(c, 'class')))
-  ),
-  title: focusedClient.pipe(
-    switchMap((c) => (c == null ? of('') : fromConnectable(c, 'title')))
-  ),
-}
-
-export const windowService: WindowService = {
-  active: activeWindow,
-}
-
 const focusedWorkspace = fromConnectable(hypr, 'focusedWorkspace')
 const workspaces = fromConnectable(hypr, 'workspaces')
 
