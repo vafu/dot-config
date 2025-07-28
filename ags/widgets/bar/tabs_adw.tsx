@@ -55,3 +55,8 @@ function selectTabById(tabView: Adw.TabView, id: number) {
   }
   print(`Error: Tab with ID "${id}" not found.`);
 }
+
+//  TODO:
+// 1. Tab names -> titles
+// 2. don't destroy and re-create tabs -> Likely separate Tab object, add wsId to tab too?
+// 3. bind active ws widgets per monitor
