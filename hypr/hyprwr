@@ -1,42 +1,53 @@
 #!/bin/bash
 
-TARGET_WR=-1
-TARGET_WS=-1
-ACTION=workspace
+# Script to make AGS requests for ws/tab operations
+# Usage: hyprwr <command> <number> [-m]
+# where command is either "ws" or "tab"
 
+# Initialize variables
+command=""
+target=""
+move="false"
+
+# Parse arguments
 while [[ $# -gt 0 ]]; do
-	case $1 in
-	-r)
-		TARGET_WR="$2"
-		shift
-		shift
-		;;
-	-s)
-		TARGET_WS="$2"
-		shift
-		shift
-		;;
-	-m)
-		ACTION=movetoworkspace
-		shift
-		;;
-	esac
+    case $1 in
+        ws|tab)
+            command="$1"
+            shift
+            ;;
+        -m)
+            move="true"
+            shift
+            ;;
+        [0-9]*)
+            target="$1"
+            shift
+            ;;
+        *)
+            echo "Error: Unknown argument '$1'"
+            echo "Usage: $0 <ws|tab> <number> [-m]"
+            exit 1
+            ;;
+    esac
 done
 
-ACTIVE=$(hyprctl activeworkspace -j | jq '.id')
-CURRENT_WR=$(($ACTIVE / 10))
-CURRENT_WS=$(($ACTIVE % 10))
-
-if [ $TARGET_WR == -1 ]; then
-	TARGET_WR=$CURRENT_WR
+# Validate required arguments
+if [[ -z "$command" ]]; then
+    echo "Error: Command (ws or tab) is required"
+    echo "Usage: $0 <ws|tab> <number> [-m]"
+    exit 1
 fi
 
-if [ $TARGET_WS == -1 ]; then
-	TARGET_WS=$CURRENT_WS
+if [[ -z "$target" ]]; then
+    echo "Error: Target number is required"
+    echo "Usage: $0 <ws|tab> <number> [-m]"
+    exit 1
 fi
 
-DISPATCH=$(($TARGET_WR * 10 + $TARGET_WS))
+# Build the AGS request string
+request="$command target $target move $move"
 
-echo $DISPATCH $ACTION
+# Make the AGS request
+ags request "$request"
 
-hyprctl dispatch $ACTION $DISPATCH

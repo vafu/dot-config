@@ -3,12 +3,13 @@ import Adw from 'gi://Adw?version=1'
 import Bar from 'widgets/bar'
 import style from './style/style'
 import OSD from 'widgets/osd'
-import { binding, fromConnectable } from 'rxbinding'
+import { binding } from 'rxbinding'
 import { diffs } from 'commons/rx'
 import { Rsynapse } from 'widgets/rsynapse'
 import { handleRequest } from 'services/requests'
 import { prepareTheme } from 'style/theming'
 import obtainWmService from 'services'
+import { bindCommands } from 'commands'
 
 App.start({
   css: style,
@@ -16,6 +17,7 @@ App.start({
   main() {
     Adw.init()
     prepareTheme()
+    bindCommands()
 
     const ms = obtainWmService('monitor')
 

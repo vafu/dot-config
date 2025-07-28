@@ -13,6 +13,8 @@ export interface ActiveWindow {
 export interface WorkspaceService {
   getWorkspace(idx: number): Workspace
   activeWorkspace: Observable<Workspace>
+
+  switchToWs(idx: number, move: boolean): void
 }
 
 export interface Tab {
@@ -26,6 +28,8 @@ export interface Workspace {
   active: Observable<boolean>
   occupied: Observable<boolean>
   urgent: Observable<boolean>
+
+  switchToTab(idx: number, move: boolean): void
 }
 
 export interface MonitorService {

@@ -1,11 +1,13 @@
 # If you come from bash you might have to change your $PATH.
 export GOPATH=$HOME/.go
-export PATH=$GOPATH/bin:$HOME/.config/scripts/:$PATH
+export PATH=$GOPATH/bin:$HOME/.config/scripts/:$HOME/.cargo/bin/:$PATH
 export EDITOR=/usr/bin/nvim
 export ZSH_CUSTOM=$HOME/.oh-my-zsh/
 
 alias e="$EDITOR"
 alias se="sudoedit"
+alias sshc="kitty +kitten ssh"
+alias sshog="ssh"
 
 source <(fzf --zsh)
 

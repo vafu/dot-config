@@ -1,5 +1,5 @@
 import { Astal, Gdk, Gtk } from 'astal/gtk4'
-import { Workspaces } from './workspaces'
+import { Tabs, Workspaces } from './workspaces'
 import { WindowTitle } from './windowtitle'
 import { PanelButtons } from './panel-buttons'
 import { Status } from './status'
@@ -13,11 +13,11 @@ const activeMonitor = obtainWmService('monitor').activeMonitor
 
 export default (gdkmonitor: Gdk.Monitor) => {
   const revealRsynapse = rsynapseUi.active.pipe(
-    switchMap((active) =>
-      active ? activeMonitor.pipe(map((m) => m == gdkmonitor)) : of(false)
+    switchMap(active =>
+      active ? activeMonitor.pipe(map(m => m == gdkmonitor)) : of(false),
     ),
     distinctUntilChanged(),
-    shareReplay()
+    shareReplay(),
   )
 
   return (
@@ -27,8 +27,8 @@ export default (gdkmonitor: Gdk.Monitor) => {
       name="Bar"
       cssClasses={['bar']}
       exclusivity={Astal.Exclusivity.EXCLUSIVE}
-      keymode={bindAs(revealRsynapse, (a) =>
-        a ? Astal.Keymode.EXCLUSIVE : Astal.Keymode.NONE
+      keymode={bindAs(revealRsynapse, a =>
+        a ? Astal.Keymode.EXCLUSIVE : Astal.Keymode.NONE,
       )}
       anchor={
         Astal.WindowAnchor.TOP |
@@ -39,10 +39,11 @@ export default (gdkmonitor: Gdk.Monitor) => {
       <centerbox>
         <box>
           <Workspaces />
+          <Tabs/>
           <Status />
         </box>
         <overlay>
-          <WindowTitle visible={bindAs(rsynapseUi.active, (a) => !a)} />
+          <WindowTitle visible={bindAs(rsynapseUi.active, a => !a)} />
           <RsynapseSearch revealed={revealRsynapse} />
         </overlay>
         <PanelButtons />

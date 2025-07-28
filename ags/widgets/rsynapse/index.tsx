@@ -14,7 +14,7 @@ const controls = {
 
 export default controls
 
-requestsFor('rsynapse').subscribe((h) => {
+requestsFor("rsynapse").subscribe(r => {
   controls.show()
-  h({ status: 'ok' })
+  r.handler({ status: 'ok' })
 })
