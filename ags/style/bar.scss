@@ -6,8 +6,8 @@ $outline-width: $label-margin * 0.5;
 $outline-offset: $label-margin * 0.5;
 
 .bar {
-  background: transparent;
   min-height: 32px;
+  background-color: #{$bg};
 
   .bar-widget {
     padding: 0 6pt;
@@ -28,6 +28,9 @@ $outline-offset: $label-margin * 0.5;
   image {
     margin: 0 2px;
   }
+}
+.rsynapse-search {
+  min-width: 300pt;
 }
 
 levelindicator {

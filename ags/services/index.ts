@@ -1,14 +1,16 @@
 import Brightness from './brightness'
+import { monitorService } from './wm/hypr'
 import { windowService, workspaceService } from './wm/hypr'
-import { WindowService, WorkspaceService } from './wm/types'
+import { MonitorService, WindowService, WorkspaceService } from './wm/types'
 
 export interface Services {
   workspace: WorkspaceService
   window: WindowService
   brightness: Brightness
+  monitor: MonitorService
 }
 
-export default function obtainService<S extends keyof Services>(
+export default function obtainWmService<S extends keyof Services>(
   type: S
 ): Services[S] {
   switch (type) {
@@ -18,5 +20,7 @@ export default function obtainService<S extends keyof Services>(
       return workspaceService as Services[S]
     case 'brightness':
       return Brightness.get_default() as Services[S]
+    case 'monitor':
+      return monitorService as Services[S]
   }
 }

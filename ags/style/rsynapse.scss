@@ -1,9 +1,11 @@
 .rsynapse {
-  >box {
+  .rsynapse-items {
     background: #{$bg_deep};
     padding: 12px;
-    border-radius: 16px;
-
+    border-radius: 0px 0px 16px 16px;
+    min-width: 500px;
   }
-  margin: 12px;
+
+  transition: 1000ms;
 }
+

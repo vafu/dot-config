@@ -1,7 +1,7 @@
 import { App, Astal, Gdk } from 'astal/gtk4'
 import { Hidden, OnScreenProgress, State } from './OSD'
 import { binding, fromConnectable } from 'rxbinding'
-import obtainService from 'services'
+import obtainWmService from 'services'
 import AstalWp from 'gi://AstalWp?version=0.1'
 import {
   combineLatest,
@@ -12,8 +12,9 @@ import {
   of,
   switchMap,
 } from 'rxjs'
+import { Binding } from 'astal'
 
-const brightness = fromConnectable(obtainService('brightness'), 'screen').pipe(
+const brightness = fromConnectable(obtainWmService('brightness'), 'screen').pipe(
   map((b) => ({
     type: 'level',
     value: b,
@@ -34,7 +35,7 @@ const audio = fromConnectable(AstalWp.get_default(), 'default_speaker').pipe(
   }))
 )
 
-export default function OSD(monitor: Gdk.Monitor) {
+export default function OSD(monitor: Binding<Gdk.Monitor>) {
   const source = merge(audio, brightness).pipe(
     switchMap((s) => merge(of(s), of(Hidden).pipe(delay(2000))))
   )

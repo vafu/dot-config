@@ -1,25 +1,91 @@
-import { GLib } from 'astal'
+import { GLib, GObject } from 'astal'
 import Gio from 'gi://Gio'
-import { BehaviorSubject } from 'rxjs'
-import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators'
+import { BehaviorSubject, Observable } from 'rxjs'
+import {
+  debounceTime,
+  distinctUntilChanged,
+  map,
+  shareReplay,
+  startWith,
+  switchMap,
+} from 'rxjs/operators'
 
-// This defines the structure of a single result object
-// that the UI will receive.
-export type RsynapseResult = {
+export interface RsynapseService {
+  results: Observable<RsynapseResult[]>
+  search: (query: string) => void
+}
+
+export class RsynapseResult extends GObject.Object {
+  // Define the GObject properties that will hold our data.
+  static {
+    GObject.registerClass(
+      {
+        Properties: {
+          id: GObject.ParamSpec.string(
+            'id',
+            'ID',
+            'Result ID',
+            GObject.ParamFlags.READWRITE,
+            null
+          ),
+          title: GObject.ParamSpec.string(
+            'title',
+            'Title',
+            'Result Title',
+            GObject.ParamFlags.READWRITE,
+            null
+          ),
+          description: GObject.ParamSpec.string(
+            'description',
+            'Description',
+            'Result Description',
+            GObject.ParamFlags.READWRITE,
+            null
+          ),
+          icon: GObject.ParamSpec.string(
+            'icon',
+            'Icon',
+            'Result Icon Name',
+            GObject.ParamFlags.READWRITE,
+            null
+          ),
+          command: GObject.ParamSpec.string(
+            'command',
+            'Command',
+            'Result Command',
+            GObject.ParamFlags.READWRITE,
+            null
+          ),
+        },
+      },
+      this
+    )
+  }
+
+  // Declare the properties for TypeScript's type system.
   id: string
   title: string
   description: string
   icon: string
   command: string
-}
 
-// This is the main interface for our service wrapper.
-export interface RsynapseService {
-  // A stream of the latest search results.
-  results: BehaviorSubject<RsynapseResult[]>
+  constructor(item: any) {
+    super()
+    this.id = item.id
+    this.title = item.title
+    this.description = item.description
+    this.icon = item.icon
+    this.command = item.command
+  }
 
-  // A method to trigger a new search.
-  search: (query: string) => void
+  public launch() {
+    const appInfo = Gio.AppInfo.create_from_commandline(
+      this.command,
+      this.title,
+      Gio.AppInfoCreateFlags.NONE
+    )
+    appInfo.launch([], null)
+  }
 }
 
 // The D-Bus Introspection XML that describes our service's interface.
@@ -40,7 +106,7 @@ const RsynapseIface = `
 const RsynapseProxy = Gio.DBusProxy.makeProxyWrapper(RsynapseIface)
 
 // The main function to get an instance of our service wrapper.
-export const getRsynapseService = (): RsynapseService => {
+const initRsynapse = (): RsynapseService => {
   // Create the low-level proxy to the D-Bus service.
   const proxy = RsynapseProxy(
     Gio.DBus.session,
@@ -55,12 +121,12 @@ export const getRsynapseService = (): RsynapseService => {
   // The main results stream. This is what the UI will subscribe to.
   const resultsSubject = new BehaviorSubject<RsynapseResult[]>([])
 
+
   // This is the reactive core. It listens for changes to the query,
   // debounces them to avoid excessive D-Bus calls while typing,
   // and then calls the backend to get new results.
   querySubject
     .pipe(
-      debounceTime(100), // Wait for 150ms of silence before searching
       distinctUntilChanged(), // Don't search if the query hasn't changed
       switchMap(async (query) => {
         // Cancel previous requests and run a new one
@@ -76,7 +142,6 @@ export const getRsynapseService = (): RsynapseService => {
             null
           )
 
-
           // The actual return value is the first element of the variant tuple.
           // We unpack it to get a native JavaScript array.
           const [unpackedResults] = variant.deep_unpack()
@@ -84,13 +149,14 @@ export const getRsynapseService = (): RsynapseService => {
           // GJS unpacks a D-Bus array of structs into a JS array of arrays.
           // We need to map this to our desired array of objects.
           const results: RsynapseResult[] = unpackedResults.map(
-            (item: string[]) => ({
-              id: item[0],
-              title: item[1],
-              description: item[2],
-              icon: item[3],
-              command: item[4],
-            })
+            (item: string[]) =>
+              new RsynapseResult({
+                id: item[0],
+                title: item[1],
+                description: item[2],
+                icon: item[3],
+                command: item[4],
+              })
           )
           return results
         } catch (e) {
@@ -106,6 +172,15 @@ export const getRsynapseService = (): RsynapseService => {
 
   return {
     results: resultsSubject,
-    search: (query: string) => querySubject.next(query),
+    search: (query: string) => querySubject.next(query), 
   }
+}
+
+let rsynapse: RsynapseService
+
+export function getRsynapseService() {
+  if (!rsynapse) {
+    rsynapse = initRsynapse()
+  }
+  return rsynapse
 }
