@@ -10,8 +10,10 @@ import {
   switchMap,
   take,
   startWith,
+  share,
 } from 'rxjs'
 import { WorkspaceService, Workspace, Tab } from '../types'
+import { logNext } from 'commons/rx'
 
 const hypr = AstalHyprland.get_default()
 const focusedWorkspace = fromConnectable(hypr, 'focusedWorkspace')
@@ -38,6 +40,7 @@ class HyprWorkspaceService implements WorkspaceService {
 
   activeWorkspace: Observable<Workspace> = focusedWorkspace.pipe(
     map(ws => this.getWorkspace(getWsId(ws))),
+    distinctUntilChanged()
   )
 
   switchToWs(idx: number, move: boolean) {
@@ -53,6 +56,11 @@ function getTabId(ws: AstalHyprland.Workspace) {
   return Math.floor(ws.id / 10)
 }
 
+function wsToTab(ws: AstalHyprland.Workspace): Tab {
+  const id = getTabId(ws)
+  return { id: id, title: `#${id + 1}` }
+}
+
 class HyprWS implements Workspace {
   tabs: Observable<Tab[]>
   selectedTab: Observable<Tab>
@@ -64,22 +72,18 @@ class HyprWS implements Workspace {
 
   private _selectedTab = 0
 
-  private set selectedTabId(value: number) {}
-
   hyprWsId() {
     return this._selectedTab * 10 + this.id
   }
 
   focus(move: boolean) {
     const cmd = move ? 'movetoworkspace' : 'workspace'
-    console.log('executing', cmd, this._selectedTab)
     const target = this.hyprWsId()
     hypr.dispatch(cmd, target.toString())
   }
 
   switchToTab(idx: number, move: boolean) {
     this._selectedTab = idx
-    console.log('moving to tab', idx, this._selectedTab)
     this.focus(move)
   }
 
@@ -87,32 +91,35 @@ class HyprWS implements Workspace {
     this.id = id
     this.tabs = workspaces.pipe(
       map(w =>
-        w.filter(ws => getWsId(ws) == id).map(ws => ({ id: getTabId(ws) })),
+        w.filter(ws => getWsId(ws) == id).map(ws => (wsToTab(ws))).sort((p, c) => p.id - c.id),
       ),
+      distinctUntilChanged(),
+      shareReplay()
     )
 
     this.selectedTab = focusedWorkspace.pipe(
       filter(w => getWsId(w) == id),
       map(w => {
+        // TODO: meh
         const tab = getTabId(w)
         this._selectedTab = tab
-        return {
-          id: tab,
-        }
-      }),
-      startWith({ id: this._selectedTab }),
+        return wsToTab(w)
+      }
+      ),
+      startWith({ id: this._selectedTab, title: "init, fix me" }),
+      shareReplay()
     )
 
     this.active = focusedWorkspace.pipe(
       map(w => getWsId(w) == id),
       distinctUntilChanged(),
-      shareReplay(1),
+      shareReplay(),
     )
     this.occupied = workspaces.pipe(
       map(w => w.filter(ws => getWsId(ws) === id && ws.clients.length > 0)),
       distinctUntilChanged(),
       map(ws => ws.length > 0),
-      shareReplay(1),
+      shareReplay(),
     )
 
     this.urgent = urgentWs.pipe(
@@ -129,5 +136,4 @@ class HyprWS implements Workspace {
     )
   }
 }
-
 export const workspaceService: WorkspaceService = new HyprWorkspaceService()

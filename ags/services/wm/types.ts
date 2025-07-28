@@ -19,6 +19,7 @@ export interface WorkspaceService {
 
 export interface Tab {
   id: number
+  title: string
 }
 
 export interface Workspace {

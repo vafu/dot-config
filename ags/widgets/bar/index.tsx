@@ -9,6 +9,7 @@ import rsynapseUi from 'widgets/rsynapse'
 import { switchMap, map, of, distinctUntilChanged, shareReplay } from 'rxjs'
 import obtainWmService from 'services'
 import { Tabs } from './tabs'
+import { AdwTabs } from './tabs_adw'
 
 const activeMonitor = obtainWmService('monitor').activeMonitor
 
@@ -42,10 +43,9 @@ export default (gdkmonitor: Gdk.Monitor) => {
           <Workspaces />
           <Status />
         </box>
-        <centerbox>
-          <Tabs />
-          <overlay>
-            <WindowTitle visible={bindAs(rsynapseUi.active, a => !a)} />
+        <centerbox hexpand={true}>
+          <overlay >
+            <AdwTabs />
             <RsynapseSearch revealed={revealRsynapse} />
           </overlay>
         </centerbox>
