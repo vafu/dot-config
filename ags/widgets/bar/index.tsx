@@ -1,13 +1,14 @@
-import { Astal, Gdk, Gtk } from 'astal/gtk4'
-import { Tabs, Workspaces } from './workspaces'
+import { Astal, Gdk } from 'astal/gtk4'
+import { Workspaces } from './workspaces'
 import { WindowTitle } from './windowtitle'
 import { PanelButtons } from './panel-buttons'
 import { Status } from './status'
-import { RsynapseSearch, selection } from 'widgets/rsynapse'
-import { bindAs, binding } from 'rxbinding'
+import { RsynapseSearch } from 'widgets/rsynapse'
+import { bindAs } from 'rxbinding'
 import rsynapseUi from 'widgets/rsynapse'
 import { switchMap, map, of, distinctUntilChanged, shareReplay } from 'rxjs'
 import obtainWmService from 'services'
+import { Tabs } from './tabs'
 
 const activeMonitor = obtainWmService('monitor').activeMonitor
 
@@ -39,7 +40,7 @@ export default (gdkmonitor: Gdk.Monitor) => {
       <centerbox>
         <box>
           <Workspaces />
-          <Tabs/>
+          <Tabs />
           <Status />
         </box>
         <overlay>

@@ -1,9 +1,8 @@
 import { range } from 'commons'
 import Service from 'services'
 import Gtk from 'gi://Gtk?version=4.0'
-import { bindAs, binding } from 'rxbinding'
-import { combineLatest, map, publish, switchMap } from 'rxjs'
-import { bind } from 'astal'
+import { binding } from 'rxbinding'
+import { combineLatest, map } from 'rxjs'
 
 const workspaceService = Service('workspace')
 
@@ -25,26 +24,6 @@ const workspaces = () =>
       />
     )
   })
-
-const activeWs = workspaceService.activeWorkspace
-
-const tabs = activeWs.pipe(switchMap(w => w.tabs))
-const activeTab = activeWs.pipe(switchMap(w => w.selectedTab))
-
-const tabString = combineLatest(tabs, activeTab).pipe(
-  map(([tabs, activeTab]) =>
-    tabs
-      .sort((a, b) => a.id - b.id)
-      .map(t => (activeTab.id == t.id ? `>${t.id}` : `${t.id}`))
-      .join(' '),
-  ),
-)
-
-export const Tabs = () => (
-  <box>
-    <label label={binding(tabString)} />
-  </box>
-)
 
 export const Workspaces = () => (
   <box cssClasses={['workspaces', 'bar-widget']}>{workspaces()}</box>

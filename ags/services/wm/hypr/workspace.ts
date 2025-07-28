@@ -109,14 +109,14 @@ class HyprWS implements Workspace {
       shareReplay(1),
     )
     this.occupied = workspaces.pipe(
-      map(w => w.map(ws => [ws.id, ws.clients.length == 0])),
+      map(w => w.filter(ws => getWsId(ws) === id && ws.clients.length > 0)),
       distinctUntilChanged(),
-      map(ws => ws.some(([i, isEmpty]) => i == id && !isEmpty)),
+      map(ws => ws.length > 0),
       shareReplay(1),
     )
 
     this.urgent = urgentWs.pipe(
-      filter(i => i == id),
+      filter(wsId => wsId && wsId % 10 === id),
       switchMap(() =>
         this.active.pipe(
           filter(active => active),
