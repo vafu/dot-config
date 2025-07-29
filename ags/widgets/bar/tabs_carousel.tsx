@@ -1,17 +1,17 @@
-import { Gtk } from 'astal/gtk4'
+import { Binding } from 'astal'
+import { Gdk, Gtk } from 'astal/gtk4'
 import { Button } from 'astal/gtk4/widget'
 import Adw from 'gi://Adw?version=1'
 import { binding } from 'rxbinding'
 import { switchMap } from 'rxjs'
 import { workspaceService } from 'services/wm/hypr'
 import { Tab } from 'services/wm/types'
-import { ToggleButton } from 'widgets'
 
-const activeWs = workspaceService.activeWorkspace
-const tabs = activeWs.pipe(switchMap(w => w.tabs))
-const selectedTab = activeWs.pipe(switchMap(w => w.selectedTab))
+export const TabsCarousel = (props: { monitor: Gdk.Monitor }) => {
+  const activeWs = workspaceService.activeWorkspaceFor(props.monitor)
+  const tabs = activeWs.pipe(switchMap(w => w.tabs))
+  const selectedTab = activeWs.pipe(switchMap(w => w.selectedTab))
 
-export const TabsCarousel = () => {
   const carousel = new Adw.Carousel({
     orientation: Gtk.Orientation.HORIZONTAL,
     css_classes: ['tab-carousel'],

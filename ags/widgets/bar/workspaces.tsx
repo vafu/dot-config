@@ -3,6 +3,7 @@ import Service from 'services'
 import Gtk from 'gi://Gtk?version=4.0'
 import { binding } from 'rxbinding'
 import { combineLatest, map } from 'rxjs'
+import { Gdk } from 'astal/gtk4'
 
 const workspaceService = Service('workspace')
 
