@@ -1,4 +1,5 @@
 import { Gtk } from 'astal/gtk4'
+import { Button } from 'astal/gtk4/widget'
 import Adw from 'gi://Adw?version=1'
 import { binding } from 'rxbinding'
 import { switchMap } from 'rxjs'
@@ -32,12 +33,9 @@ export const TabsCarousel = () => {
 
   selectedTab.subscribe(tab => {
     for (let i = 0; i < carousel.get_n_pages(); i++) {
-      const page = carousel.get_nth_page(i) as Gtk.ToggleButton
+      const page = carousel.get_nth_page(i) as Gtk.Button
       if (page['tabId'] == tab.tabId) {
-        page.set_active(true)
         carousel.scroll_to(page, true)
-      } else {
-        page.set_active(false)
       }
     }
   })
@@ -46,15 +44,9 @@ export const TabsCarousel = () => {
 }
 
 const Tab = (tab: Tab, onClick: () => void) => (
-  <ToggleButton
+  <Button
     label={binding(tab.title)}
-    setup={self =>
-      self.connect('toggled', () => {
-        if (self.get_active()) {
-          onClick()
-        }
-      })
-    }
+    onClicked={onClick}
     css_classes={['flat']}
   />
 )
