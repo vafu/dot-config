@@ -29,8 +29,25 @@ $outline-offset: $label-margin * 0.5;
     margin: 0 2px;
   }
 }
+
 .rsynapse-search {
   min-width: 300pt;
+}
+
+.ws-tabbar {
+  .tab-close-button {
+    color: transparent;
+  }
+}
+
+.tab-carousel {
+  min-width: 1000px;
+
+  >label {
+    min-width: 100px;
+    margin-left: 4px;
+    margin-right: 4px;
+  }
 }
 
 levelindicator {
