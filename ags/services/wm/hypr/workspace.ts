@@ -132,6 +132,7 @@ class HyprWS implements Workspace {
       distinctUntilChanged(),
       shareReplay(),
     )
+
     this.occupied = workspaces.pipe(
       map(w => w.filter(ws => getWsId(ws) === id && ws.clients.length > 0)),
       distinctUntilChanged(),

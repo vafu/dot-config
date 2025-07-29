@@ -41,7 +41,7 @@ export default (gdkmonitor: Gdk.Monitor) => {
     >
       <centerbox>
         <box>
-          <Workspaces />
+          <Workspaces monitor={gdkmonitor}/>
           <Status />
         </box>
         <centerbox>
