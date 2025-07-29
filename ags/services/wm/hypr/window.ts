@@ -1,4 +1,4 @@
-import { Tab, Window, WindowService } from '../types'
+import { Window, WindowService } from '../types'
 import AstalHyprland from 'gi://AstalHyprland?version=0.1'
 import { fromConnectable } from 'rxbinding'
 import { distinctUntilChanged, empty, map, of, shareReplay } from 'rxjs'
