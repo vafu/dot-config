@@ -1,5 +1,6 @@
 import Brightness from './brightness'
-import { monitorService, windowService, workspaceService } from './wm/hypr'
+import { monitorService } from './wm/hypr'
+import { windowService, workspaceService } from './wm/hypr'
 import { MonitorService, WindowService, WorkspaceService } from './wm/types'
 
 export interface Services {

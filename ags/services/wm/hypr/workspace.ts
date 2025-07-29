@@ -10,8 +10,11 @@ import {
   switchMap,
   take,
   startWith,
+  combineLatest,
+  scan,
 } from 'rxjs'
-import { WorkspaceService, Workspace, Tab } from '../types'
+import { WorkspaceService, Workspace, Tab, Window } from '../types'
+import obtainWmService from 'services'
 
 const hypr = AstalHyprland.get_default()
 const focusedWorkspace = fromConnectable(hypr, 'focusedWorkspace')
@@ -38,11 +41,18 @@ class HyprWorkspaceService implements WorkspaceService {
 
   activeWorkspace: Observable<Workspace> = focusedWorkspace.pipe(
     map(ws => this.getWorkspace(getWsId(ws))),
+    distinctUntilChanged(),
   )
 
   switchToWs(idx: number, move: boolean) {
     this.getWorkspace(idx).focus(move)
   }
+}
+
+export function getBackingTab(ws: AstalHyprland.Workspace) {
+  return (workspaceService.getWorkspace(getWsId(ws)) as HyprWS).getTab(
+    getTabId(ws),
+  )
 }
 
 function getWsId(ws: AstalHyprland.Workspace) {
@@ -54,65 +64,66 @@ function getTabId(ws: AstalHyprland.Workspace) {
 }
 
 class HyprWS implements Workspace {
+  _tabs = new Map<number, Tab>()
   tabs: Observable<Tab[]>
   selectedTab: Observable<Tab>
 
   active: Observable<boolean>
   occupied: Observable<boolean>
   urgent: Observable<boolean> = of(false)
-  id: number
+  wsId: number
 
   private _selectedTab = 0
 
-  private set selectedTabId(value: number) {}
-
   hyprWsId() {
-    return this._selectedTab * 10 + this.id
+    return this._selectedTab * 10 + this.wsId
   }
 
   focus(move: boolean) {
     const cmd = move ? 'movetoworkspace' : 'workspace'
-    console.log('executing', cmd, this._selectedTab)
     const target = this.hyprWsId()
     hypr.dispatch(cmd, target.toString())
   }
 
   switchToTab(idx: number, move: boolean) {
     this._selectedTab = idx
-    console.log('moving to tab', idx, this._selectedTab)
     this.focus(move)
   }
 
   constructor(id: number) {
-    this.id = id
+    this.wsId = id
     this.tabs = workspaces.pipe(
       map(w =>
-        w.filter(ws => getWsId(ws) == id).map(ws => ({ id: getTabId(ws) })),
+        w
+          .filter(ws => getWsId(ws) == id)
+          .map(ws => getBackingTab(ws))
+          .sort((p, c) => p.tabId - c.tabId),
       ),
+      distinctUntilChanged(),
+      shareReplay(),
     )
 
     this.selectedTab = focusedWorkspace.pipe(
       filter(w => getWsId(w) == id),
       map(w => {
-        const tab = getTabId(w)
-        this._selectedTab = tab
-        return {
-          id: tab,
-        }
+        const tab = this.getTab(getTabId(w))
+        this._selectedTab = tab.tabId
+        return getBackingTab(w)
       }),
-      startWith({ id: this._selectedTab }),
+      startWith(this.getTab(0)),
+      shareReplay(),
     )
 
     this.active = focusedWorkspace.pipe(
       map(w => getWsId(w) == id),
       distinctUntilChanged(),
-      shareReplay(1),
+      shareReplay(),
     )
     this.occupied = workspaces.pipe(
       map(w => w.filter(ws => getWsId(ws) === id && ws.clients.length > 0)),
       distinctUntilChanged(),
       map(ws => ws.length > 0),
-      shareReplay(1),
+      shareReplay(),
     )
 
     this.urgent = urgentWs.pipe(
@@ -128,6 +139,76 @@ class HyprWS implements Workspace {
       startWith(false),
     )
   }
+
+  getTab(tabId: number) {
+    if (!this._tabs.get(tabId)) {
+      const tab = {
+        tabId: tabId,
+        title: getTitleFor(tabId, this.wsId),
+        workspace: this,
+      } as Tab
+      this._tabs.set(tabId, tab)
+    }
+    return this._tabs.get(tabId)
+  }
+}
+
+function getTitleFor(tabId: number, wsId: number) {
+  const windows = obtainWmService('window')
+
+  const activeWindowState = windows.active.pipe(
+    switchMap(activeWindow => {
+      return activeWindow.tab.pipe(map(tab => ({ window: activeWindow, tab })))
+    }),
+  )
+
+  const lastFocusedWindow = activeWindowState.pipe(
+    scan(
+      (previouslyRememberedWindow, currentEvent) => {
+        const { window: currentWindow, tab: currentTab } = currentEvent
+
+        if (
+          currentWindow &&
+          currentTab &&
+          currentTab.workspace.wsId === wsId &&
+          currentTab.tabId === tabId
+        ) {
+          return currentWindow
+        }
+
+        if (
+          previouslyRememberedWindow &&
+          currentWindow?.id === previouslyRememberedWindow?.id
+        ) {
+          return null
+        }
+
+        return previouslyRememberedWindow
+      },
+      null as Window | null,
+    ),
+    distinctUntilChanged(),
+  )
+
+  return lastFocusedWindow.pipe(
+    switchMap(rememberedWindow => {
+      if (rememberedWindow) {
+        return rememberedWindow.title
+      }
+
+      return windows.getFor(wsId, tabId).pipe(
+        take(1),
+        switchMap(windowList => {
+          if (windowList.length > 0) {
+            return windowList[0].title
+          }
+          return of(`${tabId + 1}`)
+        }),
+      )
+    }),
+    startWith(`#${tabId + 1}`),
+    shareReplay({ bufferSize: 1, refCount: true }),
+  )
 }
 
 export const workspaceService: WorkspaceService = new HyprWorkspaceService()

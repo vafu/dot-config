@@ -6,3 +6,8 @@ export const SearchEntry = astalify<
   Gtk.SearchEntry,
   Gtk.SearchEntry.ConstructorProps
 >(Gtk.SearchEntry)
+
+export const ToggleButton = astalify<
+  Gtk.ToggleButton,
+  Gtk.ToggleButton.ConstructorProps
+>(Gtk.ToggleButton)

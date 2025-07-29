@@ -1,7 +1,7 @@
 import AstalHyprland from 'gi://AstalHyprland?version=0.1'
 import { MonitorService } from '../types'
-import { Gdk, App, Astal } from 'astal/gtk4'
-import { Observable, OperatorFunction, map, retry } from 'rxjs'
+import { Gdk, App } from 'astal/gtk4'
+import { Observable, map, retry } from 'rxjs'
 import { fromConnectable } from 'rxbinding'
 
 const hypr = AstalHyprland.get_default()
