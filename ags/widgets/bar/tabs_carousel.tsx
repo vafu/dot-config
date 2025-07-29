@@ -15,6 +15,8 @@ export const TabsCarousel = (props: { monitor: Gdk.Monitor }) => {
   const carousel = new Adw.Carousel({
     orientation: Gtk.Orientation.HORIZONTAL,
     css_classes: ['tab-carousel'],
+    allow_mouse_drag: false,
+    allow_scroll_wheel: false
   })
 
   tabs.subscribe(tabs => {
