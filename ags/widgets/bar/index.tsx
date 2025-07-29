@@ -40,7 +40,7 @@ export default (gdkmonitor: Gdk.Monitor) => {
           <Workspaces />
           <Status />
         </box>
-            <TabsCarousel />
+        <TabsCarousel />
         <PanelButtons />
       </centerbox>
     </window>

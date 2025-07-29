@@ -2,12 +2,15 @@ import { Gdk } from 'astal/gtk4'
 import { Observable } from 'rxjs'
 
 export interface WindowService {
-  active: ActiveWindow
+  active: Observable<Window>
+  getFor(wsId: number, tabId: number): Observable<Window[]>
 }
 
-export interface ActiveWindow {
+export interface Window {
+  id: string
   cls: Observable<string>
   title: Observable<string>
+  tab: Observable<Tab>
 }
 
 export interface WorkspaceService {
@@ -18,11 +21,13 @@ export interface WorkspaceService {
 }
 
 export interface Tab {
-  id: number
-  title: string
+  tabId: number
+  workspace: Workspace
+  title: Observable<string>
 }
 
 export interface Workspace {
+  wsId: number
   tabs: Observable<Tab[]>
   selectedTab: Observable<Tab>
 
