@@ -34,19 +34,12 @@ $outline-offset: $label-margin * 0.5;
   min-width: 300pt;
 }
 
-.ws-tabbar {
-  .tab-close-button {
-    color: transparent;
-  }
-}
-
 .tab-carousel {
-  min-width: 1000px;
+  min-width: 100px;
 
-  >label {
-    min-width: 100px;
-    margin-left: 4px;
-    margin-right: 4px;
+  >carouseltab {
+    margin-left: 100px;
+    margin-right: 100px;
   }
 }
 
