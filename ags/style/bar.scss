@@ -124,9 +124,15 @@ levelindicator {
       background-color: #{$ws_occupied};
     }
 
-    &.active {
+    &.focused {
       background-color: #{$ws_active};
       outline: $outline-width solid #{$ws_active};
+      outline-offset: $outline-offset;
+    }
+
+    &.active {
+      background-color: transparent;
+      outline: $outline-width solid #{$ws_occupied};
       outline-offset: $outline-offset;
     }
 
