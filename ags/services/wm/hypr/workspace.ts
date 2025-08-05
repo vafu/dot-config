@@ -15,6 +15,8 @@ import {
 } from 'rxjs'
 import { WorkspaceService, Workspace, Tab, Window } from '../types'
 import obtainWmService from 'services'
+import { Gdk } from 'astal/gtk4'
+import { mapToMonitor } from './monitor'
 
 const hypr = AstalHyprland.get_default()
 const focusedWorkspace = fromConnectable(hypr, 'focusedWorkspace')
@@ -29,6 +31,17 @@ const urgentWs = new Observable<number>(o => {
 })
 
 class HyprWorkspaceService implements WorkspaceService {
+
+  activeWorkspaceFor(monitor: Gdk.Monitor): Observable<Workspace> {
+    // TODO: architecture is meh
+    return focusedWorkspace.pipe(
+      // TODO handle case when ws moves to different monitor
+      filter(ws => mapToMonitor(ws.monitor) == monitor),
+      map(ws => this.getWorkspace(getWsId(ws))),
+      distinctUntilChanged(),
+    )
+  }
+
   private _workspaces: Map<number, HyprWS> = new Map()
 
   getWorkspace = (int: number) => {
@@ -119,6 +132,7 @@ class HyprWS implements Workspace {
       distinctUntilChanged(),
       shareReplay(),
     )
+
     this.occupied = workspaces.pipe(
       map(w => w.filter(ws => getWsId(ws) === id && ws.clients.length > 0)),
       distinctUntilChanged(),

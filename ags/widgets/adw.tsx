@@ -38,3 +38,8 @@ export const ExpanderRow = astalify<
     children.forEach((w) => self.add_row(w))
   },
 })
+
+export const CarouselIndicatorDots = astalify<
+  Adw.CarouselIndicatorDots,
+  Adw.CarouselIndicatorDots.ConstructorProps
+>(Adw.CarouselIndicatorDots)

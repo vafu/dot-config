@@ -6,7 +6,7 @@ import { fromConnectable } from 'rxbinding'
 
 const hypr = AstalHyprland.get_default()
 
-const mapToMonitor = (am: AstalHyprland.Monitor) =>
+export const mapToMonitor = (am: AstalHyprland.Monitor) =>
   App.get_monitors().find(
     (m) =>
       m.description.startsWith(am.description) ||

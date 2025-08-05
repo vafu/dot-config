@@ -1,12 +1,14 @@
-import { Astal, Gdk } from 'astal/gtk4'
+import { Astal, Gdk, Gtk } from 'astal/gtk4'
 import { Workspaces } from './workspaces'
 import { PanelButtons } from './panel-buttons'
 import { Status } from './status'
-import { bindAs } from 'rxbinding'
-import rsynapseUi from 'widgets/rsynapse'
+import { bindAs, binding } from 'rxbinding'
+import rsynapseUi, { Rsynapse, RsynapseSearch } from 'widgets/rsynapse'
 import { switchMap, map, of, distinctUntilChanged, shareReplay } from 'rxjs'
 import obtainWmService from 'services'
 import { TabsCarousel } from './tabs_carousel'
+import Adw from 'gi://Adw?version=1'
+import { CarouselIndicatorDots } from 'widgets/adw'
 
 const activeMonitor = obtainWmService('monitor').activeMonitor
 
@@ -18,6 +20,8 @@ export default (gdkmonitor: Gdk.Monitor) => {
     distinctUntilChanged(),
     shareReplay(),
   )
+
+  const tabs = <TabsCarousel monitor={gdkmonitor} /> as Adw.Carousel
 
   return (
     <window
@@ -37,10 +41,29 @@ export default (gdkmonitor: Gdk.Monitor) => {
     >
       <centerbox>
         <box>
-          <Workspaces />
+          <Workspaces monitor={gdkmonitor}/>
           <Status />
         </box>
-        <TabsCarousel />
+        <centerbox>
+          <CarouselIndicatorDots setup={self => self.set_carousel(tabs)} />
+          <overlay>
+            <revealer
+              revealChild={bindAs(revealRsynapse, r => !r)}
+              transitionType={Gtk.RevealerTransitionType.SLIDE_UP}
+              halign={Gtk.Align.CENTER}
+            >
+              {tabs}
+            </revealer>
+            <revealer
+              revealChild={binding(revealRsynapse)}
+              transitionType={Gtk.RevealerTransitionType.SLIDE_DOWN}
+              halign={Gtk.Align.CENTER}
+              type="overlay"
+            >
+              <RsynapseSearch revealed={revealRsynapse} />
+            </revealer>
+          </overlay>
+        </centerbox>
         <PanelButtons />
       </centerbox>
     </window>

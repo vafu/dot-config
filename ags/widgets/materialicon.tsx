@@ -48,7 +48,7 @@ class MaterialIconInternal extends Gtk.Image {
 
   set icon(icon: string) {
     fetchForProps(icon, this._style, (name) => {
-      console.log(name)
+      console.log("setIcon", name)
       this.iconName = name
       this.queue_draw()
     })

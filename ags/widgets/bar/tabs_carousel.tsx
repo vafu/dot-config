@@ -1,20 +1,22 @@
-import { Gtk } from 'astal/gtk4'
-import { Button } from 'astal/gtk4/widget'
+import { Gdk, Gtk } from 'astal/gtk4'
+import { Button, Label } from 'astal/gtk4/widget'
 import Adw from 'gi://Adw?version=1'
+import Pango from 'gi://Pango?version=1.0'
 import { binding } from 'rxbinding'
 import { switchMap } from 'rxjs'
 import { workspaceService } from 'services/wm/hypr'
 import { Tab } from 'services/wm/types'
-import { ToggleButton } from 'widgets'
 
-const activeWs = workspaceService.activeWorkspace
-const tabs = activeWs.pipe(switchMap(w => w.tabs))
-const selectedTab = activeWs.pipe(switchMap(w => w.selectedTab))
+export const TabsCarousel = (props: { monitor: Gdk.Monitor }) => {
+  const activeWs = workspaceService.activeWorkspaceFor(props.monitor)
+  const tabs = activeWs.pipe(switchMap(w => w.tabs))
+  const selectedTab = activeWs.pipe(switchMap(w => w.selectedTab))
 
-export const TabsCarousel = () => {
   const carousel = new Adw.Carousel({
     orientation: Gtk.Orientation.HORIZONTAL,
     css_classes: ['tab-carousel'],
+    allow_mouse_drag: false,
+    allow_scroll_wheel: false
   })
 
   tabs.subscribe(tabs => {
@@ -23,9 +25,7 @@ export const TabsCarousel = () => {
     }
 
     tabs.forEach(tab => {
-      const tabView = Tab(tab, () => {
-        carousel.scroll_to(tabView, true)
-      })
+      const tabView = Tab(tab)
       tabView['tabId'] = tab.tabId
       carousel.append(tabView)
     })
@@ -43,10 +43,11 @@ export const TabsCarousel = () => {
   return carousel
 }
 
-const Tab = (tab: Tab, onClick: () => void) => (
-  <Button
+const Tab = (tab: Tab) => (
+  <Label
     label={binding(tab.title)}
-    onClicked={onClick}
-    css_classes={['flat']}
+    ellipsize={Pango.EllipsizeMode.END}
+    max_width_chars={50}
+    cssName='carouseltab'
   />
 )
