@@ -24,17 +24,14 @@ zinit ice as"command" from"gh-r" lucid \
   mv"zoxide*/zoxide -> zoxide" \
   atclone"./zoxide init zsh > init.zsh" \
   atpull"%atclone" src"init.zsh" nocompile'!'
-
 zinit light ajeetdsouza/zoxide
 
 zinit light-mode for \
     junegunn/fzf-bin \
     zsh-users/zsh-history-substring-search
 
-zinit ice as"command" from"gh-r" \
-          atclone"./starship init zsh > init.zsh; ./starship completions zsh > _starship" \
-          atpull"%atclone" src"init.zsh"
-zinit light starship/starship
+zinit ice compile'(pure|async).zsh' pick'async.zsh' src'pure.zsh'
+zinit light sindresorhus/pure
 
 source_if_exists() {
   if [[ -f "$1" ]]; then

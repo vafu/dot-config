@@ -9,5 +9,4 @@
 !hypr/**
 !scripts/**
 !nvim
-!starship.toml
 !zsh/**
