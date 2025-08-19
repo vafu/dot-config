@@ -1,3 +1,6 @@
+zstyle ':zim:completion' dumpfile ${XDG_CACHE_HOME}/zsh/zcompdump
+zstyle ':completion:complete:*' cache-path ${XDG_CACHE_HOME}/.cache/zsh/zcompcache
+
 # Remove older command from the history if a duplicate is to be added.
 HISTFILE=$HOME/.zsh_history
 setopt HIST_IGNORE_ALL_DUPS
@@ -111,8 +114,6 @@ for key ('k') bindkey -M vicmd ${key} history-substring-search-up
 for key ('j') bindkey -M vicmd ${key} history-substring-search-down
 unset key
 # }}} End configuration added by Zim install
-
-zstyle ':zim:completion' dumpfile '~/.cache/zsh/zcompdump'
 
 source_if_exists() {
   if [[ -f "$1" ]]; then
