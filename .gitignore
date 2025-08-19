@@ -5,8 +5,9 @@
 !ags/**
 !gtk-4.0/**
 !gtk-3.0/**
-!.zshrc
 !foot/**
 !hypr/**
 !scripts/**
 !nvim
+!starship.toml
+!zsh/**
