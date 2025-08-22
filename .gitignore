@@ -2,7 +2,7 @@
 !*/
 !.gitignore
 
-!nix-config/**
+!home-manager/**
 !alacritty/**
 !ags/**
 !gtk-4.0/**
