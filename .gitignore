@@ -2,6 +2,7 @@
 !*/
 !.gitignore
 
+!nix-home/**
 !alacritty/**
 !ags/**
 !gtk-4.0/**
