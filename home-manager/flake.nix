@@ -10,6 +10,7 @@
     };
 
     ags.url = "github:Aylur/ags";
+    astal.url = "github:aylur/astal";
 
     nixGL = {
       url = "github:nix-community/nixGL";
@@ -17,7 +18,7 @@
     };
   };
 
-  outputs = { self, nixpkgs, home-manager, ags, nixGL, ... }:
+  outputs = { self, nixpkgs, home-manager, nixGL, ags, astal, ... }:
      {
       homeConfigurations."vfuchedzhy" = home-manager.lib.homeManagerConfiguration {
         pkgs = import nixpkgs {
@@ -25,7 +26,7 @@
           allowUnfree = true;
           allowUnfreePredicate = _: true;
         };
-        extraSpecialArgs = { inherit nixGL; };
+        extraSpecialArgs = { inherit nixGL ags astal; };
         modules = [./home.nix];
       };
     };

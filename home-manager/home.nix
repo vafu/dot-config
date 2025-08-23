@@ -1,9 +1,10 @@
 # ~/.config/nix-config/home.nix
-{ config, lib, pkgs, nixGL, hyprland, ... }:
+{ config, lib, pkgs, nixGL, hyprland, ags, ... }:
 
 {
   # Set your home-manager state version
   home.stateVersion = "25.11";
+  imports = [ ags.homeManagerModules.default ];
 
 
   nixGL = {
@@ -11,16 +12,30 @@
     defaultWrapper = "mesa";
   };
 
+  programs.ags = {
+    enable = true;
+    extraPackages = with pkgs; [
+      libadwaita
+      astal.hyprland
+      astal.network
+      astal.battery
+      astal.powerprofiles
+      astal.wireplumber
+      astal.tray
+      astal.bluetooth
+      networkmanager
+    ];
+  };
   programs.home-manager.enable = true;
 
   home.username = "vfuchedzhy";
   home.homeDirectory = "/home/vfuchedzhy/";
   home.packages = with pkgs; [
-    alacritty
+    (config.lib.nixGL.wrap alacritty)
+    brightnessctl
     wl-clipboard 
-
-    # nwg-look # For setting GTK themes
-    # (nerdfonts.override { fonts = [ "FiraCode" "JetBrainsMono" ]; })
+    nwg-look
+    nwg-displays
   ];
 
   wayland.windowManager.hyprland.extraConfig = 
