@@ -12,3 +12,5 @@
 !scripts/**
 !nvim
 !zsh/**
+zsh/.zcompdump
+zsh/.zcompcache
