@@ -1,4 +1,3 @@
-# ~/.config/nix-config/flake.nix
 {
   description = "My Hyprland Flake";
 
@@ -16,9 +15,14 @@
       url = "github:nix-community/nixGL";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    hyprland.url = "github:hyprwm/Hyprland";
+    hyprlift-plugin = {
+      url = "path:/home/vfuchedzhy/proj/hyprlift";
+      inputs.hyprland.follows = "hyprland";
+    };
   };
 
-  outputs = { self, nixpkgs, home-manager, nixGL, ags, astal, ... }:
+  outputs = { self, nixpkgs, home-manager, nixGL, ags, astal, hyprland, hyprlift-plugin, ... }:
      {
       homeConfigurations."vfuchedzhy" = home-manager.lib.homeManagerConfiguration {
         pkgs = import nixpkgs {
@@ -26,7 +30,7 @@
           allowUnfree = true;
           allowUnfreePredicate = _: true;
         };
-        extraSpecialArgs = { inherit nixGL ags astal; };
+        extraSpecialArgs = { inherit nixGL ags astal hyprland hyprlift-plugin; };
         modules = [
           ./home.nix
         ];

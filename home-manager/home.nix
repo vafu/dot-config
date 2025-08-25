@@ -1,5 +1,4 @@
-# ~/.config/nix-config/home.nix
-{ config, lib, pkgs, nixGL, hyprland, ags, ... }:
+{ config, lib, pkgs, nixGL, hyprland, ags, hyprlift-plugin, ... }:
 {
     nixpkgs.overlays = [
     (final: prev: {
@@ -37,7 +36,6 @@
   programs.ags = {
     enable = true;
     extraPackages = with pkgs; [
-      cachix
       libadwaita
       astal.astal4
       astal.hyprland
@@ -60,7 +58,6 @@
     swaynotificationcenter
     nautilus
     firefox
-    glfw-wayland
     alacritty
     brightnessctl
     wl-clipboard 
@@ -70,9 +67,9 @@
 
   wayland.windowManager.hyprland = 
   {
-    enable = true;
-    package = config.lib.nixGL.wrap pkgs.hyprland;
-    extraConfig = builtins.readFile /home/vfuchedzhy/.config/hypr/niximport.conf;
-    systemd.variables = ["--all"];
+      enable = true;
+      package = config.lib.nixGL.wrap hyprland.packages.${pkgs.stdenv.hostPlatform.system}.hyprland;
+      extraConfig = builtins.readFile /home/vfuchedzhy/.config/hypr/niximport.conf;
+      systemd.variables = ["--all"];
   };
 }
