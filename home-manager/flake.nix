@@ -27,7 +27,9 @@
           allowUnfreePredicate = _: true;
         };
         extraSpecialArgs = { inherit nixGL ags astal; };
-        modules = [./home.nix];
+        modules = [
+          ./home.nix
+        ];
       };
     };
 }
