@@ -32,7 +32,10 @@
     defaultWrapper = "mesa";
     installScripts = [ "mesa" ];
   };
-
+  home.pointerCursor = {
+    name = "phinger-cursors-light";
+    package = pkgs.phinger-cursors;
+  };
   programs.ags = {
     enable = true;
     extraPackages = with pkgs; [
