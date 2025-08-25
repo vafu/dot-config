@@ -49,10 +49,14 @@
     ];
   };
   programs.home-manager.enable = true;
+  programs.hyprlock.enable = true;
 
   home.username = "vfuchedzhy";
   home.homeDirectory = "/home/vfuchedzhy/";
   home.packages = with pkgs; [
+    alsa-utils
+    pavucontrol
+    playerctl
     dart-sass
     gnome-pomodoro
     swaynotificationcenter
