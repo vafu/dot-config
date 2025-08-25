@@ -12,15 +12,14 @@ export function prepareTheme() {
   //   )
   // )
 }
+
 function prepareGtk() {
   syncAccent(null)
-  const themeName = settings.get_string('gtk-theme').replace("-dark", '')
   const colorScheme = settings.get_string('color-scheme')
-  updateGtkTheme(colorScheme, themeName)
+  updateGtkTheme(colorScheme)
   settings.connect('changed::color-scheme', (s: Gio.Settings) => {
-    const themeName = settings.get_string('gtk-theme').replace("-dark", '')
     const newColorScheme = s.get_string('color-scheme')
-    updateGtkTheme(newColorScheme, themeName)
+    updateGtkTheme(newColorScheme)
   })
   settings.connect('changed::accent-color', (s: Gio.Settings) => {
     syncAccent(s.get_string('accent-color'))
@@ -35,7 +34,9 @@ function prepareIcons() {
 function syncAccent(color?: string) {
   exec(`bash scripts/sync_accent.sh ${color ?? ''}`)
 }
-function updateGtkTheme(colorScheme: string, themeName: string) {
+function updateGtkTheme(colorScheme: string) {
+  const themeName = settings.get_string('gtk-theme').replace("-dark", '')
+
   const isDark = colorScheme === 'prefer-dark'
   const theme = isDark ? `${themeName}-dark` : themeName
   // Get the paths

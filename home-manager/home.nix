@@ -56,8 +56,9 @@
   home.homeDirectory = "/home/vfuchedzhy/";
   home.packages = with pkgs; [
     dart-sass
+    gnome-pomodoro
+    swaynotificationcenter
     nautilus
-    libadwaita
     firefox
     glfw-wayland
     alacritty
