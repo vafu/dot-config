@@ -8,10 +8,13 @@ import {
 import AstalBluetooth from "gi://AstalBluetooth";
 import { bindAs, binding, fromConnectable } from "rxbinding";
 import {
+  debounce,
+  debounceTime,
   distinctUntilChanged,
   filter,
   map,
   of,
+  share,
   shareReplay,
   startWith,
   switchMap,
@@ -20,12 +23,16 @@ import { LevelIndicator, RenderStyle } from "widgets/circularstatus";
 import { MaterialIcon } from "widgets/materialicon";
 import { Gtk } from "astal/gtk4";
 import { ActionRow, ListBox } from "widgets/adw";
+import { logNext } from "commons/rx";
 
 const CPU = Variable("0").poll(3000, () => exec("bash scripts/cpu.sh"));
 
 const RAM = Variable("0").poll(3000, () => exec("bash scripts/ram.sh"));
 
-const btDevices = fromConnectable(AstalBluetooth.get_default(), "devices");
+const btDevices = fromConnectable(AstalBluetooth.get_default(), "devices").pipe(
+  debounceTime(200),
+  shareReplay(1)
+);
 
 const stages = [
   { level: 35, class: "warn" },
@@ -192,8 +199,8 @@ function BtDeviceBattery(matcher: (c: BluetoothDeviceType) => Boolean) {
                 connected
                   ? of("Connected")
                   : fromConnectable(d.device, "connecting").pipe(
-                      map(connecting => (connecting ? "Connecting..." : "")),
-                    ),
+                    map(connecting => (connecting ? "Connecting..." : "")),
+                  ),
               ),
             ),
           )}

@@ -1,0 +1,21 @@
+[font]
+size = 10
+
+normal = { family = "JetBrainsMono Nerd Font Mono", style = "Regular" }
+
+[cursor.style]
+shape =  "Beam"
+blinking  = "Always"
+
+[window.padding]
+x = 5
+y = 5
+
+[window]
+opacity = 0.97
+
+[general]
+import = [
+    "~/.config/alacritty/themes/themes/catppuccin_macchiato.toml"
+]
+

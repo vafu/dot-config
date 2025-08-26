@@ -12,6 +12,7 @@ export function prepareTheme() {
   //   )
   // )
 }
+
 function prepareGtk() {
   syncAccent(null)
   const colorScheme = settings.get_string('color-scheme')
@@ -34,8 +35,10 @@ function syncAccent(color?: string) {
   exec(`bash scripts/sync_accent.sh ${color ?? ''}`)
 }
 function updateGtkTheme(colorScheme: string) {
+  const themeName = settings.get_string('gtk-theme').replace("-dark", '')
+
   const isDark = colorScheme === 'prefer-dark'
-  const theme = isDark ? 'ags-theme-dark' : 'ags-theme'
+  const theme = isDark ? `${themeName}-dark` : themeName
   // Get the paths
   exec(`gsettings set org.gnome.desktop.interface gtk-theme '${theme}'`)
 }

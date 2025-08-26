@@ -2,13 +2,17 @@
 !*/
 !.gitignore
 
+!home-manager/**
+!alacritty/**
 !ags/**
 !gtk-4.0/**
 !gtk-3.0/**
 !.zshrc
-!kitty/**
 !foot/**
 !fuzzel/**
 !hypr/**
 !scripts/**
 !nvim
+!zsh/**
+zsh/.zcompdump
+zsh/.zcompcache
