@@ -1,5 +1,5 @@
 /* base */
-@define-color bg @theme_bg_color;
+@define-color bg alpha(@theme_bg_color, 0.9);
 
 /* TODO move to theme */
 @define-color bg_deep #1c1c1c;
