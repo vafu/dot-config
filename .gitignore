@@ -16,3 +16,4 @@
 !zsh/**
 zsh/.zcompdump
 zsh/.zcompcache
+!TODO.md
