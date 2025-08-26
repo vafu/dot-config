@@ -11,7 +11,11 @@ blinking  = "Always"
 x = 5
 y = 5
 
+[window]
+opacity = 0.97
+
 [general]
 import = [
     "~/.config/alacritty/themes/themes/catppuccin_macchiato.toml"
 ]
+
