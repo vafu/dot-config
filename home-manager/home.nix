@@ -70,6 +70,7 @@
     wl-clipboard 
     nwg-look
     nwg-displays
+    hyprpaper
   ];
 
   wayland.windowManager.hyprland = 
