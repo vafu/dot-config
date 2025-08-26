@@ -16,6 +16,6 @@ opacity = 0.97
 
 [general]
 import = [
-    "~/.config/alacritty/themes/themes/gruvbox_material.toml"
+    "~/.config/alacritty/themes/themes/catppuccin_macchiato.toml"
 ]
 

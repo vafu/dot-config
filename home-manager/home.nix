@@ -1,5 +1,9 @@
-{ config, lib, pkgs, nixGL, hyprland, ags, hyprlift-plugin, ... }:
+{ config, pkgs, nixGL, hyprland, ags, ... }:
 {
+    imports = [
+      ./pam.nix
+      ags.homeManagerModules.default
+    ];
     nixpkgs.overlays = [
     (final: prev: {
       libadwaita = prev.libadwaita.overrideAttrs (oldAttrs: {
@@ -23,9 +27,11 @@
 
   # Set your home-manager state version
   home.stateVersion = "25.11";
-  imports = [ 
-    ags.homeManagerModules.default
-  ];
+
+  home.pam = {
+    chkpwdPath = "/usr/sbin/unix_chkpwd";
+    overridePackages = ["hyprlock"];
+  };
 
   nixGL = {
     packages = nixGL.packages;
@@ -52,12 +58,17 @@
     ];
   };
   programs.home-manager.enable = true;
-  programs.hyprlock.enable = true;
 
   home.username = "vfuchedzhy";
   home.homeDirectory = "/home/vfuchedzhy/";
   home.packages = with pkgs; [
+    hyprlock
+    libadwaita
     alsa-utils
+    grim
+    slurp
+    satty
+    loupe
     pavucontrol
     playerctl
     dart-sass
