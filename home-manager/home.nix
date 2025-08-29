@@ -62,6 +62,9 @@
   home.username = "vfuchedzhy";
   home.homeDirectory = "/home/vfuchedzhy/";
   home.packages = with pkgs; [
+    glib
+    gsettings-desktop-schemas
+    udiskie
     hyprlock
     libadwaita
     alsa-utils
