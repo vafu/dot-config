@@ -3,6 +3,7 @@ import { App, Gtk } from 'astal/gtk4'
 import obtainWmService from 'services'
 const settings = Gio.Settings.new('org.gnome.desktop.interface')
 const colors = ['green', 'red', 'purple']
+
 export function prepareTheme() {
   prepareGtk()
   prepareIcons()
@@ -14,7 +15,8 @@ export function prepareTheme() {
 }
 
 function prepareGtk() {
-  syncAccent(null)
+  // TODO: fix sync accent on nix
+  // syncAccent(null)
   const colorScheme = settings.get_string('color-scheme')
   updateGtkTheme(colorScheme)
   settings.connect('changed::color-scheme', (s: Gio.Settings) => {
@@ -39,6 +41,5 @@ function updateGtkTheme(colorScheme: string) {
 
   const isDark = colorScheme === 'prefer-dark'
   const theme = isDark ? `${themeName}-dark` : themeName
-  // Get the paths
   exec(`gsettings set org.gnome.desktop.interface gtk-theme '${theme}'`)
 }

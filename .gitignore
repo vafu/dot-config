@@ -11,6 +11,7 @@
 !foot/**
 !fuzzel/**
 !hypr/**
+hypr/hyprland.conf
 !scripts/**
 !nvim
 !zsh/**
