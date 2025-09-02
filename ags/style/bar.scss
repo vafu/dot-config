@@ -7,7 +7,7 @@ $outline-offset: $label-margin * 0.5;
 
 .bar {
   min-height: 32px;
-  background-color: #{$bg};
+  background-color: #{$bg_deep};
 
   .bar-widget {
     padding: 0 6pt;
