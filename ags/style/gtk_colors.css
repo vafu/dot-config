@@ -2,7 +2,7 @@
 @define-color bg @theme_bg_color;
 
 /* TODO move to theme */
-@define-color bg_deep #1c1c1c;
+@define-color bg_deep #1c1c1cea;
 
 @define-color fg @theme_fg_color;
 

@@ -16,6 +16,6 @@ opacity = 0.95
 
 [general]
 import = [
-    "~/.config/alacritty/themes/themes/catppuccin_macchiato.toml"
+    "~/.config/alacritty/theme.toml"
 ]
 
