@@ -13,6 +13,6 @@ hypr/hyprland.conf
 !scripts/**
 !nvim
 !zsh/**
-zsh/.zcompdump
+zsh/.zcompdump*
 zsh/.zcompcache
 !TODO.md
