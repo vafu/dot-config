@@ -38,10 +38,6 @@
     defaultWrapper = "mesa";
     installScripts = [ "mesa" ];
   };
-  home.pointerCursor = {
-    name = "phinger-cursors-light";
-    package = pkgs.phinger-cursors;
-  };
   programs.ags = {
     enable = true;
     extraPackages = with pkgs; [
@@ -58,12 +54,11 @@
     ];
   };
   programs.home-manager.enable = true;
-
   home.username = "vfuchedzhy";
   home.homeDirectory = "/home/vfuchedzhy/";
   home.packages = with pkgs; [
-    glib
     gsettings-desktop-schemas
+    glib
     udiskie
     hyprlock
     libadwaita

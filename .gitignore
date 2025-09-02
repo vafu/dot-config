@@ -5,8 +5,6 @@
 !home-manager/**
 !alacritty/**
 !ags/**
-!gtk-4.0/**
-!gtk-3.0/**
 !.zshrc
 !foot/**
 !fuzzel/**
