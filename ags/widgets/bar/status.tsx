@@ -18,6 +18,8 @@ import {
   shareReplay,
   startWith,
   switchMap,
+  throttle,
+  throttleTime,
 } from "rxjs";
 import { LevelIndicator, RenderStyle } from "widgets/circularstatus";
 import { MaterialIcon } from "widgets/materialicon";
@@ -89,6 +91,7 @@ export const Status = () => (
 
 function BtDeviceBattery(matcher: (c: BluetoothDeviceType) => Boolean) {
   const devices = btDevices.pipe(
+    throttleTime(5000),
     map(devices =>
       devices
         .sort((a, b) => Number(b.connected) - Number(a.connected))
