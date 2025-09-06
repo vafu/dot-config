@@ -17,7 +17,7 @@ const monitors: Observable<Gdk.Monitor[]> = fromConnectable(
   hypr,
   'monitors'
 ).pipe(
-  map((monitors) => monitors.map(mapToMonitor)),
+  map((monitors) => monitors.filter(m => m != null).map(mapToMonitor)),
   retry({
     count: 2,
     delay: 1000,

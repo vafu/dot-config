@@ -10,6 +10,7 @@ import { handleRequest } from 'services/requests'
 import { prepareTheme } from 'style/theming'
 import obtainWmService from 'services'
 import { bindCommands } from 'commands'
+import { MonitorService } from 'services/wm/types'
 
 App.start({
   css: style,
@@ -21,11 +22,26 @@ App.start({
 
     const ms = obtainWmService('monitor')
 
-    ms.monitors
-      .pipe(diffs())
-      .subscribe((monitors) => monitors.added.forEach((m) => Bar(m)))
-
+    setupBars(ms)
     Rsynapse(binding(ms.activeMonitor))
     OSD(binding(ms.activeMonitor))
   },
 })
+
+function setupBars(ms: MonitorService) {
+  const mmap = new Map<Gdk.Monitor, Gtk.Window>()
+  ms.monitors
+    .pipe(diffs())
+    .subscribe((monitors) => {
+      monitors.removed.forEach(removed => {
+        const bar = mmap.get(removed)
+        if (bar) {
+          bar.destroy()
+          mmap.delete(removed)
+        }
+      })
+      monitors.added.forEach((m) => {
+        mmap.set(m, Bar(m) as Gtk.Window)
+      })
+    })
+}

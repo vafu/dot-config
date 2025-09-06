@@ -88,5 +88,6 @@
       package = config.lib.nixGL.wrap hyprland.packages.${pkgs.stdenv.hostPlatform.system}.hyprland;
       extraConfig = builtins.readFile /home/vfuchedzhy/.config/hypr/niximport.conf;
       systemd.variables = ["--all"];
+      plugins
   };
 }
