@@ -57,6 +57,7 @@
   home.username = "vfuchedzhy";
   home.homeDirectory = "/home/vfuchedzhy/";
   home.packages = with pkgs; [
+    ibus
     gsettings-desktop-schemas
     glib
     udiskie
