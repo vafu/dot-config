@@ -1,13 +1,12 @@
-import { Gdk, Gtk } from 'astal/gtk4'
+import { Gdk, Gtk } from 'ags/gtk4'
 import { Observable } from 'rxjs'
 import { getRsynapseService, RsynapseResult } from 'services/rsynapse'
-import { SearchEntry } from 'widgets'
 import rsynapseUi, { selection } from 'widgets/rsynapse'
 
 const rsynapse = getRsynapseService()
 
 export const RsynapseSearch = (props: { revealed: Observable<boolean> }) => {
-  return <SearchEntry
+  return <Gtk.SearchEntry
     css_classes={['bar-widget', 'rsynapse-search']}
     setup={(self) => {
       const focus = new Gtk.EventControllerFocus()

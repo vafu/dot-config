@@ -1,7 +1,7 @@
 import { Binding } from 'astal'
-import { Button, ButtonProps } from 'astal/gtk4/widget'
+import { Gtk } from 'ags/gtk4'
 
-export type QuicktoggleProps = ButtonProps & {
+export type QuicktoggleProps = Gtk.ButtonProps & {
   enabled?: boolean | Binding<boolean>
   iconName?: string | Binding<string>
   label?: string | Binding<string>
@@ -31,7 +31,7 @@ export const Quicktoggle = ({
   }
   return (
     <box cssClasses={['linked', 'quicktoggle']}>
-      {Button(
+      {Gtk.Button(
         {
           onClicked: onClicked,
           css_classes: classes,

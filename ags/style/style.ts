@@ -1,5 +1,5 @@
 import { AstalIO, exec, Gio, GLib, readFile, writeFile } from 'astal'
-import { App } from 'astal/gtk4'
+import { app } from 'ags/gtk4/app'
 
 const sass_input = `${GLib.get_tmp_dir()}/tmp.scss`
 const sass = `${GLib.get_tmp_dir()}/compiled.css`

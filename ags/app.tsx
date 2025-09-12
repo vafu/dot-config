@@ -1,4 +1,5 @@
-import { App, Gdk, Gtk } from 'astal/gtk4'
+import { Gdk, Gtk } from 'ags/gtk4'
+import app from "ags/gtk4/app"
 import Adw from 'gi://Adw?version=1'
 import Bar from 'widgets/bar'
 import style from './style/style'
@@ -12,7 +13,7 @@ import obtainWmService from 'services'
 import { bindCommands } from 'commands'
 import { MonitorService } from 'services/wm/types'
 
-App.start({
+app.start({
   css: style,
   requestHandler: handleRequest,
   main() {

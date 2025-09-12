@@ -1,4 +1,4 @@
-import { Gdk } from 'astal/gtk4'
+import { Gdk } from 'ags/gtk4'
 import { Observable } from 'rxjs'
 
 export interface WindowService {

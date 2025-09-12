@@ -1,5 +1,5 @@
-import { GObject } from "astal"
-import { Gtk } from "astal/gtk4"
+import { GObject } from "ags"
+import { Gtk } from "ags/gtk4"
 import Tray from "gi://AstalTray"
 
 export function SysTray() {

@@ -1,5 +1,5 @@
 import { GObject, timeout } from 'astal'
-import { astalify, Gdk, Gtk } from 'astal/gtk4'
+import { astalify, Gdk, Gtk } from 'ags/gtk4'
 import cairo from 'gi://cairo?version=1.0'
 
 type Orientation = 'horizontal' | 'vertical'

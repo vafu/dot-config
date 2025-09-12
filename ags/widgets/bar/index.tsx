@@ -1,4 +1,4 @@
-import { Astal, Gdk, Gtk } from 'astal/gtk4'
+import { Astal, Gdk, Gtk } from 'ags/gtk4'
 import { Workspaces } from './workspaces'
 import { PanelButtons } from './panel-buttons'
 import { Status } from './status'
@@ -8,7 +8,6 @@ import { switchMap, map, of, distinctUntilChanged, shareReplay } from 'rxjs'
 import obtainWmService from 'services'
 import { TabsCarousel } from './tabs_carousel'
 import Adw from 'gi://Adw?version=1'
-import { CarouselIndicatorDots } from 'widgets/adw'
 
 const activeMonitor = obtainWmService('monitor').activeMonitor
 
@@ -45,7 +44,7 @@ export default (gdkmonitor: Gdk.Monitor) => {
           <Status />
         </box>
         <centerbox>
-          <CarouselIndicatorDots setup={self => self.set_carousel(tabs)} />
+          <Adw.CarouselIndicatorDots setup={self => self.set_carousel(tabs)} />
           <overlay>
             <revealer
               revealChild={bindAs(revealRsynapse, r => !r)}

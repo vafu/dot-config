@@ -1,4 +1,4 @@
-import { Gio } from "astal";
+import { Gio } from "ags";
 import { Observable } from "rxjs";
 
 type State = 'pomodoro' | 'short-break' | 'long-break' | 'none'

@@ -1,5 +1,5 @@
-import { GLib } from "astal"
-import { Gtk, Astal, Widget } from "astal/gtk4"
+import { GLib } from "ags"
+import { Gtk, Astal, Widget } from "ags/gtk4"
 import Notifd from "gi://AstalNotifd"
 
 // const isIcon = (icon: string) =>

@@ -36,6 +36,7 @@
     enable = true;
     extraPackages = with pkgs; [
       libadwaita
+      astal.gjs
       astal.astal4
       astal.hyprland
       astal.network

@@ -1,4 +1,5 @@
-import { App, Astal, Gdk } from 'astal/gtk4'
+import { Astal, Gdk } from 'ags/gtk4'
+import app from "ags/gtk4/app"
 import { Hidden, OnScreenProgress, State } from './OSD'
 import { binding, fromConnectable } from 'rxbinding'
 import obtainWmService from 'services'
@@ -51,7 +52,7 @@ export default function OSD(monitor: Binding<Gdk.Monitor>) {
       gdkmonitor={monitor}
       cssClasses={['OSD']}
       name={'OSD'}
-      application={App}
+      application={app}
       layer={Astal.Layer.OVERLAY}
       exclusivity={Astal.Exclusivity.IGNORE}
       focusable={false}

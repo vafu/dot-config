@@ -1,6 +1,5 @@
 import { exec, Gio, GLib, GObject } from 'astal'
-import { Gtk } from 'astal/gtk4'
-import astalify from 'astal/gtk4/astalify'
+import { Gtk } from 'ags/gtk4'
 import Soup from 'gi://Soup?version=3.0'
 
 const TINTED_CLASS_NAME = 'tinted'
@@ -23,7 +22,7 @@ const themedir = Gio.file_new_for_path(
 )
 export const iconcache = themedir.get_child('symbolic')
 
-class MaterialIconInternal extends Gtk.Image {
+export class MaterialIcon extends Gtk.Image {
   static {
     GObject.registerClass(
       {
@@ -121,6 +120,3 @@ function iconFromStyle(name: string, style: IconStyle): string {
   return r
 }
 
-export const MaterialIcon = astalify<MaterialIconInternal, MaterialIconProps>(
-  MaterialIconInternal
-)

@@ -1,5 +1,6 @@
 import { exec, Gio } from 'astal'
-import { App, Gtk } from 'astal/gtk4'
+import { Gtk } from 'ags/gtk4'
+import { app } from 'ags/gtk4/app'
 import obtainWmService from 'services'
 const settings = Gio.Settings.new('org.gnome.desktop.interface')
 const colors = ['green', 'red', 'purple']

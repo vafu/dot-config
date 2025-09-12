@@ -1,4 +1,4 @@
-import { bind, exec, Variable } from "astal";
+import { bind, exec, createPoll } from "ags";
 import {
   batteryStatusFor,
   BluetoothDeviceType,
@@ -23,11 +23,10 @@ import {
 } from "rxjs";
 import { LevelIndicator, RenderStyle } from "widgets/circularstatus";
 import { MaterialIcon } from "widgets/materialicon";
-import { Gtk } from "astal/gtk4";
-import { ActionRow, ListBox } from "widgets/adw";
+import { Gtk } from "ags/gtk4";
 import { logNext } from "commons/rx";
 
-const CPU = Variable("0").poll(3000, () => exec("bash scripts/cpu.sh"));
+const [CPU, setCPU] = Variable("0").poll(3000, () => exec("bash scripts/cpu.sh"));
 
 const RAM = Variable("0").poll(3000, () => exec("bash scripts/ram.sh"));
 
@@ -214,7 +213,7 @@ function BtDeviceBattery(matcher: (c: BluetoothDeviceType) => Boolean) {
   const popover = new Gtk.Popover({
     cssClasses: ["menu"],
     child: (
-      <ListBox
+      <Gtk.ListBox
         setup={w =>
           w.connect("row-activated", (_, b) => {
             const d = AstalBluetooth.get_default().devices.find(
@@ -229,7 +228,7 @@ function BtDeviceBattery(matcher: (c: BluetoothDeviceType) => Boolean) {
         }
       >
         {binding(devicesForView)}
-      </ListBox>
+      </Gtk.ListBox>
     ),
   });
 

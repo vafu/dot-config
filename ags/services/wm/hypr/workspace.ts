@@ -15,7 +15,7 @@ import {
 } from 'rxjs'
 import { WorkspaceService, Workspace, Tab, Window } from '../types'
 import obtainWmService from 'services'
-import { Gdk } from 'astal/gtk4'
+import { Gdk } from 'ags/gtk4'
 import { mapToMonitor } from './monitor'
 
 const hypr = AstalHyprland.get_default()

@@ -1,5 +1,5 @@
 import { Gio, GObject } from 'astal'
-import { Gtk } from 'astal/gtk4'
+import { Gtk } from 'ags/gtk4'
 import { bindAs } from 'rxbinding'
 import { workspaceService } from 'services/wm/hypr'
 import { Tab, Workspace } from 'services/wm/types'

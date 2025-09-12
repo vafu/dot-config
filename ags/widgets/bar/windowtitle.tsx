@@ -2,7 +2,7 @@ import Pango from 'gi://Pango?version=1.0'
 import Service from 'services'
 import { binding } from 'rxbinding'
 import { Binding } from 'astal'
-import { Gtk } from 'astal/gtk4'
+import { Gtk } from 'ags/gtk4'
 
 const active = Service('window').active
 

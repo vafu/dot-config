@@ -7,18 +7,17 @@ import {
   fromChain as chain,
   fromConnectable,
 } from 'rxbinding'
-import { Gtk } from 'astal/gtk4'
+import { Gtk } from 'ags/gtk4'
 import AstalNetwork from 'gi://AstalNetwork?version=0.1'
 import { bind, exec } from 'astal'
 import AstalBattery from 'gi://AstalBattery?version=0.1'
 import AstalPowerProfiles from 'gi://AstalPowerProfiles?version=0.1'
-import { Button, ButtonProps, MenuButton, Popover } from 'astal/gtk4/widget'
 import AstalWp from 'gi://AstalWp?version=0.1'
 import { SysTray } from './tray'
 import { QuicktoggleMenu } from 'widgets/bar_dropdown'
 import { PomodoroWidget } from './pomodoro'
 
-type PanelButtonProps = ButtonProps & {
+type PanelButtonProps = Gtk.ButtonProps & {
   window?: string
 }
 
@@ -26,7 +25,7 @@ export const PanelButton = (
   { window = '', ...rest }: PanelButtonProps,
   child: Gtk.Widget
 ) =>
-  Button({
+  Gtk.Button({
     setup: (self) => {
       self.add_css_class('panel-button')
       self.add_css_class('flat')
@@ -52,13 +51,13 @@ const time = interval(1000).pipe(
 )
 
 const DateTime = () => (
-  <PanelButton
+  <Gtk.PanelButton
     tooltipText={bindAs(time, (t) => t.date)}
     cssClasses={['date-time']}
     onClicked={() => exec(["swaync-client", "-t"])}
   >
-    <label label={bindAs(time, (t) => t.clock)} />
-  </PanelButton>
+    <Gtk.Label label={bindAs(time, (t) => t.clock)} />
+  </Gtk.PanelButton>
 )
 
 const { wifi } = AstalNetwork.get_default()

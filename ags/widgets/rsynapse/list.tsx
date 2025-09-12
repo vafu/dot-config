@@ -1,9 +1,10 @@
-import { Binding, Gio, GLib, GObject } from 'astal'
-import { App, Astal, Gdk, Gtk } from 'astal/gtk4'
+import { Binding } from 'ags'
+import { Astal, Gdk, Gtk } from 'ags/gtk4'
+import { app } from 'ags/gtk4/app'
 import Adw from 'gi://Adw?version=1'
+import Gio from 'gi://Gio?version=2.0'
 import { binding } from 'rxbinding'
 import { getRsynapseService, RsynapseResult } from 'services/rsynapse'
-import { ActionRow, ListBox } from 'widgets/adw'
 import rsynapseUi from 'widgets/rsynapse'
 
 const rsynapse = getRsynapseService()
@@ -16,7 +17,7 @@ export function Rsynapse(monitor: Binding<Gdk.Monitor>) {
   const factory = new Gtk.SignalListItemFactory()
 
   factory.connect('setup', (self, listItem: Gtk.ListItem) => {
-    const row = <ActionRow />
+    const row = <Adw.ActionRow />
     listItem.set_child(row)
   })
 
