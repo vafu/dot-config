@@ -1,8 +1,7 @@
-{ config, pkgs, nixGL, hyprland, ags, ... }:
+{ config, pkgs, inputs, ... }:
 {
     imports = [
-      ./pam.nix
-      ags.homeManagerModules.default
+      inputs.ags.homeManagerModules.default
     ];
     nixpkgs.overlays = [
     (final: prev: {
@@ -28,13 +27,8 @@
   # Set your home-manager state version
   home.stateVersion = "25.11";
 
-  home.pam = {
-    chkpwdPath = "/usr/sbin/unix_chkpwd";
-    overridePackages = ["hyprlock"];
-  };
-
   nixGL = {
-    packages = nixGL.packages;
+    packages = inputs.nixGL.packages;
     defaultWrapper = "mesa";
     installScripts = [ "mesa" ];
   };
@@ -86,9 +80,9 @@
   wayland.windowManager.hyprland = 
   {
       enable = true;
-      package = config.lib.nixGL.wrap hyprland.packages.${pkgs.stdenv.hostPlatform.system}.hyprland;
+      package = config.lib.nixGL.wrap inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.hyprland;
       extraConfig = builtins.readFile /home/vfuchedzhy/.config/hypr/niximport.conf;
       systemd.variables = ["--all"];
-      plugins
+      plugins = [ inputs.hypr-dynamic-cursors.packages.${pkgs.system}.hypr-dynamic-cursors ];
   };
 }

@@ -16,21 +16,22 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     hyprland.url = "github:hyprwm/Hyprland";
-    hyprlift-plugin = {
-      url = "path:/home/vfuchedzhy/proj/hyprlift";
-      inputs.hyprland.follows = "hyprland";
+    hypr-dynamic-cursors = {
+        url = "github:VirtCode/hypr-dynamic-cursors";
+        inputs.hyprland.follows = "hyprland"; 
     };
   };
 
-  outputs = { self, nixpkgs, home-manager, nixGL, ags, astal, hyprland, hyprlift-plugin, ... }:
+  outputs = { self, nixpkgs, home-manager, ... } @inputs:
      {
       homeConfigurations."vfuchedzhy" = home-manager.lib.homeManagerConfiguration {
         pkgs = import nixpkgs {
           system = "x86_64-linux";
-          allowUnfree = true;
-          allowUnfreePredicate = _: true;
+          # allowUnfree = true;
+          # allowUnfreePredicate = _: true;
+          overlays = [ (import ./hyprlock.nix) ];
         };
-        extraSpecialArgs = { inherit nixGL ags astal hyprland hyprlift-plugin; };
+        extraSpecialArgs = { inherit inputs; };
         modules = [
           ./home.nix
         ];
