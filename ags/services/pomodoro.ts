@@ -1,5 +1,5 @@
 import { Gio } from "astal";
-import { Observable } from "rxjs";
+import { catchError, Observable } from "rxjs";
 
 type State = 'pomodoro' | 'short-break' | 'long-break' | 'none'
 
@@ -75,5 +75,5 @@ export const getPomodoroService: () => Pomodoro = () => {
 }
 
 function toState(state: string): State {
-  return state == "null" ? 'none' : state as State
+  return state == null || state == "null" ? 'none' : state as State
 }
