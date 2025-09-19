@@ -48,7 +48,6 @@ class MaterialIconInternal extends Gtk.Image {
 
   set icon(icon: string) {
     fetchForProps(icon, this._style, (name) => {
-      console.log("setIcon", name)
       this.iconName = name
       this.queue_draw()
     })
@@ -80,7 +79,6 @@ function fetchForProps(name: string, props: IconStyle, onResolved: (name: string
   const remotedir = `${name}/materialsymbols${props.style}/`
   const path = remotedir + resourceName
   const session = new Soup.Session()
-  console.log('fetching', path)
   const message = Soup.Message.new(
     'GET',
     `https://raw.githubusercontent.com/google/material-design-icons/refs/heads/master/symbols/web/${path}.svg`
