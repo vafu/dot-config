@@ -2,7 +2,7 @@ import { Gdk, Gtk } from 'astal/gtk4'
 import { Button, Label } from 'astal/gtk4/widget'
 import Adw from 'gi://Adw?version=1'
 import Pango from 'gi://Pango?version=1.0'
-import { binding } from 'rxbinding'
+import { bindAs, binding } from 'rxbinding'
 import { switchMap } from 'rxjs'
 import { workspaceService } from 'services/wm/hypr'
 import { Tab } from 'services/wm/types'
@@ -16,7 +16,7 @@ export const TabsCarousel = (props: { monitor: Gdk.Monitor }) => {
     orientation: Gtk.Orientation.HORIZONTAL,
     css_classes: ['tab-carousel'],
     allow_mouse_drag: false,
-    allow_scroll_wheel: false
+    allow_scroll_wheel: false,
   })
 
   tabs.subscribe(tabs => {
@@ -43,11 +43,26 @@ export const TabsCarousel = (props: { monitor: Gdk.Monitor }) => {
   return carousel
 }
 
+export const TabNumIndicator = (props: { monitor: Gdk.Monitor }) => {
+  const activeWs = workspaceService.activeWorkspaceFor(props.monitor)
+  const selectedTab = activeWs.pipe(switchMap(w => w.selectedTab))
+
+  return (
+    <label
+      vexpand={false}
+      valign={Gtk.Align.CENTER}
+      css_classes={['tab-num']}
+      label={bindAs(selectedTab, t => `${t.tabId + 1}`)}
+      visible={bindAs(selectedTab, t => t.tabId != 0)}
+    />
+  )
+}
+
 const Tab = (tab: Tab) => (
   <Label
     label={binding(tab.title)}
     ellipsize={Pango.EllipsizeMode.END}
     max_width_chars={50}
-    cssName='carouseltab'
+    cssName="carouseltab"
   />
 )

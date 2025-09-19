@@ -6,7 +6,7 @@ import { bindAs, binding } from 'rxbinding'
 import rsynapseUi, { Rsynapse, RsynapseSearch } from 'widgets/rsynapse'
 import { switchMap, map, of, distinctUntilChanged, shareReplay } from 'rxjs'
 import obtainWmService from 'services'
-import { TabsCarousel } from './tabs_carousel'
+import { TabNumIndicator, TabsCarousel } from './tabs_carousel'
 import Adw from 'gi://Adw?version=1'
 import { CarouselIndicatorDots } from 'widgets/adw'
 
@@ -21,7 +21,7 @@ export default (gdkmonitor: Gdk.Monitor) => {
     shareReplay(),
   )
 
-  const tabs = <TabsCarousel monitor={gdkmonitor} /> as Adw.Carousel
+  const tabs = (<TabsCarousel monitor={gdkmonitor} />) as Adw.Carousel
 
   return (
     <window
@@ -41,11 +41,14 @@ export default (gdkmonitor: Gdk.Monitor) => {
     >
       <centerbox>
         <box>
-          <Workspaces monitor={gdkmonitor}/>
+          <Workspaces monitor={gdkmonitor} />
           <Status />
         </box>
         <centerbox>
-          <CarouselIndicatorDots setup={self => self.set_carousel(tabs)} />
+          <box>
+            <TabNumIndicator monitor={gdkmonitor} />
+            <CarouselIndicatorDots css_classes={["dots-carousel"]}  setup={self => self.set_carousel(tabs)} />
+          </box>
           <overlay>
             <revealer
               revealChild={bindAs(revealRsynapse, r => !r)}
