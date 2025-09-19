@@ -75,6 +75,8 @@
     nwg-look
     nwg-displays
     hyprpaper
+    endeavour
+    evolution-data-server
   ];
 
   wayland.windowManager.hyprland = 

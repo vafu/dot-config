@@ -125,3 +125,4 @@ source_if_exists "$ZDOTDIR/env.zsh"
 source_if_exists "$ZDOTDIR/aliases.zsh"
 source_if_exists "$HOME/.zshrc"
 
+cd /tmp
