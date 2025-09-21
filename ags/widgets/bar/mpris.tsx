@@ -11,9 +11,6 @@ const player = fromConnectable(mpris, 'players').pipe(
       a.find(p => p.playback_status == AstalMpris.PlaybackStatus.PLAYING) ??
       a.find(p => p.can_play),
   ),
-)
-const playerState = player.pipe(
-  switchMap(p => fromConnectable(p, 'playback_status')),
   shareReplay(),
 )
 
