@@ -9,6 +9,7 @@ import obtainWmService from 'services'
 import { TabNumIndicator, TabsCarousel } from './tabs_carousel'
 import Adw from 'gi://Adw?version=1'
 import { CarouselIndicatorDots } from 'widgets/adw'
+import { MPRISWidget } from './mpris'
 
 const activeMonitor = obtainWmService('monitor').activeMonitor
 
@@ -43,11 +44,15 @@ export default (gdkmonitor: Gdk.Monitor) => {
         <box>
           <Workspaces monitor={gdkmonitor} />
           <Status />
+          <MPRISWidget />
         </box>
         <centerbox>
           <box>
             <TabNumIndicator monitor={gdkmonitor} />
-            <CarouselIndicatorDots css_classes={["dots-carousel"]}  setup={self => self.set_carousel(tabs)} />
+            <CarouselIndicatorDots
+              css_classes={['dots-carousel']}
+              setup={self => self.set_carousel(tabs)}
+            />
           </box>
           <overlay>
             <revealer

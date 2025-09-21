@@ -109,7 +109,6 @@ const ethSpeed = chain(
 
 export const PanelButtons = () => (
   <box>
-    <MPRISWidget />
     <PomodoroWidget />
     <SysTray />
     <MenuButton cssClasses={['panel-button', 'flat', 'pill', 'bar-widget']}>
