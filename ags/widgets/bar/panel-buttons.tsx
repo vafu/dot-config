@@ -17,6 +17,7 @@ import AstalWp from 'gi://AstalWp?version=0.1'
 import { SysTray } from './tray'
 import { QuicktoggleMenu } from 'widgets/bar_dropdown'
 import { PomodoroWidget } from './pomodoro'
+import { MPRISWidget } from './mpris'
 
 type PanelButtonProps = ButtonProps & {
   window?: string
@@ -24,10 +25,10 @@ type PanelButtonProps = ButtonProps & {
 
 export const PanelButton = (
   { window = '', ...rest }: PanelButtonProps,
-  child: Gtk.Widget
+  child: Gtk.Widget,
 ) =>
   Button({
-    setup: (self) => {
+    setup: self => {
       self.add_css_class('panel-button')
       self.add_css_class('flat')
       self.add_css_class('pill')
@@ -48,16 +49,16 @@ const time = interval(1000).pipe(
       date: time.format(dateFormat),
     }
   }),
-  shareReplay(1)
+  shareReplay(1),
 )
 
 const DateTime = () => (
   <PanelButton
-    tooltipText={bindAs(time, (t) => t.date)}
+    tooltipText={bindAs(time, t => t.date)}
     cssClasses={['date-time']}
-    onClicked={() => exec(["swaync-client", "-t"])}
+    onClicked={() => exec(['swaync-client', '-t'])}
   >
-    <label label={bindAs(time, (t) => t.clock)} />
+    <label label={bindAs(time, t => t.clock)} />
   </PanelButton>
 )
 
@@ -67,16 +68,16 @@ const profiles = AstalPowerProfiles.get_default()
 
 const isMuted = chain(
   fromConnectable(AstalWp.get_default(), 'default_speaker'),
-  'mute'
+  'mute',
 )
 
 const wired = chain(
   fromConnectable(AstalNetwork.get_default(), 'wired'),
-  'state'
+  'state',
 )
 
 const ethIcon = wired.pipe(
-  map((s) => {
+  map(s => {
     switch (s) {
       case AstalNetwork.DeviceState.ACTIVATED:
         return 'network-wired-symbolic'
@@ -94,23 +95,24 @@ const ethIcon = wired.pipe(
       default:
         return 'network-wired-disconnected-symbolic'
     }
-  })
+  }),
 )
 
 const ethEnabled = wired.pipe(
-  map((s) => s != AstalNetwork.DeviceState.DISCONNECTED)
+  map(s => s != AstalNetwork.DeviceState.DISCONNECTED),
 )
 
 const ethSpeed = chain(
   fromConnectable(AstalNetwork.get_default(), 'wired'),
-  'speed'
+  'speed',
 )
 
 export const PanelButtons = () => (
   <box>
-    <PomodoroWidget/>
+    <MPRISWidget />
+    <PomodoroWidget />
     <SysTray />
-    <MenuButton cssClasses={["panel-button", "flat", "pill", "bar-widget"]} >
+    <MenuButton cssClasses={['panel-button', 'flat', 'pill', 'bar-widget']}>
       <box>
         <image iconName="audio-volume-muted" visible={binding(isMuted)} />
         <image
@@ -121,7 +123,7 @@ export const PanelButtons = () => (
         <image
           tooltipText={bind(profiles, 'active_profile')}
           iconName={bind(profiles, 'iconName')}
-          visible={bind(profiles, 'active_profile').as((p) => p != 'balanced')}
+          visible={bind(profiles, 'active_profile').as(p => p != 'balanced')}
         />
         <image
           tooltipText={bind(wifi, 'ssid').as(String)}
@@ -132,7 +134,7 @@ export const PanelButtons = () => (
           iconName={bind(battery, 'battery_icon_name')}
         />
       </box>
-      <Popover onKeyPressed={(_, k) => console.log(k)}>
+      <Popover>
         <QuicktoggleMenu />
       </Popover>
     </MenuButton>

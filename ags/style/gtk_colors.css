@@ -22,7 +22,6 @@
 @define-color bat_normal @theme_fg_color;
 @define-color bat_track alpha(@theme_fg_color, 0.3);
 
-
 @define-color sys_warn @yellow_1;
 @define-color sys_ok @green_1;
 @define-color sys_high @yellow_2;
@@ -33,3 +32,5 @@
 @define-color shadow @shade_color;
 
 @define-color mi_tinted alpha(@theme_fg_color, 0.3);
+
+@define-color player_stopped alpha(@theme_fg_color, 0.6);

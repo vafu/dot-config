@@ -60,6 +60,21 @@ $outline-offset: $label-margin * 0.5;
   margin-right: 12px;
 }
 
+.mpris-widget {
+  > label {
+    font-weight: bolder;
+  }
+
+  .paused {
+    color: #{$player_stopped};
+  }
+
+  .stopped {
+    font-weight: normal;
+    color: #{$player_stopped};
+  }
+}
+
 levelindicator {
   min-height: 8px;
   min-width: 8px;
