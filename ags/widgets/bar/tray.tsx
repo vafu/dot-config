@@ -9,6 +9,7 @@ export function SysTray() {
   const trayItems = new Map<string, Gtk.MenuButton>()
   const itemAdded = tray.connect('item-added', (_, id) => {
     const item = tray.get_item(id)
+    if (item.id == null) return
     const popover = Gtk.PopoverMenu.new_from_model(item.menuModel)
     const icon = new Gtk.Image()
     const button = new Gtk.MenuButton({ popover, child: icon, cssClasses: ["flat", "circular",] })
