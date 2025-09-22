@@ -18,6 +18,7 @@ alacritty/theme.toml
 hypr/hyprland.conf
 hypr/monitors.conf
 hypr/monitor_status.conf
+hypr/workspaces.conf
 
 !scripts/**
 !nvim
