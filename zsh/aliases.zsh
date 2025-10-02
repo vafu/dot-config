@@ -21,3 +21,38 @@ function reload_gtk_theme() {
   gsettings set org.gnome.desktop.interface gtk-theme ''
   gsettings set org.gnome.desktop.interface gtk-theme $theme
 }
+
+function find_and_move() {
+  if [[ "$#" -ne 3 ]]; then
+    echo "Usage: find_rsync_move <source_dir> <dest_dir> <file_pattern>" >&2
+    return 1
+  fi
+
+  local source_dir="$1"
+  local dest_dir="$2"
+  local pattern="$3"
+
+  if command -v realpath >/dev/null 2>&1; then
+    source_dir=$(realpath "$source_dir")
+    dest_dir=$(realpath "$dest_dir")
+  else
+    echo "Warning: 'realpath' not found. This command may fail with relative paths." >&2
+  fi
+
+  if [[ ! -d "$source_dir" ]]; then
+    echo "Error: Source directory '$source_dir' not found." >&2
+    return 1
+  fi
+  if [[ ! -d "$dest_dir" ]]; then
+    echo "Error: Destination directory '$dest_dir' not found." >&2
+    return 1
+  fi
+
+  (
+    cd "$source_dir" || exit
+    find . -type f -name "$pattern" -print0 | rsync -av --remove-source-files --from0 --files-from=- -R . "$dest_dir"
+  )
+
+  # clean up empty dirs
+  find "$source_dir" -type d -empty -delete
+}
