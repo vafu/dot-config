@@ -16,6 +16,7 @@ alacritty/theme.toml
 
 !hypr/**
 hypr/hyprland.conf
+hypr/secret_env.conf
 hypr/monitors.conf
 hypr/monitor_status.conf
 hypr/workspaces.conf

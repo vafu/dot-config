@@ -35,6 +35,7 @@
   programs.ags = {
     enable = true;
     extraPackages = with pkgs; [
+      glib-networking
       libadwaita
       astal.astal4
       astal.hyprland
@@ -44,6 +45,7 @@
       astal.wireplumber
       astal.tray
       astal.bluetooth
+      astal.mpris
       networkmanager
     ];
   };
@@ -77,6 +79,7 @@
     hyprpaper
     endeavour
     evolution-data-server
+    hypridle
   ];
 
   wayland.windowManager.hyprland = 
