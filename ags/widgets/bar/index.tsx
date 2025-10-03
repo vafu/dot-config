@@ -13,7 +13,21 @@ import { MPRISWidget } from './mpris'
 import { getPomodoroService } from 'services/pomodoro'
 
 const activeMonitor = obtainWmService('monitor').activeMonitor
-const pomodoro = getPomodoroService().state
+const pomodoro_bar_css = getPomodoroService().state.pipe(
+  distinctUntilChanged((p, c) => p.state == c.state && (c.elapsed - p.elapsed) < 60),
+  map(s => {
+    console.log(s)
+    if (s.state == "pomodoro") {
+      const progress = s.elapsed / s.duration
+      if (progress < 0.5) return `mix(@bg_mixed_green, @bg_mixed_yellow, ${progress})`
+      return `mix(@bg_mixed_yellow, @bg_mixed_red, ${progress})`
+    }
+    return "@bg"
+  }),
+  startWith("@bg"),
+  map(r => `@define-color custombg ${r};`),
+  shareReplay(1),
+)
 
 export default (gdkmonitor: Gdk.Monitor) => {
   const revealRsynapse = rsynapseUi.active.pipe(
@@ -55,18 +69,7 @@ export default (gdkmonitor: Gdk.Monitor) => {
         `
         bgProvider.load_from_data(css, -1)
 
-        const sub = pomodoro.pipe(
-          map(s => {
-            if (s.state == "pomodoro") {
-              const progress = s.elapsed / s.duration
-              if (progress < 0.5) return `mix(@bg_mixed_green, @bg_mixed_yellow, ${progress})`
-              return `mix(@bg_mixed_yellow, @bg_mixed_red, ${progress})`
-            }
-            return "@bg"
-          }),
-          startWith("@bg"),
-          map(r => `@define-color custombg ${r};`)
-        ).subscribe(css => colorProvider.load_from_data(css, -1))
+        const sub = pomodoro_bar_css.subscribe(css => colorProvider.load_from_data(css, -1))
         w.connect("destroy", sub.unsubscribe)
 
       }}
