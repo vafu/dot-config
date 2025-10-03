@@ -11,7 +11,7 @@ const player = fromConnectable(mpris, 'players').pipe(
       a.find(p => p.playback_status == AstalMpris.PlaybackStatus.PLAYING) ??
       a.find(p => p.can_play),
   ),
-  shareReplay(),
+  shareReplay(1),
 )
 
 export const MPRISWidget = () => {

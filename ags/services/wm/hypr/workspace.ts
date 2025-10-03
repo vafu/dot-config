@@ -113,7 +113,7 @@ class HyprWS implements Workspace {
           .sort((p, c) => p.tabId - c.tabId),
       ),
       distinctUntilChanged(),
-      shareReplay(),
+      shareReplay(1),
     )
 
     this.selectedTab = focusedWorkspace.pipe(
@@ -124,20 +124,20 @@ class HyprWS implements Workspace {
         return getBackingTab(w)
       }),
       startWith(this.getTab(0)),
-      shareReplay(),
+      shareReplay(1),
     )
 
     this.active = focusedWorkspace.pipe(
       map(w => getWsId(w) == id),
       distinctUntilChanged(),
-      shareReplay(),
+      shareReplay(1),
     )
 
     this.occupied = workspaces.pipe(
       map(w => w.filter(ws => getWsId(ws) === id && ws.clients.length > 0)),
       distinctUntilChanged(),
       map(ws => ws.length > 0),
-      shareReplay(),
+      shareReplay(1),
     )
 
     this.urgent = urgentWs.pipe(

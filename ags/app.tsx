@@ -4,13 +4,17 @@ import Bar from 'widgets/bar'
 import style from './style/style'
 import OSD from 'widgets/osd'
 import { binding } from 'rxbinding'
-import { diffs } from 'commons/rx'
+import { diffs, logNext } from 'commons/rx'
 import { Rsynapse } from 'widgets/rsynapse'
 import { handleRequest } from 'services/requests'
 import { prepareTheme } from 'style/theming'
 import obtainWmService from 'services'
 import { bindCommands } from 'commands'
 import { MonitorService } from 'services/wm/types'
+import { getPomodoroService } from 'services/pomodoro'
+import { exec } from 'astal'
+import { distinctUntilChanged, map, shareReplay, startWith, tap } from 'rxjs'
+import { not } from 'rxjs/internal/util/not'
 
 App.start({
   css: style,
@@ -22,6 +26,7 @@ App.start({
 
     const ms = obtainWmService('monitor')
 
+    setupPomodoro()
     setupBars(ms)
     Rsynapse(binding(ms.activeMonitor))
     OSD(binding(ms.activeMonitor))
@@ -44,4 +49,50 @@ function setupBars(ms: MonitorService) {
         mmap.set(m, Bar(m) as Gtk.Window)
       })
     })
+}
+
+function setupPomodoro() {
+  const state = getPomodoroService().state.pipe(shareReplay(1))
+  state.pipe(
+    map(s => s.state),
+    distinctUntilChanged(),
+  ).subscribe(s => {
+    switch (s) {
+      case "pomodoro": dndOn(); return
+      case "short-break":
+      case "long-break":
+      case "none": dndOff()
+    }
+  })
+
+  state.pipe(
+    map(s => {
+      if (s.state == "short-break" || s.state == "long-break") {
+        return (s.elapsed / s.duration) >= 0.5
+      }
+      return false
+    }),
+    distinctUntilChanged()
+  ).subscribe(notif => {
+    console.log(notif)
+    if (notif) exec("./scripts/dnd.sh request break_ends")
+  })
+
+  state.pipe(
+    tap({ complete: () => console.log("completed??") })
+  ).subscribe(s => {
+    if (s.state == "pomodoro") {
+      const percentage = (s.elapsed / s.duration) * 100
+    }
+  })
+}
+
+function dndOn() {
+  console.log("dndon")
+  exec("./scripts/dnd.sh on")
+}
+
+function dndOff() {
+  console.log("dndoff")
+  exec("./scripts/dnd.sh off")
 }

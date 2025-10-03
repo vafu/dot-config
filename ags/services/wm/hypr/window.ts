@@ -44,7 +44,7 @@ const getFor = (wsId: number, tabId: number) =>
         .map(clientToWindow),
     ),
     distinctUntilChanged(),
-    shareReplay(),
+    shareReplay(1),
   )
 
 export const windowService: WindowService = {

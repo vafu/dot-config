@@ -4,7 +4,7 @@ import { getPomodoroService } from "services/pomodoro"
 import { MaterialIcon } from "widgets/materialicon"
 
 const pomodoro = getPomodoroService()
-const state = pomodoro.state.pipe(shareReplay())
+const state = pomodoro.state.pipe(shareReplay(1))
 
 export const PomodoroWidget = () => {
 

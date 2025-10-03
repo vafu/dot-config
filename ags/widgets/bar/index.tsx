@@ -3,15 +3,17 @@ import { Workspaces } from './workspaces'
 import { PanelButtons } from './panel-buttons'
 import { Status } from './status'
 import { bindAs, binding } from 'rxbinding'
-import rsynapseUi, { Rsynapse, RsynapseSearch } from 'widgets/rsynapse'
-import { switchMap, map, of, distinctUntilChanged, shareReplay } from 'rxjs'
+import rsynapseUi, { RsynapseSearch } from 'widgets/rsynapse'
+import { switchMap, map, of, distinctUntilChanged, shareReplay, startWith } from 'rxjs'
 import obtainWmService from 'services'
 import { TabNumIndicator, TabsCarousel } from './tabs_carousel'
 import Adw from 'gi://Adw?version=1'
 import { CarouselIndicatorDots } from 'widgets/adw'
 import { MPRISWidget } from './mpris'
+import { getPomodoroService } from 'services/pomodoro'
 
 const activeMonitor = obtainWmService('monitor').activeMonitor
+const pomodoro = getPomodoroService().state
 
 export default (gdkmonitor: Gdk.Monitor) => {
   const revealRsynapse = rsynapseUi.active.pipe(
@@ -19,17 +21,36 @@ export default (gdkmonitor: Gdk.Monitor) => {
       active ? activeMonitor.pipe(map(m => m == gdkmonitor)) : of(false),
     ),
     distinctUntilChanged(),
-    shareReplay(),
+    shareReplay(1),
   )
 
   const tabs = (<TabsCarousel monitor={gdkmonitor} />) as Adw.Carousel
+
+  // TODO: instead of 3 states maybe explore how to add smooth gradient transition from tinted-green to tinted red 
+  const cssClasses = pomodoro.pipe(
+    map(s => {
+      if (s.state == "pomodoro") {
+        const state = s.elapsed / s.duration
+        if (state > .9) {
+          return "tinted-red"
+        }
+        if (state > 0.5) {
+          return "tinted-yellow"
+        }
+        return "tinted-green"
+      }
+      return ""
+    }),
+    map(c => [c, "bar"]),
+    startWith(["bar"])
+  )
 
   return (
     <window
       visible={true}
       gdkmonitor={gdkmonitor}
       name="Bar"
-      cssClasses={['bar']}
+      cssClasses={binding(cssClasses)}
       exclusivity={Astal.Exclusivity.EXCLUSIVE}
       keymode={bindAs(revealRsynapse, a =>
         a ? Astal.Keymode.EXCLUSIVE : Astal.Keymode.NONE,

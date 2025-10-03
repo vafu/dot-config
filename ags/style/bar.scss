@@ -6,6 +6,7 @@ $outline-width: $label-margin * 0.5;
 $outline-offset: $label-margin * 0.5;
 
 .bar {
+  transition: 100ms;
   min-height: 32px;
   background-color: #{$bg};
 
@@ -14,13 +15,25 @@ $outline-offset: $label-margin * 0.5;
   }
 }
 
+.tinted-red {
+  background-color: #{$bg_mixed_red};
+}
+
+.tinted-yellow {
+  background-color: #{$bg_mixed_yellow};
+}
+
+.tinted-green {
+  background-color: #{$bg_mixed_green};
+}
+
 .panel-button {
   label {
     font-size: 12pt;
     font-weight: bold;
   }
 
-  > button {
+  >button {
     padding: 0 8px;
   }
 
@@ -36,7 +49,7 @@ $outline-offset: $label-margin * 0.5;
 .tab-carousel {
   min-width: 100px;
 
-  > carouseltab {
+  >carouseltab {
     margin-left: 100px;
     margin-right: 100px;
     font-weight: bolder;
@@ -61,7 +74,7 @@ $outline-offset: $label-margin * 0.5;
 }
 
 .mpris-widget {
-  > label {
+  >label {
     font-weight: bolder;
   }
 
@@ -79,7 +92,7 @@ levelindicator {
   min-height: 8px;
   min-width: 8px;
 
-  > .track {
+  >.track {
     color: #{$bat_track};
   }
 
@@ -94,7 +107,7 @@ levelindicator {
   }
 
   &.sys {
-    > .level {
+    >.level {
       &.warn {
         color: #{$sys_warn};
       }
@@ -114,7 +127,7 @@ levelindicator {
   }
 
   &.battery {
-    > .level {
+    >.level {
       &.default {
         color: #{$bat_low};
       }

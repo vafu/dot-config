@@ -1,5 +1,5 @@
 import { Gio } from "astal";
-import { catchError, Observable } from "rxjs";
+import { catchError, Observable, share, shareReplay } from "rxjs";
 
 type State = 'pomodoro' | 'short-break' | 'long-break' | 'none'
 
@@ -39,27 +39,34 @@ const PomodoroIface = `
 `
 const PomodoroProxy = Gio.DBusProxy.makeProxyWrapper(PomodoroIface);
 
+let pomodoroService: Pomodoro | null = null
+
 export const getPomodoroService: () => Pomodoro = () => {
+  if (pomodoroService != null) return pomodoroService
   const pomodoro = PomodoroProxy(Gio.DBus.session, 'org.gnome.Pomodoro', '/org/gnome/Pomodoro')
 
-  return {
-    state: new Observable(e => {
+  const state = new Observable<PomodoroState>(e => {
+    e.next({
+      state: toState(pomodoro.State),
+      elapsed: pomodoro.Elapsed,
+      isPaused: pomodoro.IsPaused,
+      duration: pomodoro.StateDuration
+    })
+    const connection = pomodoro.connect("g-properties-changed", (args) => {
       e.next({
-        state: toState(pomodoro.State),
-        elapsed: pomodoro.Elapsed,
-        isPaused: pomodoro.IsPaused,
-        duration: pomodoro.StateDuration
+        state: toState(args.State),
+        elapsed: args.Elapsed,
+        isPaused: args.IsPaused,
+        duration: args.StateDuration
       })
-      const connection = pomodoro.connect("g-properties-changed", (args) => {
-        e.next({
-          state: toState(args.State),
-          elapsed: args.Elapsed,
-          isPaused: args.IsPaused,
-          duration: args.StateDuration
-        })
-      })
-      return () => pomodoro.disconnect(connection)
-    }),
+    })
+    return () => pomodoro.disconnect(connection)
+  }).pipe(
+    shareReplay(1)
+  )
+
+  pomodoroService = {
+    state: state,
     start: () => pomodoro.StartRemote(),
     stop: () => pomodoro.StopRemote(),
     pause: () => pomodoro.PauseRemote(),
@@ -72,6 +79,7 @@ export const getPomodoroService: () => Pomodoro = () => {
       }
     }
   }
+  return pomodoroService
 }
 
 function toState(state: string): State {
