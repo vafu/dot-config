@@ -11,6 +11,7 @@ import Adw from 'gi://Adw?version=1'
 import { CarouselIndicatorDots } from 'widgets/adw'
 import { MPRISWidget } from './mpris'
 import { getPomodoroService } from 'services/pomodoro'
+import { PomodoroWidget } from './pomodoro'
 
 const activeMonitor = obtainWmService('monitor').activeMonitor
 const pomodoro_bar_css = getPomodoroService().state.pipe(
@@ -78,7 +79,7 @@ export default (gdkmonitor: Gdk.Monitor) => {
         <box>
           <Workspaces monitor={gdkmonitor} />
           <Status />
-          <MPRISWidget />
+          <PomodoroWidget />
         </box>
         <centerbox>
           <box>
@@ -106,7 +107,10 @@ export default (gdkmonitor: Gdk.Monitor) => {
             </revealer>
           </overlay>
         </centerbox>
-        <PanelButtons />
+        <box>
+          <MPRISWidget />
+          <PanelButtons />
+        </box>
       </centerbox>
     </window>
   )

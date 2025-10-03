@@ -122,7 +122,6 @@ const isDndEnabled = fromJsonProcess<SwayncStatus>("swaync-client -s").pipe(
 
 export const PanelButtons = () => (
     <box>
-        <PomodoroWidget />
         <SysTray />
         <MenuButton cssClasses={['panel-button', 'flat', 'pill', 'bar-widget']}>
             <box>
