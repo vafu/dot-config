@@ -14,7 +14,6 @@ import { MonitorService } from 'services/wm/types'
 import { getPomodoroService } from 'services/pomodoro'
 import { exec } from 'astal'
 import { distinctUntilChanged, map, shareReplay, startWith, tap } from 'rxjs'
-import { not } from 'rxjs/internal/util/not'
 
 App.start({
   css: style,

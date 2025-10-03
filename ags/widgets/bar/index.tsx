@@ -26,31 +26,12 @@ export default (gdkmonitor: Gdk.Monitor) => {
 
   const tabs = (<TabsCarousel monitor={gdkmonitor} />) as Adw.Carousel
 
-  // TODO: instead of 3 states maybe explore how to add smooth gradient transition from tinted-green to tinted red 
-  const cssClasses = pomodoro.pipe(
-    map(s => {
-      if (s.state == "pomodoro") {
-        const state = s.elapsed / s.duration
-        if (state > .9) {
-          return "tinted-red"
-        }
-        if (state > 0.5) {
-          return "tinted-yellow"
-        }
-        return "tinted-green"
-      }
-      return ""
-    }),
-    map(c => [c, "bar"]),
-    startWith(["bar"])
-  )
-
   return (
     <window
       visible={true}
       gdkmonitor={gdkmonitor}
       name="Bar"
-      cssClasses={binding(cssClasses)}
+      cssClasses={["bar"]}
       exclusivity={Astal.Exclusivity.EXCLUSIVE}
       keymode={bindAs(revealRsynapse, a =>
         a ? Astal.Keymode.EXCLUSIVE : Astal.Keymode.NONE,
@@ -60,6 +41,35 @@ export default (gdkmonitor: Gdk.Monitor) => {
         Astal.WindowAnchor.LEFT |
         Astal.WindowAnchor.RIGHT
       }
+      setup={w => {
+        const bgProvider = new Gtk.CssProvider()
+        const colorProvider = new Gtk.CssProvider()
+        w.get_style_context().add_provider(bgProvider, Gtk.STYLE_PROVIDER_PRIORITY_USER)
+        w.get_style_context().add_provider(colorProvider, Gtk.STYLE_PROVIDER_PRIORITY_USER)
+
+        const css = `
+            window {
+              background-color: @custombg;
+              transition: background-color 100ms;
+            }
+        `
+        bgProvider.load_from_data(css, -1)
+
+        const sub = pomodoro.pipe(
+          map(s => {
+            if (s.state == "pomodoro") {
+              const progress = s.elapsed / s.duration
+              if (progress < 0.5) return `mix(@bg_mixed_green, @bg_mixed_yellow, ${progress})`
+              return `mix(@bg_mixed_yellow, @bg_mixed_red, ${progress})`
+            }
+            return "@bg"
+          }),
+          startWith("@bg"),
+          map(r => `@define-color custombg ${r};`)
+        ).subscribe(css => colorProvider.load_from_data(css, -1))
+        w.connect("destroy", sub.unsubscribe)
+
+      }}
     >
       <centerbox>
         <box>
