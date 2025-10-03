@@ -80,6 +80,8 @@
     endeavour
     evolution-data-server
     hypridle
+    nodejs
+    neovim
   ];
 
   wayland.windowManager.hyprland = 
