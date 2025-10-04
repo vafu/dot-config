@@ -1,4 +1,4 @@
-import { exec, Gio } from 'astal'
+import { exec, execAsync, Gio } from 'astal'
 import { App, Gtk } from 'astal/gtk4'
 import obtainWmService from 'services'
 const settings = Gio.Settings.new('org.gnome.desktop.interface')
@@ -34,12 +34,12 @@ function prepareIcons() {
   s.set_property('gtk-icon-theme-name', 'Material')
 }
 function syncAccent(color?: string) {
-  exec(`bash scripts/sync_accent.sh ${color ?? ''}`)
+  execAsync(`bash scripts/sync_accent.sh ${color ?? ''}`)
 }
 function updateGtkTheme(colorScheme: string) {
   const themeName = settings.get_string('gtk-theme').replace("-dark", '')
 
   const isDark = colorScheme === 'prefer-dark'
   const theme = isDark ? `${themeName}-dark` : themeName
-  exec(`gsettings set org.gnome.desktop.interface gtk-theme '${theme}'`)
+  execAsync(`gsettings set org.gnome.desktop.interface gtk-theme '${theme}'`)
 }

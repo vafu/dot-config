@@ -1,4 +1,4 @@
-import { exec, Gio } from 'astal'
+import { execAsync, Gio } from 'astal'
 import { Quicktoggle } from './quicktoggle'
 import { bindAs } from 'rxbinding'
 import { Observable } from 'rxjs'
@@ -22,7 +22,7 @@ const dark = new Observable(e => {
 function toggle() {
   const theme = isDark() ? preferLight : preferDark
   const cmd = `gsettings set org.gnome.desktop.interface color-scheme '${theme}'`
-  exec(cmd)
+  execAsync(cmd)
 }
 
 export function DarkLightQuicktoggle() {

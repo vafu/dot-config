@@ -101,6 +101,7 @@ function fetchForProps(name: string, props: IconStyle, onResolved: (name: string
             1,
             null,
             () => {
+                // TODO: should be async!
                 exec(`gtk-update-icon-cache ${themedir.get_path()}`)
                 onResolved(iconName)
             }

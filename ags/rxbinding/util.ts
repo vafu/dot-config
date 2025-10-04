@@ -1,8 +1,6 @@
-import { exec, Gio, monitorFile, readFileAsync, subprocess } from 'astal'
+import { Gio, monitorFile, readFileAsync, subprocess } from 'astal'
 import {
-    concat,
     defer,
-    delay,
     EMPTY,
     filter,
     merge,

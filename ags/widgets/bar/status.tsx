@@ -27,6 +27,7 @@ import { Gtk } from "astal/gtk4";
 import { ActionRow, ListBox } from "widgets/adw";
 import { logNext } from "commons/rx";
 
+// TODO: make async
 const CPU = Variable("0").poll(3000, () => exec("bash scripts/cpu.sh"));
 
 const RAM = Variable("0").poll(3000, () => exec("bash scripts/ram.sh"));

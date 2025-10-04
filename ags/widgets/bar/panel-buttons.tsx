@@ -10,14 +10,13 @@ import {
 } from 'rxbinding'
 import { Gtk } from 'astal/gtk4'
 import AstalNetwork from 'gi://AstalNetwork?version=0.1'
-import { bind, exec } from 'astal'
+import { bind, execAsync } from 'astal'
 import AstalBattery from 'gi://AstalBattery?version=0.1'
 import AstalPowerProfiles from 'gi://AstalPowerProfiles?version=0.1'
 import { Button, ButtonProps, MenuButton, Popover } from 'astal/gtk4/widget'
 import AstalWp from 'gi://AstalWp?version=0.1'
 import { SysTray } from './tray'
 import { QuicktoggleMenu } from 'widgets/bar_dropdown'
-import { PomodoroWidget } from './pomodoro'
 import { MaterialIcon } from 'widgets/materialicon'
 
 type PanelButtonProps = ButtonProps & {
@@ -57,7 +56,7 @@ const DateTime = () => (
   <PanelButton
     tooltipText={bindAs(time, t => t.date)}
     cssClasses={['date-time']}
-    onClicked={() => exec(['swaync-client', '-t'])}
+    onClicked={() => execAsync(['swaync-client', '-t'])}
   >
     <label label={bindAs(time, t => t.clock)} />
   </PanelButton>
