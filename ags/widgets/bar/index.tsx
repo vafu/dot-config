@@ -17,7 +17,6 @@ const activeMonitor = obtainWmService('monitor').activeMonitor
 const pomodoro_bar_css = getPomodoroService().state.pipe(
   distinctUntilChanged((p, c) => p.state == c.state && (c.elapsed - p.elapsed) < 60),
   map(s => {
-    console.log(s)
     if (s.state == "pomodoro") {
       const progress = s.elapsed / s.duration
       if (progress < 0.5) return `mix(@bg_mixed_green, @bg_mixed_yellow, ${progress * 2})`

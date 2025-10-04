@@ -12,7 +12,7 @@ import obtainWmService from 'services'
 import { bindCommands } from 'commands'
 import { MonitorService } from 'services/wm/types'
 import { getPomodoroService } from 'services/pomodoro'
-import { exec } from 'astal'
+import { exec, execAsync } from 'astal'
 import { distinctUntilChanged, map, shareReplay, startWith, tap } from 'rxjs'
 
 App.start({
@@ -73,25 +73,16 @@ function setupPomodoro() {
     }),
     distinctUntilChanged()
   ).subscribe(notif => {
-    console.log(notif)
-    if (notif) exec("./scripts/dnd.sh request break_ends")
-  })
-
-  state.pipe(
-    tap({ complete: () => console.log("completed??") })
-  ).subscribe(s => {
-    if (s.state == "pomodoro") {
-      const percentage = (s.elapsed / s.duration) * 100
-    }
+    if (notif) execAsync("./scripts/dnd.sh request break_ends")
   })
 }
 
 function dndOn() {
   console.log("dndon")
-  exec("./scripts/dnd.sh on")
+  execAsync("./scripts/dnd.sh on")
 }
 
 function dndOff() {
   console.log("dndoff")
-  exec("./scripts/dnd.sh off")
+  execAsync("./scripts/dnd.sh off")
 }
