@@ -6,7 +6,6 @@ import dbus.service
 import dbus.mainloop.glib
 from gi.repository import GLib
 
-# --- Configuration ---
 AGENT_IFACE = 'org.bluez.Agent1'
 AGENT_MANAGER_IFACE = 'org.bluez.AgentManager1'
 AGENT_PATH = "/test/agent"
@@ -16,43 +15,11 @@ ADAPTER_IFACE = 'org.bluez.Adapter1'
 DEVICE_IFACE = 'org.bluez.Device1'
 PROPERTIES_IFACE = 'org.freedesktop.DBus.Properties'
 
-# --- Global State ---
 TARGET_ADDRESS = None
 loop = None
 device_obj = None
 adapter_path = None
 bus = None
-
-# --- Pairing Agent Implementation ---
-
-
-class Agent(dbus.service.Object):
-    exit_on_release = True
-
-    def set_exit_on_release(self, exit_on_release):
-        self.exit_on_release = exit_on_release
-
-    def __init__(self, bus, path):
-        dbus.service.Object.__init__(self, bus, path)
-
-    @dbus.service.method(AGENT_IFACE, in_signature="", out_signature="")
-    def Release(self):
-        print("Agent Release")
-        if self.exit_on_release:
-            loop.quit()
-
-    @dbus.service.method(AGENT_IFACE, in_signature="os", out_signature="")
-    def RequestConfirmation(self, device, passkey):
-        print(f"RequestConfirmation ({device}, {passkey})")
-        print("Automatically confirming pairing...")
-        return
-
-    @dbus.service.method(AGENT_IFACE, in_signature="o", out_signature="s")
-    def RequestPinCode(self, device):
-        print(f"RequestPinCode ({device})")
-        return "0000"
-
-# --- Main Logic ---
 
 
 def find_adapter():
@@ -103,18 +70,12 @@ def properties_changed(iface, changed_props, invalidated_props, path=None):
     if device_address != TARGET_ADDRESS:
         return
 
-    if 'Connected' in changed_props and changed_props['Connected']:
-        print(
-            "✅ Connection successful! The script will keep running to maintain the agent.")
-        print("   Your trackpad should now be responsive.")
-        print("   Press Ctrl+C to exit.")
-
-    # If it's not connected yet, but has just been paired, then we should connect.
     elif 'Paired' in changed_props and changed_props['Paired']:
         print("Paired successfully. Connecting...")
         device_iface = dbus.Interface(device_obj, DEVICE_IFACE)
         device_iface.Connect(reply_handler=lambda: None,
                              error_handler=print_error)
+        loop.quit()
 
 
 def print_error(error):
@@ -132,7 +93,6 @@ def main():
     dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
     bus = dbus.SystemBus()
 
-    agent = Agent(bus, AGENT_PATH)
     agent_manager = dbus.Interface(bus.get_object(
         BLUEZ_SERVICE, "/org/bluez"), AGENT_MANAGER_IFACE)
     agent_manager.RegisterAgent(AGENT_PATH, "NoInputNoOutput")
@@ -183,7 +143,6 @@ def main():
     except Exception as e:
         print(f"An error occurred: {e}")
     finally:
-        adapter_iface.StopDiscovery()
         agent_manager.UnregisterAgent(AGENT_PATH)
         print("Agent unregistered.")
 
