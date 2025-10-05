@@ -24,6 +24,8 @@ adapter_path = None
 bus = None
 
 # --- Pairing Agent Implementation ---
+
+
 class Agent(dbus.service.Object):
     exit_on_release = True
 
@@ -52,38 +54,44 @@ class Agent(dbus.service.Object):
 
 # --- Main Logic ---
 
+
 def find_adapter():
-    obj_manager = dbus.Interface(bus.get_object(BLUEZ_SERVICE, '/'), 'org.freedesktop.DBus.ObjectManager')
+    obj_manager = dbus.Interface(bus.get_object(
+        BLUEZ_SERVICE, '/'), 'org.freedesktop.DBus.ObjectManager')
     for path, interfaces in obj_manager.GetManagedObjects().items():
         if ADAPTER_IFACE in interfaces:
             print(f"Found adapter at {path}")
             return path
     return None
 
+
 def interfaces_added(path, interfaces):
     global device_obj
     if DEVICE_IFACE not in interfaces:
         return
-    
+
     device_properties = interfaces[DEVICE_IFACE]
-    
+
     if device_properties['Address'] == TARGET_ADDRESS:
         print(f"✅ Found target device at {path}!")
-        
-        adapter_iface = dbus.Interface(bus.get_object(BLUEZ_SERVICE, adapter_path), ADAPTER_IFACE)
+
+        adapter_iface = dbus.Interface(bus.get_object(
+            BLUEZ_SERVICE, adapter_path), ADAPTER_IFACE)
         adapter_iface.StopDiscovery()
-        
+
         device_obj = bus.get_object(BLUEZ_SERVICE, path)
         device_props_iface = dbus.Interface(device_obj, PROPERTIES_IFACE)
-        
+
         time.sleep(2)
 
         print("Trusting device...")
         device_props_iface.Set(DEVICE_IFACE, "Trusted", True)
-        
+
         print("Pairing...")
         device_iface = dbus.Interface(device_obj, DEVICE_IFACE)
-        device_iface.Pair(reply_handler=lambda: None, error_handler=print_error)
+        device_iface.Pair(reply_handler=lambda: None,
+                          error_handler=print_error)
+
 
 def properties_changed(iface, changed_props, invalidated_props, path=None):
     if iface != DEVICE_IFACE or not device_obj:
@@ -91,24 +99,27 @@ def properties_changed(iface, changed_props, invalidated_props, path=None):
 
     device_props_iface = dbus.Interface(device_obj, PROPERTIES_IFACE)
     device_address = device_props_iface.Get(DEVICE_IFACE, "Address")
-    
+
     if device_address != TARGET_ADDRESS:
         return
 
-    if 'Paired' in changed_props and changed_props['Paired']:
-        print("Paired successfully. Connecting...")
-        device_iface = dbus.Interface(device_obj, DEVICE_IFACE)
-        device_iface.Connect(reply_handler=lambda: None, error_handler=print_error)
-
     if 'Connected' in changed_props and changed_props['Connected']:
-        ## <<< FIX HERE: The script no longer quits automatically. >>>
-        print("✅ Connection successful! The script will keep running to maintain the agent.")
+        print(
+            "✅ Connection successful! The script will keep running to maintain the agent.")
         print("   Your trackpad should now be responsive.")
         print("   Press Ctrl+C to exit.")
-        # loop.quit() # This line was removed.
+
+    # If it's not connected yet, but has just been paired, then we should connect.
+    elif 'Paired' in changed_props and changed_props['Paired']:
+        print("Paired successfully. Connecting...")
+        device_iface = dbus.Interface(device_obj, DEVICE_IFACE)
+        device_iface.Connect(reply_handler=lambda: None,
+                             error_handler=print_error)
+
 
 def print_error(error):
     print(f"D-Bus Error: {error}")
+
 
 def main():
     global bus, loop, adapter_path, TARGET_ADDRESS
@@ -120,9 +131,10 @@ def main():
 
     dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
     bus = dbus.SystemBus()
-    
+
     agent = Agent(bus, AGENT_PATH)
-    agent_manager = dbus.Interface(bus.get_object(BLUEZ_SERVICE, "/org/bluez"), AGENT_MANAGER_IFACE)
+    agent_manager = dbus.Interface(bus.get_object(
+        BLUEZ_SERVICE, "/org/bluez"), AGENT_MANAGER_IFACE)
     agent_manager.RegisterAgent(AGENT_PATH, "NoInputNoOutput")
     agent_manager.RequestDefaultAgent(AGENT_PATH)
     print("Pairing agent registered.")
@@ -131,11 +143,11 @@ def main():
     if not adapter_path:
         print("Error: Could not find a Bluetooth adapter.", file=sys.stderr)
         sys.exit(1)
-        
+
     adapter_obj = bus.get_object(BLUEZ_SERVICE, adapter_path)
     adapter_iface = dbus.Interface(adapter_obj, ADAPTER_IFACE)
     adapter_props_iface = dbus.Interface(adapter_obj, PROPERTIES_IFACE)
-    
+
     try:
         device_path = f"{adapter_path}/dev_{TARGET_ADDRESS.replace(':', '_')}"
         print(f"Attempting to remove device {device_path}...")
@@ -156,8 +168,10 @@ def main():
     time.sleep(1)
     print("Adapter ready.")
 
-    bus.add_signal_receiver(interfaces_added, dbus_interface="org.freedesktop.DBus.ObjectManager", signal_name="InterfacesAdded")
-    bus.add_signal_receiver(properties_changed, dbus_interface=PROPERTIES_IFACE, signal_name="PropertiesChanged", arg0=DEVICE_IFACE, path_keyword="path")
+    bus.add_signal_receiver(
+        interfaces_added, dbus_interface="org.freedesktop.DBus.ObjectManager", signal_name="InterfacesAdded")
+    bus.add_signal_receiver(properties_changed, dbus_interface=PROPERTIES_IFACE,
+                            signal_name="PropertiesChanged", arg0=DEVICE_IFACE, path_keyword="path")
 
     try:
         print(f"Scanning for {TARGET_ADDRESS}...")
@@ -172,6 +186,7 @@ def main():
         adapter_iface.StopDiscovery()
         agent_manager.UnregisterAgent(AGENT_PATH)
         print("Agent unregistered.")
+
 
 if __name__ == '__main__':
     main()
