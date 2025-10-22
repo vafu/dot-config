@@ -2,7 +2,7 @@
 
 $label-size: 10px;
 $label-margin: 4px;
-$outline-width: $label-margin * 0.5;
+$outline-width: $label-margin * 0.4;
 $outline-offset: $label-margin * 0.5;
 
 .bar {
@@ -160,6 +160,12 @@ levelindicator {
       background-color: #{$ws_active};
       outline: $outline-width solid #{$ws_active};
       outline-offset: $outline-offset;
+      box-shadow: 0 0 10px 2px rgba(255, 255, 255, 0.8);
+    }
+
+    &.offmonitor {
+      background-color: transparent;
+      outline: $outline-width solid #{$ws_empty};
     }
 
     &.active {

@@ -12,7 +12,7 @@ const workspaces = (props: { monitor: Gdk.Monitor }) =>
     const ws = workspaceService.getWorkspace(idx)
     // TODO when  monitor has never been selected yet -- we don't get correct 'active' status
     const active = workspaceService.activeWorkspaceFor(props.monitor).pipe(
-      switchMap(w => combineLatest(of(w), workspaceService.activeWorkspace)),
+      switchMap(w => combineLatest(of(w), workspaceService.activeWorkspace, workspaceService.workspacesOn(props.monitor))),
       map(([active, focused]) => {
         if (ws == focused && ws == active) {
           return 'focused'
@@ -25,6 +25,18 @@ const workspaces = (props: { monitor: Gdk.Monitor }) =>
       startWith('')
     )
 
+    const offmonitor = workspaceService.workspacesOn(props.monitor).pipe(
+      map(wsa => {
+        if (!wsa.includes(ws)) {
+          return "offmonitor"
+        } else {
+          return ""
+        }
+      }
+      ),
+      startWith('')
+    )
+
     return (
       <label
         valign={Gtk.Align.CENTER}
@@ -32,6 +44,7 @@ const workspaces = (props: { monitor: Gdk.Monitor }) =>
         label={`${ws}`}
         css_classes={binding(
           combineLatest([
+            offmonitor,
             active,
             ws.urgent.pipe(map(a => a ? 'urgent' : '')),
             ws.occupied.pipe(map(a => a ? 'occupied' : '')),
