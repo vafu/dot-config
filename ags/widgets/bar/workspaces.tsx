@@ -8,7 +8,7 @@ import { Gdk } from 'astal/gtk4'
 const workspaceService = Service('workspace')
 
 const workspaces = (props: { monitor: Gdk.Monitor }) =>
-  range(7).map(idx => {
+  range(5).map(idx => {
     const ws = workspaceService.getWorkspace(idx)
     // TODO when  monitor has never been selected yet -- we don't get correct 'active' status
     const active = workspaceService.activeWorkspaceFor(props.monitor).pipe(

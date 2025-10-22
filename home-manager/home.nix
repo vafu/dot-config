@@ -82,6 +82,7 @@
     hypridle
     nodejs
     neovim
+    ghostty
   ];
 
   wayland.windowManager.hyprland = 
