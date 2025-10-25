@@ -32,6 +32,15 @@ const urgentWs = new Observable<number>(o => {
 
 class HyprWorkspaceService implements WorkspaceService {
 
+  workspacesOn(monitor: Gdk.Monitor): Observable<Workspace[]> {
+    return workspaces.pipe(
+      map(wa => wa
+        .filter(ws => mapToMonitor(ws.monitor) == monitor)
+        .map(ws => this.getWorkspace(getWsId(ws)))
+      )
+    )
+  }
+
   activeWorkspaceFor(monitor: Gdk.Monitor): Observable<Workspace> {
     // TODO: architecture is meh
     return focusedWorkspace.pipe(
@@ -41,6 +50,7 @@ class HyprWorkspaceService implements WorkspaceService {
       distinctUntilChanged(),
     )
   }
+
 
   private _workspaces: Map<number, HyprWS> = new Map()
 

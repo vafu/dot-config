@@ -41,5 +41,7 @@ function updateGtkTheme(colorScheme: string) {
 
   const isDark = colorScheme === 'prefer-dark'
   const theme = isDark ? `${themeName}-dark` : themeName
+  const style = isDark ? "dark" : "light"
   execAsync(`gsettings set org.gnome.desktop.interface gtk-theme '${theme}'`)
+  execAsync(`bash scripts/legacy_alacritty.sh --${style}`)
 }
