@@ -59,7 +59,7 @@
           "nixpkgs"
         ]
       },
-     "locked": {
+      "locked": {
         "lastModified": 1756474652,
         "narHash": "sha256-iiBU6itpEqE0spXeNJ3uJTfioSyKYjt5bNepykpDXTE=",
         "owner": "aylur",
@@ -84,7 +84,7 @@
         "repo": "astal",
         "rev": "5d4eef66392b0dff99a63a4f39ff886624bd69dd",
         "type": "github"
-      },    
+      },
       "original": {
         "owner": "aylur",
         "repo": "astal",
@@ -272,6 +272,36 @@
       "original": {
         "owner": "hyprwm",
         "repo": "Hyprland",
+        "type": "github"
+      }
+    },
+    "hyprland-plugins": {
+      "inputs": {
+        "hyprland": [
+          "hyprland"
+        ],
+        "nixpkgs": [
+          "hyprland-plugins",
+          "hyprland",
+          "nixpkgs"
+        ],
+        "systems": [
+          "hyprland-plugins",
+          "hyprland",
+          "systems"
+        ]
+      },
+      "locked": {
+        "lastModified": 1761249285,
+        "narHash": "sha256-70dEwL5p3CB/00ODs2RHWUKTyafB+PF4Ld7IEMuO+no=",
+        "owner": "hyprwm",
+        "repo": "hyprland-plugins",
+        "rev": "81f6d1426537981fcbb921f8b5e470b1280ef8f3",
+        "type": "github"
+      },
+      "original": {
+        "owner": "hyprwm",
+        "repo": "hyprland-plugins",
         "type": "github"
       }
     },
@@ -578,6 +608,7 @@
         "home-manager": "home-manager",
         "hypr-dynamic-cursors": "hypr-dynamic-cursors",
         "hyprland": "hyprland",
+        "hyprland-plugins": "hyprland-plugins",
         "nixGL": "nixGL",
         "nixpkgs": "nixpkgs_5"
       }

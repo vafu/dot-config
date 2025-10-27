@@ -91,6 +91,9 @@
       package = config.lib.nixGL.wrap inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.hyprland;
       extraConfig = builtins.readFile /home/vfuchedzhy/.config/hypr/niximport.conf;
       systemd.variables = ["--all"];
-      plugins = [ inputs.hypr-dynamic-cursors.packages.${pkgs.system}.hypr-dynamic-cursors ];
+      plugins = [ 
+        inputs.hypr-dynamic-cursors.packages.${pkgs.system}.hypr-dynamic-cursors 
+        inputs.hyprland-plugins.packages.${pkgs.system}.hyprscrolling
+      ];
   };
 }
