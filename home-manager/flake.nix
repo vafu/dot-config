@@ -24,6 +24,10 @@
       url = "github:hyprwm/hyprland-plugins";
       inputs.hyprland.follows = "hyprland"; 
     };
+    hyprWorkspaceLayouts = {
+        url = "github:zakk4223/hyprWorkspaceLayouts";
+        inputs.hyprland.follows = "hyprland"; 
+    };
   };
 
   outputs = { self, nixpkgs, home-manager, ... } @inputs:

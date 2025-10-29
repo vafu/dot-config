@@ -94,6 +94,7 @@
       plugins = with inputs; [ 
         hyprland-plugins.packages.${pkgs.system}.hyprscrolling 
         hypr-dynamic-cursors.packages.${pkgs.system}.hypr-dynamic-cursors 
+        hyprWorkspaceLayouts.packages.${pkgs.system}.default 
       ];
   };
 }
