@@ -27,7 +27,7 @@ const activeMonitor = fromConnectable(hypr, 'focusedMonitor').pipe(
   map(mapToMonitor)
 )
 
-export const monitorService: MonitorService = {
+export const hyprMonitorService: MonitorService = {
   monitors: monitors,
   activeMonitor: activeMonitor,
 }

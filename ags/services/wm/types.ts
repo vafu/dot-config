@@ -14,8 +14,9 @@ export interface Window {
 }
 
 export interface WorkspaceService {
-  getWorkspace(idx: number): Workspace
   activeWorkspace: Observable<Workspace>
+
+  getWorkspace(idx: number): Workspace
   activeWorkspaceFor(monitor: Gdk.Monitor): Observable<Workspace>
   workspacesOn(monitor: Gdk.Monitor): Observable<Workspace[]>
 

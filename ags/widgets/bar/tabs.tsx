@@ -1,10 +1,10 @@
 import { Gio, GObject } from 'astal'
 import { Gtk } from 'astal/gtk4'
 import { bindAs } from 'rxbinding'
-import { workspaceService } from 'services/wm/hypr'
+import obtainWmService from 'services'
 import { Tab, Workspace } from 'services/wm/types'
 
-const activeWs = workspaceService.activeWorkspace
+const activeWs = (await obtainWmService('workspace')).activeWorkspace
 
 export const Tabs = () => (
   <box>{bindAs(activeWs, ws => new TabSidebar(ws))}</box>

@@ -13,36 +13,36 @@ import {
   switchMap,
 } from 'rxjs'
 import { Binding } from 'astal'
-
-const brightness = fromConnectable(obtainWmService('brightness'), 'screen').pipe(
-  map((b) => ({
+const service = await obtainWmService('brightness')
+const brightness = fromConnectable(service, 'screen').pipe(
+  map(b => ({
     type: 'level',
     value: b,
     iconName: 'display-brightness-symbolic',
-  }))
+  })),
 )
 const audio = fromConnectable(AstalWp.get_default(), 'default_speaker').pipe(
-  switchMap((s) =>
+  switchMap(s =>
     combineLatest([
       fromConnectable(s, 'volume'),
       fromConnectable(s, 'volume_icon'),
-    ])
+    ]),
   ),
   map(([volume, icon]) => ({
     type: 'level',
     value: volume,
     iconName: icon,
-  }))
+  })),
 )
 
 export default function OSD(monitor: Binding<Gdk.Monitor>) {
   const source = merge(audio, brightness).pipe(
-    switchMap((s) => merge(of(s), of(Hidden).pipe(delay(2000))))
+    switchMap(s => merge(of(s), of(Hidden).pipe(delay(2000)))),
   )
 
   const visible = source.pipe(
     delay(100),
-    map((s) => s != Hidden)
+    map(s => s != Hidden),
   )
 
   return (
