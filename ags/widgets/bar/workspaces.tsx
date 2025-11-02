@@ -15,7 +15,6 @@ const workspaces = (props: { monitor: Gdk.Monitor }) =>
     const active = workspaceService.activeWorkspaceFor(props.monitor).pipe(
       switchMap(w => combineLatest(of(w), workspaceService.activeWorkspace)),
       map(([active, focused]) => {
-        console.log('active', active.wsId, 'focused', focused.wsId)
         if (ws == focused && ws == active) {
           return 'focused'
         } else if (ws == active) {
@@ -29,6 +28,7 @@ const workspaces = (props: { monitor: Gdk.Monitor }) =>
 
     const offmonitor = workspaceService.workspacesOn(props.monitor).pipe(
       map(wsa => {
+        // TODO: bug when workspace being removed its monitor is null, this pipe crashes
         if (!wsa.includes(ws)) {
           return 'offmonitor'
         } else {
@@ -39,7 +39,7 @@ const workspaces = (props: { monitor: Gdk.Monitor }) =>
     )
 
     const classes = [
-      offmonitor,
+      // offmonitor,
       active,
       ws.occupied.pipe(map(a => (a ? 'occupied' : ''))),
       ws.urgent.pipe(map(a => (a ? 'urgent' : ''))),

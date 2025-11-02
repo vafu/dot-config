@@ -16,6 +16,7 @@ import { MPRISWidget } from './mpris'
 import { getPomodoroService } from 'services/pomodoro'
 import { PomodoroWidget } from './pomodoro'
 import { Workspaces } from './workspaces'
+import { WindowTitle } from './windowtitle'
 
 const activeMonitor = (await obtainWmService('monitor')).activeMonitor
 
@@ -108,7 +109,9 @@ export default (gdkmonitor: Gdk.Monitor) => {
                 revealChild={bindAs(revealRsynapse, r => !r)}
                 transitionType={Gtk.RevealerTransitionType.SLIDE_UP}
                 halign={Gtk.Align.CENTER}
-              ></revealer>
+              >
+                <WindowTitle />
+              </revealer>
             }
             <revealer
               revealChild={binding(revealRsynapse)}

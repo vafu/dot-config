@@ -15,7 +15,7 @@ export default async function obtainWmService<S extends keyof Services>(
 ): Promise<Services[S]> {
   switch (type) {
     case 'window':
-      throw Error()
+      return (await getWindowService()) as Services[S]
     case 'workspace':
       return (await getWorkspaceService()) as Services[S]
     case 'brightness':
@@ -55,6 +55,18 @@ async function getWorkspaceService() {
   // if (await isNiri()) {
   const { workspaceService } = await import('./wm/niri/workspace')
   return workspaceService
+  // }
+  throw Error('Unsupported WM!')
+}
+
+async function getWindowService() {
+  // if (await isHypr()) {
+  //   const { hyprMonitorService } = await import('./wm/hypr')
+  //   return hyprMonitorService
+  // }
+  // if (await isNiri()) {
+  const { windowService } = await import('./wm/niri/window')
+  return windowService
   // }
   throw Error('Unsupported WM!')
 }
