@@ -15,8 +15,8 @@ import obtainWmService from 'services'
 import { MPRISWidget } from './mpris'
 import { getPomodoroService } from 'services/pomodoro'
 import { PomodoroWidget } from './pomodoro'
-import { Workspaces } from './workspaces'
 import { WindowTitle } from './windowtitle'
+import { WSIndicator } from 'widgets/ws-indicator/ws'
 
 const activeMonitor = (await obtainWmService('monitor')).activeMonitor
 
@@ -90,7 +90,6 @@ export default (gdkmonitor: Gdk.Monitor) => {
     >
       <centerbox>
         <box>
-          <Workspaces monitor={gdkmonitor} />
           <Status />
           <PomodoroWidget />
         </box>

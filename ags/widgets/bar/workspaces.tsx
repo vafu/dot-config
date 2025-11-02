@@ -4,7 +4,6 @@ import { binding } from 'rxbinding'
 import { combineLatest, map, of, startWith, switchMap } from 'rxjs'
 import { Gdk } from 'astal/gtk4'
 import obtainWmService from 'services'
-import { logNext } from 'commons/rx'
 
 const workspaceService = await obtainWmService('workspace')
 

@@ -4,10 +4,8 @@ import {
   distinctUntilChanged,
   EMPTY,
   filter,
-  flatMap,
   map,
   Observable,
-  of,
   shareReplay,
   switchMap,
 } from 'rxjs'
@@ -15,13 +13,13 @@ import { Tab, Workspace, WorkspaceService } from '../types'
 import AstalNiri from 'gi://AstalNiri?version=0.1'
 import { fromConnectable } from 'rxbinding'
 import { mapToMonitor } from './monitors'
-import { logNext } from 'commons/rx'
+import { GObject } from 'astal'
 
 const niri = AstalNiri.get_default()
 
 const workspaces = fromConnectable(niri, 'workspaces')
 const focusedWs = fromConnectable(niri, 'focusedWorkspace')
-const windows = fromConnectable(niri, 'windows')
+const outputs = fromConnectable(niri, 'outputs')
 
 class NiriWorkspaceService implements WorkspaceService {
   private _workspaces: Map<number, NiriWorkspace> = new Map()
@@ -35,30 +33,21 @@ class NiriWorkspaceService implements WorkspaceService {
       this._workspaces.set(id, new NiriWorkspace(id))
     return this._workspaces.get(id)!
   }
+
   activeWorkspaceFor(monitor: Gdk.Monitor): Observable<Workspace> {
-    return focusedWs.pipe(
-      // TODO handle case when ws moves to different monitor
-      filter(
-        ws =>
-          mapToMonitor(niri.get_outputs().find(o => o.name == ws.output)) ==
-          monitor,
-      ),
-      map(ws => this.getWorkspace(ws.idx)),
+    return combineLatest([focusedWs, this.workspacesOn(monitor)]).pipe(
+      map(([focused, wsa]) => wsa.find(w => w.wsId == focused.idx)),
+      filter(w => w != null),
+      map(w => this.getWorkspace(w.wsId)),
       distinctUntilChanged(),
     )
   }
 
   workspacesOn(monitor: Gdk.Monitor): Observable<Workspace[]> {
-    return workspaces.pipe(
-      map(wa =>
-        wa
-          .filter(
-            ws =>
-              mapToMonitor(niri.get_outputs().find(o => o.name == ws.output)) ==
-              monitor,
-          )
-          .map(ws => this.getWorkspace(ws.idx)),
-      ),
+    return outputs.pipe(
+      map(a => a.find(o => mapToMonitor(o) == monitor)),
+      switchMap(o => fromConnectable(o, 'workspaces')),
+      map(a => a.map(w => this.getWorkspace(w.idx))),
     )
   }
 
@@ -67,7 +56,11 @@ class NiriWorkspaceService implements WorkspaceService {
   }
 }
 
-class NiriWorkspace implements Workspace {
+class NiriWorkspace extends GObject.Object implements Workspace {
+  static {
+    GObject.registerClass(this)
+  }
+
   wsId: number
   tabs: Observable<Tab[]>
   selectedTab: Observable<Tab>
@@ -76,6 +69,7 @@ class NiriWorkspace implements Workspace {
   urgent: Observable<boolean>
 
   constructor(idx: number) {
+    super()
     this.wsId = idx
     this.tabs = EMPTY
     this.selectedTab = EMPTY
@@ -93,7 +87,7 @@ class NiriWorkspace implements Workspace {
       switchMap(w => fromConnectable(w, 'windows')),
       map(w => w.length > 0),
     )
-    this.urgent = thisWs.pipe(map(w => w.isUrgent))
+    this.urgent = thisWs.pipe(switchMap(w => fromConnectable(w, 'isUrgent')))
   }
 
   switchToTab(idx: number, move: boolean): void {

@@ -37,7 +37,7 @@ const audio = fromConnectable(AstalWp.get_default(), 'default_speaker').pipe(
 
 export default function OSD(monitor: Binding<Gdk.Monitor>) {
   const source = merge(audio, brightness).pipe(
-    switchMap(s => merge(of(s), of(Hidden).pipe(delay(2000)))),
+    switchMap(s => merge(of(s), of(Hidden).pipe(delay(1000)))),
   )
 
   const visible = source.pipe(

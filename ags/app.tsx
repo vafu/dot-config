@@ -14,6 +14,7 @@ import { MonitorService } from 'services/wm/types'
 import { getPomodoroService } from 'services/pomodoro'
 import { execAsync } from 'astal'
 import { distinctUntilChanged, map, shareReplay } from 'rxjs'
+import { WSOverlay } from 'widgets/ws-indicator'
 
 App.start({
   css: style,
@@ -25,25 +26,29 @@ App.start({
 
     obtainWmService('monitor').then(ms => {
       setupPomodoro()
-      setupBars(ms)
+      setupForMonitor(ms, Bar)
+      setupForMonitor(ms, WSOverlay)
       Rsynapse(binding(ms.activeMonitor))
       OSD(binding(ms.activeMonitor))
     })
   },
 })
 
-function setupBars(ms: MonitorService) {
+function setupForMonitor(
+  ms: MonitorService,
+  widgetFactory: (m: Gdk.Monitor) => Gtk.Widget,
+) {
   const mmap = new Map<Gdk.Monitor, Gtk.Window>()
   ms.monitors.pipe(diffs()).subscribe(monitors => {
     monitors.removed.forEach(removed => {
-      const bar = mmap.get(removed)
-      if (bar) {
-        bar.destroy()
+      const w = mmap.get(removed)
+      if (w) {
+        w.destroy()
         mmap.delete(removed)
       }
     })
     monitors.added.forEach(m => {
-      mmap.set(m, Bar(m) as Gtk.Window)
+      mmap.set(m, widgetFactory(m) as Gtk.Window)
     })
   })
 }
