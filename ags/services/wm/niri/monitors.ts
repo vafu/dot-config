@@ -28,7 +28,6 @@ const monitors: Observable<Gdk.Monitor[]> = fromConnectable(
   }),
 )
 const activeMonitor = fromConnectable(niri, 'focused_output').pipe(
-  logNext(m => 'activemonik ' + m.name),
   map(mapToMonitor),
   // FIXME: Niri (?) doesn't output focused monitor when only one connected
   mergeWith(monitors.pipe(

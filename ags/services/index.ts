@@ -17,8 +17,7 @@ export default async function obtainWmService<S extends keyof Services>(
     case 'window':
       throw Error()
     case 'workspace':
-      // return workspaceService as Services[S]
-      throw Error()
+      return (await getWorkspaceService()) as Services[S]
     case 'brightness':
       return Brightness.get_default() as Services[S]
     case 'monitor':
@@ -33,7 +32,6 @@ async function isHypr() {
 
 async function isNiri() {
   const niri = AstalNiri.get_default()
-  console.log('niri:', niri.outputs)
   return niri != null && niri.outputs != null && niri.outputs.length != 0
 }
 
@@ -43,8 +41,20 @@ async function getMonitorService() {
   //   return hyprMonitorService
   // }
   // if (await isNiri()) {
-    const { niriMonitorService } = await import('./wm/niri/monitors')
-    return niriMonitorService
+  const { niriMonitorService } = await import('./wm/niri/monitors')
+  return niriMonitorService
+  // }
+  throw Error('Unsupported WM!')
+}
+
+async function getWorkspaceService() {
+  // if (await isHypr()) {
+  //   const { hyprMonitorService } = await import('./wm/hypr')
+  //   return hyprMonitorService
+  // }
+  // if (await isNiri()) {
+  const { workspaceService } = await import('./wm/niri/workspace')
+  return workspaceService
   // }
   throw Error('Unsupported WM!')
 }
