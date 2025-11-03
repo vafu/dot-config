@@ -28,6 +28,7 @@
         url = "github:zakk4223/hyprWorkspaceLayouts";
         inputs.hyprland.follows = "hyprland"; 
     };
+    niri.url = "github:sodiboo/niri-flake";
   };
 
   outputs = { self, nixpkgs, home-manager, ... } @inputs:
