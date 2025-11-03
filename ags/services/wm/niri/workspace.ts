@@ -1,6 +1,7 @@
 import { Gdk } from 'astal/gtk4'
 import {
   combineLatest,
+  combineLatestAll,
   distinctUntilChanged,
   EMPTY,
   filter,
@@ -8,18 +9,22 @@ import {
   Observable,
   shareReplay,
   switchMap,
+  window,
 } from 'rxjs'
 import { Tab, Workspace, WorkspaceService } from '../types'
 import AstalNiri from 'gi://AstalNiri?version=0.1'
 import { fromConnectable } from 'rxbinding'
 import { mapToMonitor } from './monitors'
 import { GObject } from 'astal'
+import { Tabs } from 'widgets/bar/tabs'
+import { logNext } from 'commons/rx'
 
 const niri = AstalNiri.get_default()
 
 const workspaces = fromConnectable(niri, 'workspaces')
-const focusedWs = fromConnectable(niri, 'focusedWorkspace')
 const outputs = fromConnectable(niri, 'outputs')
+const focusedWs = fromConnectable(niri, 'focusedWorkspace')
+const focusedWindow = fromConnectable(niri, 'focusedWindow')
 
 class NiriWorkspaceService implements WorkspaceService {
   private _workspaces: Map<number, NiriWorkspace> = new Map()
@@ -71,13 +76,59 @@ class NiriWorkspace extends GObject.Object implements Workspace {
   constructor(idx: number) {
     super()
     this.wsId = idx
-    this.tabs = EMPTY
-    this.selectedTab = EMPTY
+
     const thisWs = workspaces.pipe(
       map(a => a.find(w => w.idx == idx)),
       filter(w => w != null),
       shareReplay(1),
     )
+
+    this.tabs = thisWs.pipe(
+      switchMap(w => fromConnectable(w, 'windows')),
+      filter(a => a.length > 0),
+      distinctUntilChanged((p, c) => p.map(w => w.id) == c.map(w => w.id)),
+      switchMap(a =>
+        combineLatest(
+          a.map(w =>
+            fromConnectable(w, 'layout').pipe(
+              map(l => ({
+                window: w,
+                col_idx: l.pos_in_scrolling_layout[0],
+              })),
+              distinctUntilChanged((p, c) => c.col_idx == p.col_idx),
+            ),
+          ),
+        ),
+      ),
+      logNext(w => 'tabs ' + w.map(p => p.window.id)),
+      map(a => {
+        const result = new Array()
+
+        for (let i = 0; i < a.length; i++) {
+          const v = a[i]
+          if (!result[i]) {
+            result[i] = {
+              tabId: v.col_idx,
+              workspace: this,
+              title: focusedWindow.pipe(
+                switchMap(w => fromConnectable(v.window, 'title')),
+              ),
+            } as Tab
+          }
+        }
+        return result
+      }),
+      shareReplay(1),
+    )
+
+    this.selectedTab = this.tabs.pipe(
+      switchMap(tabs =>
+        focusedWindow.pipe(
+          map(w => tabs[w.layout.pos_in_scrolling_layout[0] - 1]),
+        ),
+      ),
+    )
+
     this.active = focusedWs.pipe(
       map(w => w.idx == idx),
       distinctUntilChanged(),

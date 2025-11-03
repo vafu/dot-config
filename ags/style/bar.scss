@@ -29,12 +29,14 @@
 }
 
 .tab-carousel {
-  min-width: 100px;
-
+  min-width: 1000px;
+  color: #{$ws_empty};
   > carouseltab {
-    margin-left: 100px;
-    margin-right: 100px;
     font-weight: bolder;
+  }
+
+  .selected {
+    color: #{$fg};
   }
 }
 

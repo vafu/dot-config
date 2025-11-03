@@ -14,7 +14,7 @@ import { MonitorService } from 'services/wm/types'
 import { getPomodoroService } from 'services/pomodoro'
 import { execAsync } from 'astal'
 import { distinctUntilChanged, map, shareReplay } from 'rxjs'
-import { WSOverlay } from 'widgets/ws-indicator'
+import { WSSideOverlay } from 'widgets/ws-indicator'
 
 App.start({
   css: style,
@@ -27,7 +27,7 @@ App.start({
     obtainWmService('monitor').then(ms => {
       setupPomodoro()
       setupForMonitor(ms, Bar)
-      setupForMonitor(ms, WSOverlay)
+      setupForMonitor(ms, WSSideOverlay)
       Rsynapse(binding(ms.activeMonitor))
       OSD(binding(ms.activeMonitor))
     })

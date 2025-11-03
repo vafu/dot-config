@@ -21,7 +21,10 @@ export const TabsCarousel = (props: { monitor: Gdk.Monitor }) => {
     allow_scroll_wheel: false,
   })
 
+  carousel.set_spacing(12)
+
   tabs.subscribe(tabs => {
+    console.log('update')
     while (carousel.get_n_pages() > 0) {
       carousel.remove(carousel.get_first_child())
     }
@@ -35,29 +38,21 @@ export const TabsCarousel = (props: { monitor: Gdk.Monitor }) => {
 
   selectedTab.subscribe(tab => {
     for (let i = 0; i < carousel.get_n_pages(); i++) {
-      const page = carousel.get_nth_page(i) as Gtk.Button
+      const page = carousel.get_nth_page(i) as Gtk.Label
       if (page['tabId'] == tab.tabId) {
         carousel.scroll_to(page, true)
+        page.add_css_class('selected')
+        page.set_halign(Gtk.Align.CENTER)
+      } else {
+        page.remove_css_class('selected')
+        page.set_halign(
+          page['tabId'] > tab.tabId ? Gtk.Align.START : Gtk.Align.END,
+        )
       }
     }
   })
 
   return carousel
-}
-
-export const TabNumIndicator = (props: { monitor: Gdk.Monitor }) => {
-  const activeWs = workspaceService.activeWorkspaceFor(props.monitor)
-  const selectedTab = activeWs.pipe(switchMap(w => w.selectedTab))
-
-  return (
-    <label
-      vexpand={false}
-      valign={Gtk.Align.CENTER}
-      css_classes={['tab-num']}
-      label={bindAs(selectedTab, t => `${t.tabId + 1}`)}
-      visible={bindAs(selectedTab, t => t.tabId != 0)}
-    />
-  )
 }
 
 const Tab = (tab: Tab) => (

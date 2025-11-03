@@ -16,9 +16,13 @@ import { MPRISWidget } from './mpris'
 import { getPomodoroService } from 'services/pomodoro'
 import { PomodoroWidget } from './pomodoro'
 import { WindowTitle } from './windowtitle'
-import { WSIndicator } from 'widgets/ws-indicator/ws'
+import { TabNumIndicator, TabsCarousel } from './tabs_carousel'
+import { CarouselIndicatorDots } from 'widgets/adw'
+import Adw from 'gi://Adw?version=1'
+import GtkSource5 from 'gi://GtkSource'
 
 const activeMonitor = (await obtainWmService('monitor')).activeMonitor
+const wsService = await obtainWmService('workspace')
 
 const pomodoro_bar_css = getPomodoroService().state.pipe(
   distinctUntilChanged(
@@ -46,6 +50,8 @@ export default (gdkmonitor: Gdk.Monitor) => {
     distinctUntilChanged(),
     shareReplay(1),
   )
+
+  const tabs = (<TabsCarousel monitor={gdkmonitor} />) as Adw.Carousel
 
   return (
     <window
@@ -93,35 +99,25 @@ export default (gdkmonitor: Gdk.Monitor) => {
           <Status />
           <PomodoroWidget />
         </box>
-        <centerbox>
-          <box>
-            {/*            <TabNumIndicator monitor={gdkmonitor} />
-            <CarouselIndicatorDots
-              css_classes={['dots-carousel']}
-              setup={self => self.set_carousel(tabs)}
-            />
-*/}
-          </box>
-          <overlay>
-            {
-              <revealer
-                revealChild={bindAs(revealRsynapse, r => !r)}
-                transitionType={Gtk.RevealerTransitionType.SLIDE_UP}
-                halign={Gtk.Align.CENTER}
-              >
-                <WindowTitle />
-              </revealer>
-            }
+        <overlay>
+          {
             <revealer
-              revealChild={binding(revealRsynapse)}
-              transitionType={Gtk.RevealerTransitionType.SLIDE_DOWN}
+              revealChild={bindAs(revealRsynapse, r => !r)}
+              transitionType={Gtk.RevealerTransitionType.SLIDE_UP}
               halign={Gtk.Align.CENTER}
-              type="overlay"
             >
-              <RsynapseSearch revealed={revealRsynapse} />
+              {tabs}
             </revealer>
-          </overlay>
-        </centerbox>
+          }
+          <revealer
+            revealChild={binding(revealRsynapse)}
+            transitionType={Gtk.RevealerTransitionType.SLIDE_DOWN}
+            halign={Gtk.Align.CENTER}
+            type="overlay"
+          >
+            <RsynapseSearch revealed={revealRsynapse} />
+          </revealer>
+        </overlay>
         <box>
           <MPRISWidget />
           <PanelButtons />
