@@ -1,7 +1,7 @@
+import AstalNiri from 'gi://AstalNiri?version=0.1'
 import Brightness from './brightness'
-import { monitorService } from './wm/hypr'
-import { windowService, workspaceService } from './wm/hypr'
 import { MonitorService, WindowService, WorkspaceService } from './wm/types'
+import AstalHyprland from 'gi://AstalHyprland?version=0.1'
 
 export interface Services {
   workspace: WorkspaceService
@@ -10,17 +10,63 @@ export interface Services {
   monitor: MonitorService
 }
 
-export default function obtainWmService<S extends keyof Services>(
-  type: S
-): Services[S] {
+export default async function obtainWmService<S extends keyof Services>(
+  type: S,
+): Promise<Services[S]> {
   switch (type) {
     case 'window':
-      return windowService as Services[S]
+      return (await getWindowService()) as Services[S]
     case 'workspace':
-      return workspaceService as Services[S]
+      return (await getWorkspaceService()) as Services[S]
     case 'brightness':
       return Brightness.get_default() as Services[S]
     case 'monitor':
-      return monitorService as Services[S]
+      return (await getMonitorService()) as Services[S]
   }
+}
+
+async function isHypr() {
+  const hypr = AstalHyprland.get_default()
+  return hypr != null && hypr.monitors != null && hypr.monitors.length != 0
+}
+
+async function isNiri() {
+  const niri = AstalNiri.get_default()
+  return niri != null && niri.outputs != null && niri.outputs.length != 0
+}
+
+async function getMonitorService() {
+  // if (await isHypr()) {
+  //   const { hyprMonitorService } = await import('./wm/hypr')
+  //   return hyprMonitorService
+  // }
+  // if (await isNiri()) {
+  const { niriMonitorService } = await import('./wm/niri/monitors')
+  return niriMonitorService
+  // }
+  throw Error('Unsupported WM!')
+}
+
+async function getWorkspaceService() {
+  // if (await isHypr()) {
+  //   const { hyprMonitorService } = await import('./wm/hypr')
+  //   return hyprMonitorService
+  // }
+  // if (await isNiri()) {
+  const { workspaceService } = await import('./wm/niri/workspace')
+  return workspaceService
+  // }
+  throw Error('Unsupported WM!')
+}
+
+async function getWindowService() {
+  // if (await isHypr()) {
+  //   const { hyprMonitorService } = await import('./wm/hypr')
+  //   return hyprMonitorService
+  // }
+  // if (await isNiri()) {
+  const { windowService } = await import('./wm/niri/window')
+  return windowService
+  // }
+  throw Error('Unsupported WM!')
 }

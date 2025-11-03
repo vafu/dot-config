@@ -1,3 +1,4 @@
+import { GObject } from 'astal'
 import { Gdk } from 'astal/gtk4'
 import { Observable } from 'rxjs'
 
@@ -14,8 +15,9 @@ export interface Window {
 }
 
 export interface WorkspaceService {
-  getWorkspace(idx: number): Workspace
   activeWorkspace: Observable<Workspace>
+
+  getWorkspace(idx: number): Workspace
   activeWorkspaceFor(monitor: Gdk.Monitor): Observable<Workspace>
   workspacesOn(monitor: Gdk.Monitor): Observable<Workspace[]>
 
@@ -28,7 +30,7 @@ export interface Tab {
   title: Observable<string>
 }
 
-export interface Workspace {
+export interface Workspace extends GObject.Object {
   wsId: number
   tabs: Observable<Tab[]>
   selectedTab: Observable<Tab>

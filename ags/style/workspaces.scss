@@ -1,0 +1,44 @@
+@import 'common.scss';
+
+$label-size: 10px;
+$label-margin: 4px;
+$outline-width: $label-margin * 0.4;
+$outline-offset: $label-margin * 0.5;
+
+.wsoverlay {
+  min-width: 8px;
+  padding: 2px;
+}
+
+.workspaces {
+  background-color: #{$osd_bg};
+
+  border-radius: 10px;
+  /* padding: 8px; */
+
+  label {
+    @include animate;
+
+    font-size: 0;
+    min-height: 120px;
+    border-radius: $label-size;
+    margin: 2px 1px;
+
+    &.occupied {
+      background-color: #{$ws_empty};
+    }
+
+    &.focused {
+      background-color: #{$ws_active};
+    }
+
+    &.urgent {
+      outline: 1px solid #{$ws_urgent};
+      background-color: #{$ws_urgent};
+      animation-duration: 200ms;
+      animation-name: urgent;
+      animation-iteration-count: infinite;
+      animation-direction: alternate;
+    }
+  }
+}

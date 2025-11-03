@@ -18,13 +18,11 @@ export type State = typeof Hidden | Level
 export function OnScreenProgress({ states }: { states: Observable<State> }) {
   const state = states.pipe(shareReplay(1))
 
-  const levels = state.pipe(
-    filter((v) => v.type == 'level')
-  ) as Observable<Level>
+  const levels = state.pipe(filter(v => v.type == 'level')) as Observable<Level>
 
   return (
     <revealer
-      revealChild={bindAs(state, (s) => s != Hidden)}
+      revealChild={bindAs(state, s => s != Hidden)}
       transitionType={Gtk.RevealerTransitionType.CROSSFADE}
     >
       <box cssClasses={['OSD']} orientation={Gtk.Orientation.VERTICAL}>

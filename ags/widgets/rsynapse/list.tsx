@@ -59,9 +59,9 @@ export function Rsynapse(monitor: Binding<Gdk.Monitor>) {
     transitionType: Gtk.RevealerTransitionType.SLIDE_DOWN,
   })
 
-  rsynapse.results.subscribe((i) => {
+  rsynapse.results.subscribe(i => {
     items.remove_all()
-    i.forEach((entry) => items.append(entry))
+    i.forEach(entry => items.append(entry))
     revealer.set_reveal_child(i.length > 0)
   })
 

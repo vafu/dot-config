@@ -1,14 +1,8 @@
 @import 'common.scss';
 
-$label-size: 10px;
-$label-margin: 4px;
-$outline-width: $label-margin * 0.4;
-$outline-offset: $label-margin * 0.5;
-
 .bar {
   transition: 100ms;
   min-height: 32px;
-  background-color: #{$bg};
 
   .bar-widget {
     padding: 0 6pt;
@@ -21,7 +15,7 @@ $outline-offset: $label-margin * 0.5;
     font-weight: bold;
   }
 
-  >button {
+  > button {
     padding: 0 8px;
   }
 
@@ -35,12 +29,14 @@ $outline-offset: $label-margin * 0.5;
 }
 
 .tab-carousel {
-  min-width: 100px;
-
-  >carouseltab {
-    margin-left: 100px;
-    margin-right: 100px;
+  min-width: 1000px;
+  color: #{$ws_empty};
+  > carouseltab {
     font-weight: bolder;
+  }
+
+  .selected {
+    color: #{$fg};
   }
 }
 
@@ -62,7 +58,7 @@ $outline-offset: $label-margin * 0.5;
 }
 
 .mpris-widget {
-  >label {
+  > label {
     font-weight: bolder;
   }
 
@@ -80,7 +76,7 @@ levelindicator {
   min-height: 8px;
   min-width: 8px;
 
-  >.track {
+  > .track {
     color: #{$bat_track};
   }
 
@@ -95,7 +91,7 @@ levelindicator {
   }
 
   &.sys {
-    >.level {
+    > .level {
       &.warn {
         color: #{$sys_warn};
       }
@@ -115,7 +111,7 @@ levelindicator {
   }
 
   &.battery {
-    >.level {
+    > .level {
       &.default {
         color: #{$bat_low};
       }
@@ -136,52 +132,6 @@ levelindicator {
     &.cls {
       color: #{$app_title};
       margin-right: 4px;
-    }
-  }
-}
-
-.workspaces {
-  padding: 8px;
-
-  label {
-    @include animate;
-
-    font-size: 0;
-    min-width: $label-size;
-    min-height: $label-size;
-    border-radius: $label-size;
-    margin: 0 $label-margin;
-    background: #{$ws_empty};
-
-    &.occupied {
-      background-color: #{$ws_occupied};
-    }
-
-    &.focused {
-      background-color: #{$ws_active};
-      outline: $outline-width solid #{$ws_active};
-      outline-offset: $outline-offset;
-      box-shadow: 0 0 10px 2px rgba(255, 255, 255, 0.7);
-    }
-
-    &.offmonitor {
-      background-color: transparent;
-      outline: $outline-width solid #{$ws_empty};
-    }
-
-    &.active {
-      background-color: transparent;
-      outline: $outline-width solid #{$ws_occupied};
-      outline-offset: $outline-offset;
-    }
-
-    &.urgent {
-      outline: 1px solid #{$ws_urgent};
-      background-color: #{$ws_urgent};
-      animation-duration: 200ms;
-      animation-name: urgent;
-      animation-iteration-count: infinite;
-      animation-direction: alternate;
     }
   }
 }
