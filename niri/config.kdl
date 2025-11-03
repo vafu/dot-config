@@ -68,6 +68,11 @@ cursor {
 layout {
     gaps 12
 
+    struts {
+        top -8
+        bottom -8
+    }
+
     // When to center a column when changing focus, options are:
     // - "never", default behavior, focusing an off-screen column will keep at the left
     //   or right edge of the screen.
@@ -207,12 +212,7 @@ layout {
     // Left and right struts will cause the next window to the side to always be visible.
     // Top and bottom struts will simply add outer gaps in addition to the area occupied by
     // layer-shell panels and regular gaps.
-    struts {
-        // left 64
-        // right 64
-        // top 64
-        // bottom 64
-    }
+    
 }
 
 // Add lines like this to spawn processes at startup.
