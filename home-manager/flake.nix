@@ -9,7 +9,7 @@
     };
 
     ags.url = "github:Aylur/ags";
-    astal.url = "github:aylur/astal";
+    astal.url = "github:sameoldlab/astal?ref=feat/niri";
 
     nixGL = {
       url = "github:nix-community/nixGL";
@@ -21,14 +21,17 @@
         inputs.hyprland.follows = "hyprland"; 
     };
     hyprland-plugins = {
-      url = "github:hyprwm/hyprland-plugins";
-      inputs.hyprland.follows = "hyprland"; 
+        url = "github:hyprwm/hyprland-plugins";
+        inputs.hyprland.follows = "hyprland"; 
     };
     hyprWorkspaceLayouts = {
         url = "github:zakk4223/hyprWorkspaceLayouts";
         inputs.hyprland.follows = "hyprland"; 
     };
-    niri.url = "github:sodiboo/niri-flake";
+    niri = {
+        url = "github:sodiboo/niri-flake";
+        inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = { self, nixpkgs, home-manager, ... } @inputs:
@@ -38,7 +41,10 @@
           system = "x86_64-linux";
           # allowUnfree = true;
           # allowUnfreePredicate = _: true;
-          overlays = [ (import ./hyprlock.nix) ];
+          overlays = [ 
+            (import ./hyprlock.nix) 
+            inputs.niri.overlays.niri
+          ];
         };
         extraSpecialArgs = { inherit inputs; };
         modules = [

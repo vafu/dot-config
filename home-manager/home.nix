@@ -1,7 +1,24 @@
 { config, pkgs, inputs, ... }:
+let
+  # 1. Create the wrapper script that sets up the environment
+  niri-wrapper = pkgs.writeShellApplication {
+    name = "niri-wm-wrapper";
+    runtimeInputs = [
+      inputs.nixGL.packages.${pkgs.system}.nixGLDefault
+    ];
+    text = ''
+      # Set GBM path for mesa
+      export GBM_BACKENDS_PATH="${pkgs.mesa}/lib/gbm"
+
+      # Run the real niri-session binary, but using the nixGL wrapper
+      nixGL ${config.programs.niri.package}/bin/niri-session
+    '';
+  };
+in
 {
     imports = [
       inputs.ags.homeManagerModules.default
+      inputs.niri.homeModules.niri
     ];
     nixpkgs.overlays = [
     (final: prev: {
@@ -26,7 +43,6 @@
 
   # Set your home-manager state version
   home.stateVersion = "25.11";
-
   nixGL = {
     packages = inputs.nixGL.packages;
     defaultWrapper = "mesa";
@@ -46,6 +62,7 @@
       astal.tray
       astal.bluetooth
       astal.mpris
+      inputs.astal.packages.${pkgs.system}.niri
       networkmanager
     ];
   };
@@ -83,9 +100,17 @@
     nodejs
     neovim
     ghostty
-    niri
+    mako
+    xwayland-satellite 
   ];
 
+
+  programs.niri = {
+    enable = true;
+    package = config.lib.nixGL.wrap pkgs.niri;
+  };
+
+  
   wayland.windowManager.hyprland = 
   {
       enable = true;
