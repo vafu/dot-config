@@ -100,18 +100,21 @@ class NiriWorkspace extends GObject.Object implements Workspace {
           ),
         ),
       ),
-      logNext(w => 'tabs ' + w.map(p => p.window.id)),
       map(a => {
-        const result = new Array()
+        const result = new Array<Tab>()
 
         for (let i = 0; i < a.length; i++) {
           const v = a[i]
-          if (!result[i]) {
-            result[i] = {
+          if (!result[v.col_idx - 1]) {
+            result[v.col_idx - 1] = {
               tabId: v.col_idx,
               workspace: this,
               title: focusedWindow.pipe(
-                switchMap(w => fromConnectable(v.window, 'title')),
+                switchMap(w =>
+                  w.layout.pos_in_scrolling_layout[0] == v.col_idx
+                    ? fromConnectable(w, 'title')
+                    : fromConnectable(v.window, 'title'),
+                ),
               ),
             } as Tab
           }
