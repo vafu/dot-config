@@ -12,7 +12,6 @@ x = 5
 y = 5
 
 [window]
-opacity = 0.95
 
 [general]
 import = [

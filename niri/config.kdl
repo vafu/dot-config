@@ -3,6 +3,8 @@ environment {
 }
 
 spawn-at-startup "xwayland-satellite"
+spawn-at-startup "hypridle"
+spawn-at-startup "ags run --gtk4"
 
 input {
     keyboard {
@@ -64,7 +66,7 @@ cursor {
 }
 
 layout {
-    gaps 8
+    gaps 12
 
     // When to center a column when changing focus, options are:
     // - "never", default behavior, focusing an off-screen column will keep at the left
