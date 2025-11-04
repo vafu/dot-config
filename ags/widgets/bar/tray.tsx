@@ -5,7 +5,7 @@ import Tray from "gi://AstalTray"
 export function SysTray() {
   const tray = Tray.get_default()
 
-  const traybox = new Gtk.Box({ cssClasses: ["SysTray"] })
+  const traybox = new Gtk.Box()
   const trayItems = new Map<string, Gtk.MenuButton>()
   const itemAdded = tray.connect('item-added', (_, id) => {
     const item = tray.get_item(id)

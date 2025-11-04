@@ -55,7 +55,7 @@ const time = interval(1000).pipe(
 const DateTime = () => (
   <PanelButton
     tooltipText={bindAs(time, t => t.date)}
-    cssClasses={['date-time']}
+    cssClasses={['date-time', "barblock"]}
     onClicked={() => execAsync(['swaync-client', '-t'])}
   >
     <label label={bindAs(time, t => t.clock)} />
@@ -120,41 +120,43 @@ const isDndEnabled = fromJsonProcess<SwayncStatus>('swaync-client -s').pipe(
 
 export const PanelButtons = () => (
   <box>
-    <SysTray />
-    <MenuButton cssClasses={['panel-button', 'flat', 'pill', 'bar-widget']}>
-      <box>
-        <image iconName="audio-volume-muted" visible={binding(isMuted)} />
-        <image
-          iconName={binding(ethIcon)}
-          visible={binding(ethEnabled)}
-          tooltipText={bindString(ethSpeed)}
-        />
-        <image
-          tooltipText={bind(profiles, 'active_profile')}
-          iconName={bind(profiles, 'iconName')}
-          visible={bind(profiles, 'active_profile').as(p => p != 'balanced')}
-        />
-        <image
-          tooltipText={bind(wifi, 'ssid').as(String)}
-          iconName={bind(wifi, 'iconName')}
-        />
-        <image
-          tooltipText={bind(battery, 'percentage').as(String)}
-          iconName={bind(battery, 'battery_icon_name')}
-        />
-        <MaterialIcon
-          icon="do_not_disturb_on"
-          style={{
-            fill: false,
-            size: 24,
-          }}
-          visible={binding(isDndEnabled)}
-        />
-      </box>
-      <Popover>
-        <QuicktoggleMenu />
-      </Popover>
-    </MenuButton>
+    <box cssClasses={["barblock"]}>
+      <SysTray />
+      <MenuButton cssClasses={['panel-button', 'flat', 'pill', 'bar-widget']}>
+        <box>
+          <image iconName="audio-volume-muted" visible={binding(isMuted)} />
+          <image
+            iconName={binding(ethIcon)}
+            visible={binding(ethEnabled)}
+            tooltipText={bindString(ethSpeed)}
+          />
+          <image
+            tooltipText={bind(profiles, 'active_profile')}
+            iconName={bind(profiles, 'iconName')}
+            visible={bind(profiles, 'active_profile').as(p => p != 'balanced')}
+          />
+          <image
+            tooltipText={bind(wifi, 'ssid').as(String)}
+            iconName={bind(wifi, 'iconName')}
+          />
+          <image
+            tooltipText={bind(battery, 'percentage').as(String)}
+            iconName={bind(battery, 'battery_icon_name')}
+          />
+          <MaterialIcon
+            icon="do_not_disturb_on"
+            style={{
+              fill: false,
+              size: 24,
+            }}
+            visible={binding(isDndEnabled)}
+          />
+        </box>
+        <Popover>
+          <QuicktoggleMenu />
+        </Popover>
+      </MenuButton>
+    </box>
     <DateTime />
   </box>
 )

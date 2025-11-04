@@ -56,7 +56,7 @@ const ARC_STYLE: Partial<RenderStyle> = {
 
 export const Status = () => (
   <box>
-    <box cssClasses={["bar-widget"]}>
+    <box>
       <LevelIndicator
         cssClasses={["sys"]}
         stages={stages}

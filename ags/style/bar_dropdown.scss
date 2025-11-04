@@ -2,18 +2,20 @@
 
 .bar-dropdown {
   min-width: 500px;
-  > * {
+
+  >* {
     @include elevation-1;
     border-radius: 16px;
     margin: 16px;
-    background-color: #{$bg_deep};
+    background-color: #{$osd_bg};
   }
 }
 
 .quicktoggle-container {
   padding: 16px;
-  > box {
-    > * {
+
+  >box {
+    >* {
       margin: 8px;
     }
   }

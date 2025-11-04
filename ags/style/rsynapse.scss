@@ -7,11 +7,12 @@
 .rsynapse {
 
   @include elevation-2;
-  background: #{$bg_deep};
+  background: #{$osd_bg};
 
   margin: 80px;
   padding: 16px;
   border-radius: 16px;
+
   .rsynapse-items {
     padding: 12px;
     min-width: 500px;
