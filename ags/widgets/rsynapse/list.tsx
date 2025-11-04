@@ -1,10 +1,13 @@
-import { Binding, Gio, GLib, GObject } from 'astal'
+import { bind, Binding, Gio, GLib, GObject } from 'astal'
 import { App, Astal, Gdk, Gtk } from 'astal/gtk4'
 import Adw from 'gi://Adw?version=1'
-import { binding } from 'rxbinding'
+import GL from 'gi://GL?version=1.0'
+import { bindAs, binding } from 'rxbinding'
 import { getRsynapseService, RsynapseResult } from 'services/rsynapse'
 import { ActionRow, ListBox } from 'widgets/adw'
-import rsynapseUi from 'widgets/rsynapse'
+import rsynapseUi, { RsynapseSearch } from 'widgets/rsynapse'
+
+const MAX_ITEMS = 10
 
 const rsynapse = getRsynapseService()
 const items = new Gio.ListStore({ item_type: RsynapseResult.$gtype })
@@ -44,25 +47,18 @@ export function Rsynapse(monitor: Binding<Gdk.Monitor>) {
     <Gtk.ScrolledWindow
       vscrollbarPolicy={Gtk.PolicyType.NEVER}
       name="scroll"
-      propagate_natural_width={true}
       propagate_natural_height={true}
-      maxContentHeight={10}
       css_classes={['rsynapse-items']}
+      valign={Gtk.Align.END}
+      vexpand={false}
     >
       {listView}
     </Gtk.ScrolledWindow>
   )
 
-  const revealer = new Gtk.Revealer({
-    child: scrolledwindow,
-    revealChild: true,
-    transitionType: Gtk.RevealerTransitionType.SLIDE_DOWN,
-  })
-
   rsynapse.results.subscribe(i => {
     items.remove_all()
-    i.forEach(entry => items.append(entry))
-    revealer.set_reveal_child(i.length > 0)
+    i.slice(0, MAX_ITEMS).forEach(entry => items.append(entry))
   })
 
   return (
@@ -73,13 +69,52 @@ export function Rsynapse(monitor: Binding<Gdk.Monitor>) {
       layer={Astal.Layer.OVERLAY}
       exclusivity={Astal.Exclusivity.NORMAL}
       name={'rsynapse'}
-      keymode={Astal.Keymode.NONE}
-      cssClasses={['rsynapse']}
-      valign={Gtk.Align.CENTER}
-      anchor={Astal.WindowAnchor.TOP}
-      hexpand={true}
+      keymode={bindAs(rsynapseUi.active, a =>
+        a ? Astal.Keymode.EXCLUSIVE : Astal.Keymode.NONE,
+      )}
+      cssClasses={['rsynapse-window']}
+      anchor={Astal.WindowAnchor.TOP | Astal.WindowAnchor.BOTTOM}
     >
-      {revealer}
+      <box
+        orientation={Gtk.Orientation.VERTICAL}
+        valign={Gtk.Align.END}
+        css_classes={['rsynapse']}
+      >
+        {scrolledwindow}
+        <RsynapseSearch revealed={rsynapseUi.active} />
+      </box>
     </window>
   )
 }
+
+//
+// if (animation) {
+//   animation.skip()
+// }
+//
+// const [minHeight, nat_height] = listView.get_preferred_size()
+//
+// const startHeight = scrolledwindow.get_height()
+// const targetHeight = nat_height.height
+//
+// const target = Adw.CallbackAnimationTarget['new'](value => {
+//   scrolledwindow.height_request = value
+// })
+// console.log('from', startHeight, 'to', nat_height.height)
+//
+// animation = new Adw.TimedAnimation({
+//   widget: scrolledwindow,
+//   target: target,
+//   value_from: startHeight,
+//   value_to: targetHeight,
+//   duration: 1000,
+//   easing: Adw.Easing.LINEAR,
+// })
+//
+// animation.connect('done', () => {
+//   animation = null
+//   scrolledwindow.height_request = targetHeight
+// })
+//
+// animation.play()
+// return GLib.SOURCE_REMOVE

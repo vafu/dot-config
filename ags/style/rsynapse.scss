@@ -1,10 +1,19 @@
+@import 'common.scss';
+
+.rsynapse-window {
+  background: transparent;
+}
+
 .rsynapse {
+
+  @include elevation-2;
+  background: #{$bg_deep};
+
+  margin: 80px;
+  padding: 16px;
+  border-radius: 16px;
   .rsynapse-items {
-    background: #{$osd_bg};
     padding: 12px;
-    border-radius: 0px 0px 16px 16px;
     min-width: 500px;
   }
-
-  transition: 1000ms;
 }

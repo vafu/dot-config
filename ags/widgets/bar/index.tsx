@@ -1,8 +1,8 @@
 import { Astal, Gdk, Gtk } from 'astal/gtk4'
 import { PanelButtons } from './panel-buttons'
 import { Status } from './status'
-import { bindAs, binding } from 'rxbinding'
-import rsynapseUi, { RsynapseSearch } from 'widgets/rsynapse'
+import { bindAs } from 'rxbinding'
+import rsynapseUi from 'widgets/rsynapse'
 import {
   switchMap,
   map,
@@ -15,14 +15,9 @@ import obtainWmService from 'services'
 import { MPRISWidget } from './mpris'
 import { getPomodoroService } from 'services/pomodoro'
 import { PomodoroWidget } from './pomodoro'
-import { WindowTitle } from './windowtitle'
-import { TabNumIndicator, TabsCarousel } from './tabs_carousel'
-import { CarouselIndicatorDots } from 'widgets/adw'
-import Adw from 'gi://Adw?version=1'
-import GtkSource5 from 'gi://GtkSource'
+import { TabsCarousel } from './tabs_carousel'
 
 const activeMonitor = (await obtainWmService('monitor')).activeMonitor
-const wsService = await obtainWmService('workspace')
 
 const pomodoro_bar_css = getPomodoroService().state.pipe(
   distinctUntilChanged(
@@ -51,8 +46,6 @@ export default (gdkmonitor: Gdk.Monitor) => {
     shareReplay(1),
   )
 
-  const tabs = (<TabsCarousel monitor={gdkmonitor} />) as Adw.Carousel
-
   return (
     <window
       visible={true}
@@ -60,9 +53,7 @@ export default (gdkmonitor: Gdk.Monitor) => {
       name="Bar"
       cssClasses={['bar']}
       exclusivity={Astal.Exclusivity.EXCLUSIVE}
-      keymode={bindAs(revealRsynapse, a =>
-        a ? Astal.Keymode.EXCLUSIVE : Astal.Keymode.NONE,
-      )}
+      keymode={Astal.Keymode.NONE}
       anchor={
         Astal.WindowAnchor.TOP |
         Astal.WindowAnchor.LEFT |
@@ -99,25 +90,9 @@ export default (gdkmonitor: Gdk.Monitor) => {
           <Status />
           <PomodoroWidget />
         </box>
-        <overlay>
-          {
-            <revealer
-              revealChild={bindAs(revealRsynapse, r => !r)}
-              transitionType={Gtk.RevealerTransitionType.SLIDE_UP}
-              halign={Gtk.Align.CENTER}
-            >
-              {tabs}
-            </revealer>
-          }
-          <revealer
-            revealChild={binding(revealRsynapse)}
-            transitionType={Gtk.RevealerTransitionType.SLIDE_DOWN}
-            halign={Gtk.Align.CENTER}
-            type="overlay"
-          >
-            <RsynapseSearch revealed={revealRsynapse} />
-          </revealer>
-        </overlay>
+        <box>
+          <TabsCarousel monitor={gdkmonitor} />
+        </box>
         <box>
           <MPRISWidget />
           <PanelButtons />
