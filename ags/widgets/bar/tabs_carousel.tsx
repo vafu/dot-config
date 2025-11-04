@@ -24,7 +24,6 @@ export const TabsCarousel = (props: { monitor: Gdk.Monitor }) => {
   carousel.set_spacing(12)
 
   tabs.subscribe(tabs => {
-    console.log('update')
     while (carousel.get_n_pages() > 0) {
       carousel.remove(carousel.get_first_child())
     }

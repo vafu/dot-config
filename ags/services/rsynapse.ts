@@ -2,11 +2,7 @@ import { GLib, GObject } from 'astal'
 import Gio from 'gi://Gio'
 import { BehaviorSubject, Observable } from 'rxjs'
 import {
-  debounceTime,
   distinctUntilChanged,
-  map,
-  shareReplay,
-  startWith,
   switchMap,
 } from 'rxjs/operators'
 
@@ -172,7 +168,7 @@ const initRsynapse = (): RsynapseService => {
 
   return {
     results: resultsSubject,
-    search: (query: string) => querySubject.next(query), 
+    search: (query: string) => querySubject.next(query),
   }
 }
 

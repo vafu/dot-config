@@ -5,11 +5,12 @@ import obtainWmService from 'services'
 import { Gio, GObject } from 'astal'
 import { Workspace } from 'services/wm/types'
 
-const items = new Gio.ListStore({})
 const workspaceService = await obtainWmService('workspace')
-const selection = new Gtk.NoSelection({ model: items })
 
 export function WSIndicator(props: { monitor: Gdk.Monitor }) {
+  const items = new Gio.ListStore({})
+  const selection = new Gtk.NoSelection({ model: items })
+
   const factory = new Gtk.SignalListItemFactory()
 
   factory.connect('setup', (_, listItem: Gtk.ListItem) => {

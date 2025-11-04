@@ -16,7 +16,6 @@ import AstalNiri from 'gi://AstalNiri?version=0.1'
 import { fromConnectable } from 'rxbinding'
 import { mapToMonitor } from './monitors'
 import { GObject } from 'astal'
-import { Tabs } from 'widgets/bar/tabs'
 import { logNext } from 'commons/rx'
 
 const niri = AstalNiri.get_default()
@@ -26,11 +25,17 @@ const outputs = fromConnectable(niri, 'outputs')
 const focusedWs = fromConnectable(niri, 'focusedWorkspace')
 const focusedWindow = fromConnectable(niri, 'focusedWindow')
 
+function focusedWindowOn(wsId: number): Observable<AstalNiri.Window> {
+  return focusedWindow.pipe(
+    filter(w => w.workspace.id == wsId),
+  )
+}
+
 class NiriWorkspaceService implements WorkspaceService {
   private _workspaces: Map<number, NiriWorkspace> = new Map()
 
   activeWorkspace: Observable<Workspace> = focusedWs.pipe(
-    map(w => this.getWorkspace(w.idx)),
+    map(w => this.getWorkspace(w.id)),
   )
 
   getWorkspace(id: number): Workspace {
@@ -41,7 +46,7 @@ class NiriWorkspaceService implements WorkspaceService {
 
   activeWorkspaceFor(monitor: Gdk.Monitor): Observable<Workspace> {
     return combineLatest([focusedWs, this.workspacesOn(monitor)]).pipe(
-      map(([focused, wsa]) => wsa.find(w => w.wsId == focused.idx)),
+      map(([focused, wsa]) => wsa.find(w => w.wsId == focused.id)),
       filter(w => w != null),
       map(w => this.getWorkspace(w.wsId)),
       distinctUntilChanged(),
@@ -52,7 +57,7 @@ class NiriWorkspaceService implements WorkspaceService {
     return outputs.pipe(
       map(a => a.find(o => mapToMonitor(o) == monitor)),
       switchMap(o => fromConnectable(o, 'workspaces')),
-      map(a => a.map(w => this.getWorkspace(w.idx))),
+      map(a => a.map(w => this.getWorkspace(w.id))),
     )
   }
 
@@ -73,12 +78,12 @@ class NiriWorkspace extends GObject.Object implements Workspace {
   occupied: Observable<boolean>
   urgent: Observable<boolean>
 
-  constructor(idx: number) {
+  constructor(id: number) {
     super()
-    this.wsId = idx
+    this.wsId = id
 
     const thisWs = workspaces.pipe(
-      map(a => a.find(w => w.idx == idx)),
+      map(a => a.find(w => w.id == id)),
       filter(w => w != null),
       shareReplay(1),
     )
@@ -102,20 +107,13 @@ class NiriWorkspace extends GObject.Object implements Workspace {
       ),
       map(a => {
         const result = new Array<Tab>()
-
         for (let i = 0; i < a.length; i++) {
           const v = a[i]
           if (!result[v.col_idx - 1]) {
             result[v.col_idx - 1] = {
               tabId: v.col_idx,
               workspace: this,
-              title: focusedWindow.pipe(
-                switchMap(w =>
-                  w.layout.pos_in_scrolling_layout[0] == v.col_idx
-                    ? fromConnectable(w, 'title')
-                    : fromConnectable(v.window, 'title'),
-                ),
-              ),
+              title: fromConnectable(v.window, 'title'),
             } as Tab
           }
         }
@@ -126,14 +124,14 @@ class NiriWorkspace extends GObject.Object implements Workspace {
 
     this.selectedTab = this.tabs.pipe(
       switchMap(tabs =>
-        focusedWindow.pipe(
+        focusedWindowOn(id).pipe(
           map(w => tabs[w.layout.pos_in_scrolling_layout[0] - 1]),
         ),
       ),
     )
 
     this.active = focusedWs.pipe(
-      map(w => w.idx == idx),
+      map(w => w.id == id),
       distinctUntilChanged(),
       shareReplay(1),
     )

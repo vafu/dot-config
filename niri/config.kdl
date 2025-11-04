@@ -4,6 +4,7 @@ environment {
 
 spawn-at-startup "xwayland-satellite"
 spawn-at-startup "hypridle"
+spawn-at-startup "swaync"
 spawn-at-startup "rsynapse-daemon"
 spawn-at-startup "ags run --gtk 4"
 
@@ -25,7 +26,7 @@ input {
 }
 
 cursor {
-    xcursor-theme "phinger-cursors-gruvbox-material"
+    xcursor-theme "catppuccin-macchiato-dark-cursors"
     xcursor-size 24
 }
 
@@ -319,6 +320,8 @@ binds {
     Mod+Return hotkey-overlay-title="Open a Terminal: alacritty" { spawn "alacritty"; }
     Mod+D hotkey-overlay-title="Run an Application: rsynapase" { spawn-sh "ags request rsynapse"; }
     Ctrl+Shift+L hotkey-overlay-title="Lock the Screen: swaylock" { spawn "hyprlock"; }
+
+    Ctrl+Shift+R { spawn-sh "killall gjs && ags run --gtk 4"; }
 
     // Use spawn-sh to run a shell command. Do this if you need pipes, multiple commands, etc.
     // Note: the entire command goes as a single argument. It's passed verbatim to `sh -c`.
