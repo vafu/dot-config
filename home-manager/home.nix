@@ -102,6 +102,7 @@ in
     ghostty
     mako
     xwayland-satellite 
+    swww
   ];
 
 
