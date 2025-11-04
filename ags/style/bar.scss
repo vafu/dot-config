@@ -11,12 +11,16 @@
   }
 
   .barblock {
+
+
     padding: 0 6pt;
     background-color: #{$bg};
     border-radius: 12px;
     margin-top: 4px;
     margin-left: 12px;
     margin-right: 12px;
+
+    @include elevation-1;
   }
 }
 
