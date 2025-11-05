@@ -26,9 +26,7 @@ const focusedWs = fromConnectable(niri, 'focusedWorkspace')
 const focusedWindow = fromConnectable(niri, 'focusedWindow')
 
 function focusedWindowOn(wsId: number): Observable<AstalNiri.Window> {
-  return focusedWindow.pipe(
-    filter(w => w.workspace.id == wsId),
-  )
+  return focusedWindow.pipe(filter(w => w.workspace.id == wsId))
 }
 
 class NiriWorkspaceService implements WorkspaceService {
@@ -128,6 +126,7 @@ class NiriWorkspace extends GObject.Object implements Workspace {
           map(w => tabs[w.layout.pos_in_scrolling_layout[0] - 1]),
         ),
       ),
+      filter(t => !!t)
     )
 
     this.active = focusedWs.pipe(
