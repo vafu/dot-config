@@ -39,8 +39,8 @@
       homeConfigurations."vfuchedzhy" = home-manager.lib.homeManagerConfiguration {
         pkgs = import nixpkgs {
           system = "x86_64-linux";
-          # allowUnfree = true;
-          # allowUnfreePredicate = _: true;
+          allowUnfree = true;
+          allowUnfreePredicate = _: true;
           overlays = [ 
             (import ./hyprlock.nix) 
             inputs.niri.overlays.niri

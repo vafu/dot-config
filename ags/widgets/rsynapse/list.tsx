@@ -59,6 +59,7 @@ export function Rsynapse(monitor: Binding<Gdk.Monitor>) {
   rsynapse.results.subscribe(i => {
     items.remove_all()
     i.slice(0, MAX_ITEMS).forEach(entry => items.append(entry))
+    scrolledwindow.set_visible(i.length > 0)
   })
 
   return (

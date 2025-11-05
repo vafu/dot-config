@@ -1,11 +1,26 @@
 @import 'common.scss';
 
 .bar {
+  background-color: transparent;
+
   transition: 100ms;
   min-height: 32px;
 
   .bar-widget {
     padding: 0 6pt;
+  }
+
+  .barblock {
+
+
+    padding: 0 6pt;
+    background-color: #{$bg};
+    border-radius: 12px;
+    margin-top: 4px;
+    margin-left: 12px;
+    margin-right: 12px;
+
+    @include elevation-1;
   }
 }
 
@@ -15,8 +30,8 @@
     font-weight: bold;
   }
 
-  > button {
-    padding: 0 8px;
+  >button {
+    padding: 2px 2px;
   }
 
   image {
@@ -29,9 +44,9 @@
 }
 
 .tab-carousel {
-  min-width: 1000px;
   color: #{$ws_empty};
-  > carouseltab {
+
+  >carouseltab {
     font-weight: bolder;
   }
 
@@ -42,9 +57,6 @@
 
 .tab-num {
   font-weight: bolder;
-  margin-left: 12px;
-  margin-right: 12px;
-  /* padding: 2px; */
   color: #{$ws_active};
   padding-left: 4px;
   padding-right: 3px;
@@ -52,13 +64,8 @@
   border-radius: 4px;
 }
 
-.dots-carousel {
-  margin-left: 12px;
-  margin-right: 12px;
-}
-
 .mpris-widget {
-  > label {
+  >label {
     font-weight: bolder;
   }
 
@@ -76,7 +83,7 @@ levelindicator {
   min-height: 8px;
   min-width: 8px;
 
-  > .track {
+  >.track {
     color: #{$bat_track};
   }
 
@@ -91,7 +98,7 @@ levelindicator {
   }
 
   &.sys {
-    > .level {
+    >.level {
       &.warn {
         color: #{$sys_warn};
       }
@@ -111,7 +118,7 @@ levelindicator {
   }
 
   &.battery {
-    > .level {
+    >.level {
       &.default {
         color: #{$bat_low};
       }
@@ -123,24 +130,10 @@ levelindicator {
   }
 }
 
-.window-title {
-  label {
-    font-weight: bolder;
-    font-size: 10pt;
-
-
-    &.cls {
-      color: #{$app_title};
-      margin-right: 4px;
-    }
-  }
-}
-
 .pomodoro {
   label {
     font-weight: bold;
     font-size: 12pt;
-    margin-left: 4px;
   }
 }
 

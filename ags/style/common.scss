@@ -1,4 +1,4 @@
-$blur: 2px;
+$blur: 4px;
 $spread: 0px;
 
 @mixin animate {
@@ -10,19 +10,20 @@ $spread: 0px;
 }
 
 @mixin elevation-1 {
-  box-shadow: 0px 1px $blur $spread #{$shadow};
+  box-shadow: 0px 0px $blur $spread #{$shadow};
 }
 
 @mixin elevation-2 {
-  box-shadow: 0px 3px $blur $spread #{$shadow};
+  box-shadow: 0px 2px $blur $spread #{$shadow};
 }
 
 @mixin elevation-3 {
-  box-shadow: 0px 6px $blur $spread #{$shadow};
+  box-shadow: 0px 3px $blur $spread #{$shadow};
 }
 
 materialicon {
   -gtk-icon-size: 20px;
+
   &.tinted {
     color: #{$mi_tinted};
   }

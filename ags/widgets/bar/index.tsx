@@ -60,37 +60,37 @@ export default (gdkmonitor: Gdk.Monitor) => {
         Astal.WindowAnchor.RIGHT
       }
       setup={w => {
-        const bgProvider = new Gtk.CssProvider()
-        const colorProvider = new Gtk.CssProvider()
-        w.get_style_context().add_provider(
-          bgProvider,
-          Gtk.STYLE_PROVIDER_PRIORITY_USER,
-        )
-        w.get_style_context().add_provider(
-          colorProvider,
-          Gtk.STYLE_PROVIDER_PRIORITY_USER,
-        )
-
-        const css = `
-            window {
-              background-color: @custombg;
-              transition: background-color 100ms;
-            }
-        `
-        bgProvider.load_from_data(css, -1)
-
-        const sub = pomodoro_bar_css.subscribe(css =>
-          colorProvider.load_from_data(css, -1),
-        )
-        w.connect('destroy', sub.unsubscribe)
+        // const bgProvider = new Gtk.CssProvider()
+        // const colorProvider = new Gtk.CssProvider()
+        // w.get_style_context().add_provider(
+        //   bgProvider,
+        //   Gtk.STYLE_PROVIDER_PRIORITY_USER,
+        // )
+        // w.get_style_context().add_provider(
+        //   colorProvider,
+        //   Gtk.STYLE_PROVIDER_PRIORITY_USER,
+        // )
+        //
+        // const css = `
+        //     window {
+        //       background-color: @custombg;
+        //       transition: background-color 100ms;
+        //     }
+        // `
+        // bgProvider.load_from_data(css, -1)
+        //
+        // const sub = pomodoro_bar_css.subscribe(css =>
+        //   colorProvider.load_from_data(css, -1),
+        // )
+        // w.connect('destroy', sub.unsubscribe)
       }}
     >
       <centerbox>
-        <box>
+        <box cssClasses={["barblock"]}>
           <Status />
           <PomodoroWidget />
         </box>
-        <box>
+        <box cssClasses={["barblock"]}>
           <TabsCarousel monitor={gdkmonitor} />
         </box>
         <box>

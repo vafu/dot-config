@@ -19,6 +19,7 @@ export const TabsCarousel = (props: { monitor: Gdk.Monitor }) => {
     css_classes: ['tab-carousel'],
     allow_mouse_drag: false,
     allow_scroll_wheel: false,
+    hexpand: true,
   })
 
   carousel.set_spacing(12)
