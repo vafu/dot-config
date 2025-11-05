@@ -86,6 +86,7 @@ export function Rsynapse(monitor: Binding<Gdk.Monitor>) {
     </window>
   )
 }
+ 
 
 //
 // if (animation) {
