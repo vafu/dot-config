@@ -38,4 +38,3 @@
 @define-color bg_mixed_yellow mix(@bg, @yellow_1, 0.3);
 @define-color bg_mixed_green mix(@bg, @green_1, 0.2);
 
-@define-color shadow alpha(@fg, 0.25);
