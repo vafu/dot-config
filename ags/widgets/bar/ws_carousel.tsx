@@ -28,7 +28,6 @@ export const WSCarousel = (props: { monitor: Gdk.Monitor }) => {
     }
 
     workspaces.forEach(ws => {
-      console.log('setting up', ws.wsId)
       const label = WSIndicator(ws)
       label['wsId'] = ws.wsId
       carousel.append(label)

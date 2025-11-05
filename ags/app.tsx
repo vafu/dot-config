@@ -27,7 +27,6 @@ App.start({
     obtainWmService('monitor').then(ms => {
       setupPomodoro()
       setupForMonitor(ms, Bar)
-      setupForMonitor(ms, WSSideOverlay)
       Rsynapse(binding(ms.activeMonitor))
       OSD(binding(ms.activeMonitor))
     })
@@ -88,11 +87,9 @@ function setupPomodoro() {
 }
 
 function dndOn() {
-  console.log('dndon')
   execAsync('./scripts/dnd.sh on').catch()
 }
 
 function dndOff() {
-  console.log('dndoff')
   execAsync('./scripts/dnd.sh off').catch()
 }
