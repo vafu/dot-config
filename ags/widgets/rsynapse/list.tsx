@@ -70,9 +70,11 @@ export function Rsynapse(monitor: Binding<Gdk.Monitor>) {
       layer={Astal.Layer.OVERLAY}
       exclusivity={Astal.Exclusivity.NORMAL}
       name={'rsynapse'}
-      keymode={bindAs(rsynapseUi.active, a =>
-        a ? Astal.Keymode.EXCLUSIVE : Astal.Keymode.NONE,
-      )}
+      keymode={
+        Astal.Keymode.ON_DEMAND
+        // bindAs(rsynapseUi.active, a =>
+        // a ? Astal.Keymode.EXCLUSIVE : Astal.Keymode.NONE,
+      }
       cssClasses={['rsynapse-window']}
       anchor={Astal.WindowAnchor.TOP | Astal.WindowAnchor.BOTTOM}
     >
@@ -87,7 +89,7 @@ export function Rsynapse(monitor: Binding<Gdk.Monitor>) {
     </window>
   )
 }
- 
+
 
 //
 // if (animation) {

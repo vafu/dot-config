@@ -6,6 +6,11 @@
 
 .rsynapse {
 
+  .activatable:selected {
+    border-radius: 8px;
+    transition: 100ms;
+  }
+
   @include elevation-3;
   background: #{$osd_bg};
 
