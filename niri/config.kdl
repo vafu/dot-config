@@ -26,7 +26,7 @@ input {
 }
 
 cursor {
-    xcursor-theme "catppuccin-macchiato-dark-cursors"
+    xcursor-theme "phinger-cursors-gruvbox-material"
     xcursor-size 24
 }
 
