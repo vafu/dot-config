@@ -7,7 +7,7 @@ spawn-at-startup "hypridle"
 spawn-at-startup "swaync"
 spawn-at-startup "rsynapse-daemon"
 spawn-at-startup "swww-daemon"
-spawn-sh-at-startup "ags run --gtk 4"
+spawn-sh-at-startup "ags run --gtk4"
 spawn-sh-at-startup "export DISPLAY=:0 && dbus-update-activation-environment --systemd DISPLAY"
 
 input {
@@ -87,8 +87,7 @@ layout {
     gaps 12
 
     struts {
-        top -8
-        bottom -8
+        top -12
     }
 
     // When to center a column when changing focus, options are:
@@ -143,8 +142,8 @@ layout {
     shadow {
         on
         softness 8
-        spread 4
-        offset x=0 y=5
+        spread 0
+        offset x=0 y=2
         color "#0007"
     }
 }
