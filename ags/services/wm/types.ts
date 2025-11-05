@@ -32,6 +32,7 @@ export interface Tab {
 
 export interface Workspace extends GObject.Object {
   wsId: number
+  name: Observable<string>
   tabs: Observable<Tab[]>
   selectedTab: Observable<Tab>
 

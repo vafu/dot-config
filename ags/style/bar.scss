@@ -2,23 +2,22 @@
 
 .bar {
   background-color: transparent;
+  padding: 4px 0px 8px 0px;
 
   transition: 100ms;
   min-height: 32px;
 
-  .bar-widget {
-    padding: 0 6pt;
-  }
-
   .barblock {
-
-
     padding: 0 6pt;
     background-color: #{$bg};
     border-radius: 12px;
     margin-top: 4px;
     margin-left: 12px;
     margin-right: 12px;
+
+    > * {
+      padding: 0 6pt;
+    }
 
     @include elevation-1;
   }
@@ -30,7 +29,7 @@
     font-weight: bold;
   }
 
-  >button {
+  > button {
     padding: 2px 2px;
   }
 
@@ -46,7 +45,7 @@
 .tab-carousel {
   color: #{$ws_empty};
 
-  >carouseltab {
+  > carouseltab {
     font-weight: bolder;
   }
 
@@ -55,17 +54,25 @@
   }
 }
 
+.ws-carousel {
+  color: #{$ws_empty};
+
+  .selected {
+    padding: 1px 0;
+    font-weight: bolder;
+    color: #{$fg};
+  }
+}
+
 .tab-num {
   font-weight: bolder;
-  color: #{$ws_active};
-  padding-left: 4px;
-  padding-right: 3px;
-  border: 1px solid #{$ws_active};
-  border-radius: 4px;
+  /* color: #{$ws_active}; */
+  /* outline: 1px solid #{$ws_active}; */
+  border-radius: 12px;
 }
 
 .mpris-widget {
-  >label {
+  > label {
     font-weight: bolder;
   }
 
@@ -83,7 +90,7 @@ levelindicator {
   min-height: 8px;
   min-width: 8px;
 
-  >.track {
+  > .track {
     color: #{$bat_track};
   }
 
@@ -98,7 +105,7 @@ levelindicator {
   }
 
   &.sys {
-    >.level {
+    > .level {
       &.warn {
         color: #{$sys_warn};
       }
@@ -118,7 +125,7 @@ levelindicator {
   }
 
   &.battery {
-    >.level {
+    > .level {
       &.default {
         color: #{$bat_low};
       }

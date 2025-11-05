@@ -9,7 +9,7 @@ const cls = active.pipe(switchMap(a => a.cls))
 const title = active.pipe(switchMap(a => a.title))
 
 export const WindowTitle = () => (
-  <box cssClasses={['window-title', 'bar-widget']} halign={Gtk.Align.CENTER}>
+  <box cssClasses={['window-title']} halign={Gtk.Align.CENTER}>
     <label cssClasses={['cls']} label={binding(cls)} />
     <label ellipsize={Pango.EllipsizeMode.END} label={binding(title)} />
   </box>

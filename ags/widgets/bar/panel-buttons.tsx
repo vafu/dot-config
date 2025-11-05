@@ -32,7 +32,6 @@ export const PanelButton = (
       self.add_css_class('panel-button')
       self.add_css_class('flat')
       self.add_css_class('pill')
-      self.add_css_class('bar-widget')
     },
     child: child,
     ...rest,
@@ -122,7 +121,7 @@ export const PanelButtons = () => (
   <box>
     <box cssClasses={["barblock"]}>
       <SysTray />
-      <MenuButton cssClasses={['panel-button', 'flat', 'pill', 'bar-widget']}>
+      <MenuButton cssClasses={['panel-button', 'flat', 'pill']}>
         <box>
           <image iconName="audio-volume-muted" visible={binding(isMuted)} />
           <image

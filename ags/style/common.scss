@@ -1,6 +1,3 @@
-$blur: 4px;
-$spread: 0px;
-
 @mixin animate {
   transition: 150ms;
 }
@@ -10,15 +7,15 @@ $spread: 0px;
 }
 
 @mixin elevation-1 {
-  box-shadow: 0px 0px $blur $spread #{$shadow};
+  box-shadow: 0px 2px 4px 0px #{$shadow};
 }
 
 @mixin elevation-2 {
-  box-shadow: 0px 2px $blur $spread #{$shadow};
+  box-shadow: 0px 4px 16px 4px #{$shadow};
 }
 
 @mixin elevation-3 {
-  box-shadow: 0px 3px $blur $spread #{$shadow};
+  box-shadow: 0px 8px 32px 8px #{$shadow};
 }
 
 materialicon {

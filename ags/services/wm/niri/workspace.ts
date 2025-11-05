@@ -7,9 +7,13 @@ import {
   filter,
   map,
   Observable,
+  pipe,
+  share,
   shareReplay,
+  startWith,
   switchMap,
   window,
+  zip,
 } from 'rxjs'
 import { Tab, Workspace, WorkspaceService } from '../types'
 import AstalNiri from 'gi://AstalNiri?version=0.1'
@@ -75,6 +79,7 @@ class NiriWorkspace extends GObject.Object implements Workspace {
   active: Observable<boolean>
   occupied: Observable<boolean>
   urgent: Observable<boolean>
+  name: Observable<string>
 
   constructor(id: number) {
     super()
@@ -82,8 +87,15 @@ class NiriWorkspace extends GObject.Object implements Workspace {
 
     const thisWs = workspaces.pipe(
       map(a => a.find(w => w.id == id)),
-      filter(w => w != null),
+      filter(w => !!w),
       shareReplay(1),
+    )
+
+    this.name = thisWs.pipe(
+      map(ws => ws.idx.toString()),
+      filter(n => !!n),
+      shareReplay(1),
+      startWith(''),
     )
 
     this.tabs = thisWs.pipe(
@@ -91,14 +103,15 @@ class NiriWorkspace extends GObject.Object implements Workspace {
       filter(a => a.length > 0),
       distinctUntilChanged((p, c) => p.map(w => w.id) == c.map(w => w.id)),
       switchMap(a =>
-        combineLatest(
+        zip(
           a.map(w =>
             fromConnectable(w, 'layout').pipe(
-              map(l => ({
+              map(l => l.pos_in_scrolling_layout[0]),
+              distinctUntilChanged(),
+              map(pos => ({
                 window: w,
-                col_idx: l.pos_in_scrolling_layout[0],
+                col_idx: pos,
               })),
-              distinctUntilChanged((p, c) => c.col_idx == p.col_idx),
             ),
           ),
         ),
@@ -117,6 +130,7 @@ class NiriWorkspace extends GObject.Object implements Workspace {
         }
         return result
       }),
+      startWith([]),
       shareReplay(1),
     )
 
@@ -126,7 +140,9 @@ class NiriWorkspace extends GObject.Object implements Workspace {
           map(w => tabs[w.layout.pos_in_scrolling_layout[0] - 1]),
         ),
       ),
-      filter(t => !!t)
+      filter(t => !!t),
+      distinctUntilChanged((p, c) => p.tabId == c.tabId),
+      shareReplay(1),
     )
 
     this.active = focusedWs.pipe(
@@ -137,8 +153,12 @@ class NiriWorkspace extends GObject.Object implements Workspace {
     this.occupied = thisWs.pipe(
       switchMap(w => fromConnectable(w, 'windows')),
       map(w => w.length > 0),
+      shareReplay(1),
     )
-    this.urgent = thisWs.pipe(switchMap(w => fromConnectable(w, 'isUrgent')))
+    this.urgent = thisWs.pipe(
+      switchMap(w => fromConnectable(w, 'isUrgent')),
+      shareReplay(1),
+    )
   }
 
   switchToTab(idx: number, move: boolean): void {

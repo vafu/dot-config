@@ -125,7 +125,6 @@ function BtDeviceBattery(matcher: (c: BluetoothDeviceType) => Boolean) {
     <box
       tooltipText={bindAs(device, d => d.device.name)}
       halign={Gtk.Align.CENTER}
-      cssClasses={["bar-widget"]}
     >
       {binding(
         charge.pipe(

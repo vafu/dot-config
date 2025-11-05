@@ -48,7 +48,7 @@ export const MPRISWidget = () => {
   )
 
   return (
-    <box cssClasses={['mpris-widget', 'bar-widget', "barblock"]}>
+    <box cssClasses={['mpris-widget', "barblock"]}>
       <label
         label={binding(metadata)}
         cssClasses={bindAs(playerStateCss, c => [c])}

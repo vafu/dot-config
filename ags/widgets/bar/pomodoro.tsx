@@ -32,7 +32,7 @@ export const PomodoroWidget = () => {
     </box>
 
 
-  return <box cssClasses={["pomodoro", "bar-widget"]} onHoverEnter={() => {
+  return <box cssClasses={["pomodoro"]} onHoverEnter={() => {
     status.hide()
     controls.show()
   }}

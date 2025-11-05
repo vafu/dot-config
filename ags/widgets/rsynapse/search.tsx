@@ -8,7 +8,7 @@ const rsynapse = getRsynapseService()
 
 export const RsynapseSearch = (props: { revealed: Observable<boolean> }) => {
   return <SearchEntry
-    css_classes={['bar-widget', 'rsynapse-search']}
+    css_classes={['rsynapse-search']}
     setup={(self) => {
       const focus = new Gtk.EventControllerFocus()
       focus.connect('leave', () => rsynapseUi.hide())

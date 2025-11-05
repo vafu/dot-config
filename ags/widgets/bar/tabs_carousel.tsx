@@ -3,7 +3,7 @@ import { Button, Label } from 'astal/gtk4/widget'
 import Adw from 'gi://Adw?version=1'
 import Pango from 'gi://Pango?version=1.0'
 import { bindAs, binding } from 'rxbinding'
-import { switchMap } from 'rxjs'
+import { Subscription, switchMap } from 'rxjs'
 import obtainWmService from 'services'
 import { Tab } from 'services/wm/types'
 
@@ -24,7 +24,15 @@ export const TabsCarousel = (props: { monitor: Gdk.Monitor }) => {
 
   carousel.set_spacing(12)
 
+  // hacky, but do I really care?
+  let firstSelect = true
+  activeWs.subscribe(_ => (firstSelect = true))
+
+  let selectedtabsub: Subscription | null = null
+
+  // TODO: figure out diffs
   tabs.subscribe(tabs => {
+    if (!!selectedtabsub) selectedtabsub.unsubscribe()
     while (carousel.get_n_pages() > 0) {
       carousel.remove(carousel.get_first_child())
     }
@@ -34,22 +42,23 @@ export const TabsCarousel = (props: { monitor: Gdk.Monitor }) => {
       tabView['tabId'] = tab.tabId
       carousel.append(tabView)
     })
-  })
 
-  selectedTab.subscribe(tab => {
-    for (let i = 0; i < carousel.get_n_pages(); i++) {
-      const page = carousel.get_nth_page(i) as Gtk.Label
-      if (page['tabId'] == tab.tabId) {
-        carousel.scroll_to(page, true)
-        page.add_css_class('selected')
-        page.set_halign(Gtk.Align.CENTER)
-      } else {
-        page.remove_css_class('selected')
-        page.set_halign(
-          page['tabId'] > tab.tabId ? Gtk.Align.START : Gtk.Align.END,
-        )
+    selectedtabsub = selectedTab.subscribe(tab => {
+      for (let i = 0; i < carousel.get_n_pages(); i++) {
+        const page = carousel.get_nth_page(i) as Gtk.Label
+        if (page['tabId'] == tab.tabId) {
+          carousel.scroll_to(page, !firstSelect)
+          page.add_css_class('selected')
+          page.set_halign(Gtk.Align.CENTER)
+          firstSelect = false
+        } else {
+          page.remove_css_class('selected')
+          page.set_halign(
+            page['tabId'] > tab.tabId ? Gtk.Align.START : Gtk.Align.END,
+          )
+        }
       }
-    }
+    })
   })
 
   return carousel

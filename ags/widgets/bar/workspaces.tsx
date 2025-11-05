@@ -55,5 +55,5 @@ const workspaces = (props: { monitor: Gdk.Monitor }) =>
   })
 
 export const Workspaces = (props: { monitor: Gdk.Monitor }) => (
-  <box cssClasses={['workspaces', 'bar-widget']}>{workspaces(props)}</box>
+  <box cssClasses={['workspaces']}>{workspaces(props)}</box>
 )

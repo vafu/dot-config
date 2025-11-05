@@ -16,6 +16,9 @@ import { MPRISWidget } from './mpris'
 import { getPomodoroService } from 'services/pomodoro'
 import { PomodoroWidget } from './pomodoro'
 import { TabsCarousel } from './tabs_carousel'
+import { Label } from 'astal/gtk4/widget'
+import { WSIndicator } from 'widgets/ws-indicator/ws'
+import { WSCarousel } from './ws_carousel'
 
 const activeMonitor = (await obtainWmService('monitor')).activeMonitor
 
@@ -32,7 +35,7 @@ const pomodoro_bar_css = getPomodoroService().state.pipe(
     }
     return '@bg'
   }),
-  startWith('@bg'),
+  startWith('transparent'),
   map(r => `@define-color custombg ${r};`),
   shareReplay(1),
 )
@@ -86,11 +89,16 @@ export default (gdkmonitor: Gdk.Monitor) => {
       }}
     >
       <centerbox>
-        <box cssClasses={["barblock"]}>
-          <Status />
-          <PomodoroWidget />
+        <box>
+          <box cssClasses={['barblock', 'ws-carousel']}>
+            <WSCarousel monitor={gdkmonitor} />
+          </box>
+          <box cssClasses={['barblock']}>
+            <Status />
+            <PomodoroWidget />
+          </box>
         </box>
-        <box cssClasses={["barblock"]}>
+        <box cssClasses={['barblock']}>
           <TabsCarousel monitor={gdkmonitor} />
         </box>
         <box>
