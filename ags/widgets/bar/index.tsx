@@ -1,4 +1,4 @@
-import { Astal, Gdk } from 'astal/gtk4'
+import { Astal, Gdk, Gtk } from 'astal/gtk4'
 import rsynapseUi from 'widgets/rsynapse'
 import {
   switchMap,
@@ -46,14 +46,6 @@ const pomodoro_bar_css = getPomodoroService().state.pipe(
 )
 
 export default (gdkmonitor: Gdk.Monitor) => {
-  const revealRsynapse = rsynapseUi.active.pipe(
-    switchMap(active =>
-      active ? activeMonitor.pipe(map(m => m == gdkmonitor)) : of(false),
-    ),
-    distinctUntilChanged(),
-    shareReplay(1),
-  )
-
   return (
     <window
       visible={true}
@@ -68,29 +60,31 @@ export default (gdkmonitor: Gdk.Monitor) => {
         Astal.WindowAnchor.RIGHT
       }
       setup={w => {
-        // const bgProvider = new Gtk.CssProvider()
-        // const colorProvider = new Gtk.CssProvider()
-        // w.get_style_context().add_provider(
-        //   bgProvider,
-        //   Gtk.STYLE_PROVIDER_PRIORITY_USER,
-        // )
-        // w.get_style_context().add_provider(
-        //   colorProvider,
-        //   Gtk.STYLE_PROVIDER_PRIORITY_USER,
-        // )
-        //
-        // const css = `
-        //     window {
-        //       background-color: @custombg;
-        //       transition: background-color 100ms;
-        //     }
-        // `
-        // bgProvider.load_from_data(css, -1)
-        //
-        // const sub = pomodoro_bar_css.subscribe(css =>
-        //   colorProvider.load_from_data(css, -1),
-        // )
-        // w.connect('destroy', sub.unsubscribe)
+        const bgProvider = new Gtk.CssProvider()
+        const colorProvider = new Gtk.CssProvider()
+        w.get_style_context().add_provider(
+          bgProvider,
+          Gtk.STYLE_PROVIDER_PRIORITY_USER,
+        )
+        w.get_style_context().add_provider(
+          colorProvider,
+          Gtk.STYLE_PROVIDER_PRIORITY_USER,
+        )
+
+        const css = `
+            window {
+              > .barblock {
+                background-color: @custombg;
+                transition: background-color 100ms;
+              }
+            }
+        `
+        bgProvider.load_from_data(css, -1)
+
+        const sub = pomodoro_bar_css.subscribe(css =>
+          colorProvider.load_from_data(css, -1),
+        )
+        w.connect('destroy', sub.unsubscribe)
       }}
     >
       <centerbox>
