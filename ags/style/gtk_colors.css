@@ -1,9 +1,10 @@
 /* base */
 @define-color bg @theme_bg_color;
-
 @define-color fg @theme_fg_color;
 
 @define-color osd_bg @theme_bg_color;
+@define-color sidebar_fg_color @sidebar_bg_color;
+@define-color secondary_sidebar_fg_color @secondary_sidebar_bg_color;
 
 /* bar */
 @define-color ws_active @accent_color;

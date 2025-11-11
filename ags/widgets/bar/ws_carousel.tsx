@@ -15,6 +15,7 @@ export const WSCarousel = (props: { monitor: Gdk.Monitor }) => {
     orientation: Gtk.Orientation.VERTICAL,
     allow_mouse_drag: false,
     allow_scroll_wheel: false,
+    cssClasses: ['ws-carousel'],
   })
 
   let sub: Subscription | null = null

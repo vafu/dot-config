@@ -8,38 +8,25 @@
   min-height: 32px;
 
   .barblock {
-    padding: 0 6pt;
     background-color: #{$bg};
     border-radius: 12px;
+    padding: 0 8px;
     margin-top: 4px;
     margin-left: 12px;
     margin-right: 12px;
-
-    > * {
-      padding: 0 6pt;
-    }
 
     @include elevation-1;
   }
 }
 
-.panel-button {
-  label {
-    font-size: 12pt;
-    font-weight: bold;
-  }
-
-  > button {
-    padding: 2px 2px;
-  }
-
-  image {
-    margin: 0 2px;
-  }
+.panel-widget {
+  padding: 0 4px;
 }
 
-.rsynapse-search {
-  min-width: 300pt;
+.bt-count {
+  font-size: 8pt;
+  margin-left: 18px;
+  margin-top: -14px;
 }
 
 .tab-carousel {
@@ -56,6 +43,8 @@
 
 .ws-carousel {
   color: #{$ws_empty};
+
+  padding: 0 4px;
 
   .selected {
     padding: 1px 0;
@@ -84,6 +73,19 @@
     font-weight: normal;
     color: #{$player_stopped};
   }
+}
+
+.button-subgroup-main {
+  &.opened {
+    background-color: #{$secondary_sidebar_fg_color};
+    border-radius: 0 12px 12px 0;
+  }
+  transition: 100ms;
+}
+
+.button-subgroup {
+  background-color: #{$secondary_sidebar_fg_color};
+  border-radius: 12px 0 0 12px;
 }
 
 levelindicator {

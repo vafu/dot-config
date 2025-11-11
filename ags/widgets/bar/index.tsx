@@ -1,7 +1,4 @@
-import { Astal, Gdk, Gtk } from 'astal/gtk4'
-import { PanelButtons } from './panel-buttons'
-import { Status } from './status'
-import { bindAs } from 'rxbinding'
+import { Astal, Gdk } from 'astal/gtk4'
 import rsynapseUi from 'widgets/rsynapse'
 import {
   switchMap,
@@ -16,9 +13,17 @@ import { MPRISWidget } from './mpris'
 import { getPomodoroService } from 'services/pomodoro'
 import { PomodoroWidget } from './pomodoro'
 import { TabsCarousel } from './tabs_carousel'
-import { Label } from 'astal/gtk4/widget'
-import { WSIndicator } from 'widgets/ws-indicator/ws'
 import { WSCarousel } from './ws_carousel'
+import { Tray } from './tray'
+import {
+  SysStats,
+  DateTime,
+  BatteryIndicator,
+  EthIndicator,
+  PowerProfilesIndicator,
+  WifiIndicator,
+} from './indicators'
+import { BluetoothStatus } from './bt_status'
 
 const activeMonitor = (await obtainWmService('monitor')).activeMonitor
 
@@ -89,21 +94,42 @@ export default (gdkmonitor: Gdk.Monitor) => {
       }}
     >
       <centerbox>
+        {/** left **/}
         <box>
-          <box cssClasses={['barblock', 'ws-carousel']}>
+          <box cssClasses={['barblock']}>
             <WSCarousel monitor={gdkmonitor} />
           </box>
           <box cssClasses={['barblock']}>
-            <Status />
-            <PomodoroWidget />
+            <SysStats />
+          </box>
+          <box cssClasses={['barblock']}>
+            <MPRISWidget />
           </box>
         </box>
+
+        {/** center **/}
         <box cssClasses={['barblock']}>
           <TabsCarousel monitor={gdkmonitor} />
         </box>
+
+        {/** right **/}
         <box>
-          <MPRISWidget />
-          <PanelButtons />
+          <box>
+            <box cssClasses={['barblock']}>
+              <Tray />
+              <PowerProfilesIndicator />
+              <BluetoothStatus />
+              <EthIndicator />
+              <WifiIndicator />
+              <BatteryIndicator />
+            </box>
+            <box cssClasses={['barblock']}>
+              <PomodoroWidget />
+            </box>
+            <box cssClasses={['barblock']}>
+              <DateTime />
+            </box>
+          </box>
         </box>
       </centerbox>
     </window>

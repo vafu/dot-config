@@ -4,8 +4,11 @@
   background: transparent;
 }
 
-.rsynapse {
+.rsynapse-search {
+  min-width: 300pt;
+}
 
+.rsynapse {
   .activatable:selected {
     border-radius: 8px;
     transition: 100ms;

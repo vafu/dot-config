@@ -1,6 +1,16 @@
 import AstalMpris from 'gi://AstalMpris?version=0.1'
+import Pango from 'gi://Pango?version=1.0'
 import { bindAs, binding, fromConnectable } from 'rxbinding'
-import { combineLatest, filter, map, of, shareReplay, startWith, switchMap } from 'rxjs'
+import {
+  combineLatest,
+  filter,
+  map,
+  of,
+  pipe,
+  shareReplay,
+  startWith,
+  switchMap,
+} from 'rxjs'
 
 const mpris = AstalMpris.get_default()
 const player = fromConnectable(mpris, 'players').pipe(
@@ -9,7 +19,7 @@ const player = fromConnectable(mpris, 'players').pipe(
       a.find(p => p.playback_status == AstalMpris.PlaybackStatus.PLAYING) ??
       a.find(p => p.can_play),
   ),
-  filter(p => p != undefined),
+  filter(p => !!p),
   shareReplay(1),
 )
 
@@ -19,10 +29,11 @@ export const MPRISWidget = () => {
       combineLatest(
         fromConnectable(p, 'artist'),
         fromConnectable(p, 'title'),
-        (...[artist, title]) => `${artist} - ${title}`,
+        (...[artist, title]) =>
+          artist.length > 0 && title.length > 0 ? `${artist} - ${title}` : '',
       ),
     ),
-    startWith('')
+    startWith(''),
   )
 
   const playerStateCss = player.pipe(
@@ -44,12 +55,17 @@ export const MPRISWidget = () => {
         return of('')
       }
     }),
-    startWith('')
+    startWith(''),
   )
 
   return (
-    <box cssClasses={['mpris-widget', "barblock"]}>
+    <box
+      visible={bindAs(metadata, m => m.length > 0)}
+      cssClasses={['mpris-widget']}
+    >
       <label
+        ellipsize={Pango.EllipsizeMode.MIDDLE}
+        max_width_chars={30}
         label={binding(metadata)}
         cssClasses={bindAs(playerStateCss, c => [c])}
       />
