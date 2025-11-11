@@ -96,21 +96,13 @@ export default (gdkmonitor: Gdk.Monitor) => {
       <centerbox>
         {/** left **/}
         <box>
-          <box cssClasses={['barblock']}>
-            <WSCarousel monitor={gdkmonitor} />
-          </box>
-          <box cssClasses={['barblock']}>
-            <SysStats />
-          </box>
-          <box cssClasses={['barblock']}>
-            <MPRISWidget />
-          </box>
+          <WSCarousel monitor={gdkmonitor} cssClasses={['barblock']} />
+          <SysStats cssClasses={['barblock']} />
+          <MPRISWidget cssClasses={['barblock']} />
         </box>
 
         {/** center **/}
-        <box cssClasses={['barblock']}>
-          <TabsCarousel monitor={gdkmonitor} />
-        </box>
+        <TabsCarousel monitor={gdkmonitor} cssClasses={['barblock']} />
 
         {/** right **/}
         <box>
@@ -123,12 +115,8 @@ export default (gdkmonitor: Gdk.Monitor) => {
               <WifiIndicator />
               <BatteryIndicator />
             </box>
-            <box cssClasses={['barblock']}>
-              <PomodoroWidget />
-            </box>
-            <box cssClasses={['barblock']}>
-              <DateTime />
-            </box>
+            <PomodoroWidget cssClasses={['barblock']} />
+            <DateTime cssClasses={['barblock']} />
           </box>
         </box>
       </centerbox>

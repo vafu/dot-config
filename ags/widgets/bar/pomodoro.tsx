@@ -1,12 +1,13 @@
 import { bindAs } from 'rxbinding'
 import { shareReplay } from 'rxjs'
 import { getPomodoroService } from 'services/pomodoro'
+import { WidgetProps } from 'widgets'
 import { MaterialIcon } from 'widgets/materialicon'
 
 const pomodoro = getPomodoroService()
 const state = pomodoro.state.pipe(shareReplay(1))
 
-export const PomodoroWidget = () => {
+export const PomodoroWidget = (props: WidgetProps) => {
   const buttonClasses = ['flat', 'circular']
 
   const controls = (
@@ -64,7 +65,7 @@ export const PomodoroWidget = () => {
 
   return (
     <box
-      cssClasses={['pomodoro']}
+      cssClasses={(props.cssClasses ?? []).concat(['pomodoro'])}
       onHoverEnter={() => {
         status.hide()
         controls.show()

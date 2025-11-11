@@ -11,6 +11,7 @@ import {
   startWith,
   switchMap,
 } from 'rxjs'
+import { WidgetProps } from 'widgets'
 
 const mpris = AstalMpris.get_default()
 const player = fromConnectable(mpris, 'players').pipe(
@@ -23,7 +24,7 @@ const player = fromConnectable(mpris, 'players').pipe(
   shareReplay(1),
 )
 
-export const MPRISWidget = () => {
+export const MPRISWidget = (props: WidgetProps) => {
   const metadata = player.pipe(
     switchMap(p =>
       combineLatest(
@@ -62,7 +63,7 @@ export const MPRISWidget = () => {
   return (
     <box
       visible={bindAs(metadata, m => m.length > 0)}
-      cssClasses={['mpris-widget']}
+      cssClasses={(props.cssClasses ?? []).concat(['mpris-widget'])}
     >
       <label
         ellipsize={Pango.EllipsizeMode.MIDDLE}

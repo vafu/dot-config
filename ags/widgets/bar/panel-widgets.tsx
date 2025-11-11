@@ -5,8 +5,9 @@ import { Gtk } from 'astal/gtk4'
 import { LevelIndicator, RenderStyle } from 'widgets/circularstatus'
 import { BehaviorSubject, combineLatest, map, of, tap } from 'rxjs'
 import { binding, fromConnectable } from 'rxbinding'
+import { WidgetProps } from 'widgets'
 
-type PanelButtonProps = ButtonProps
+type PanelButtonProps = ButtonProps & WidgetProps
 export const PanelButton = (props: PanelButtonProps, child: Gtk.Widget) =>
   Button({
     setup: self => {
@@ -87,7 +88,7 @@ export type IconIndicatorProps = {
   tinted?: Binding<boolean> | boolean
   tooltip?: Binding<string> | string
   visible?: Binding<boolean> | boolean
-}
+} & WidgetProps
 
 export const IconIndicator = (props: IconIndicatorProps) => {
   return (props.isMaterial ?? true) ? (
@@ -96,21 +97,21 @@ export const IconIndicator = (props: IconIndicatorProps) => {
       tinted={props.tinted ?? false}
       tooltipText={props.tooltip ?? props.icon}
       visible={props.visible ?? true}
-      setup={s => s.add_css_class('panel-widget')}
+      cssClasses={(props.cssClasses ?? []).concat(['panel-widget'])}
     />
   ) : (
     <image
       iconName={props.icon}
       tooltipText={props.tooltip ?? props.icon}
       visible={props.visible ?? true}
-      setup={s => s.add_css_class('panel-widget')}
+      cssClasses={(props.cssClasses ?? []).concat(['panel-widget'])}
     />
   )
 }
 
 const SlimIconIndicator = (props: IconIndicatorProps) => {
   const iconIndicator = IconIndicator(props)
-  iconIndicator.remove_css_class('panel-widget')
+  iconIndicator.set_css_classes([])
   return iconIndicator
 }
 
@@ -121,7 +122,7 @@ export const SingleIndicator = (
     stages: { level: number; class: string }[]
   } & IconIndicatorProps,
 ) => (
-  <box cssClasses={['panel-widget']}>
+  <box cssClasses={(props.cssClasses ?? []).concat(['panel-widget'])}>
     {SlimIconIndicator(props)}
     <LevelIndicator
       stages={props.stages}
@@ -140,7 +141,7 @@ export const DualIndicator = (
     stages: { level: number; class: string }[]
   } & IconIndicatorProps,
 ) => (
-  <box cssClasses={['panel-widget']}>
+  <box cssClasses={(props.cssClasses ?? []).concat(['panel-widget'])}>
     <LevelIndicator
       cssClasses={['battery']}
       style={ARC_STYLE}

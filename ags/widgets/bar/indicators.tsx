@@ -14,6 +14,7 @@ import {
   fromChain,
 } from 'rxbinding'
 import { MaterialIcon } from 'widgets/materialicon'
+import { WidgetProps } from 'widgets'
 
 const CPU = Variable('0').poll(3000, () => exec('bash scripts/cpu.sh'))
 const RAM = Variable('0').poll(3000, () => exec('bash scripts/ram.sh'))
@@ -25,13 +26,14 @@ const stages = [
   { level: 90, class: 'critical' },
 ]
 
-export const SysStats = () => (
+export const SysStats = (props: WidgetProps) => (
   <DualIndicator
     icon="memory"
     stages={stages}
     left={CPU().as(v => parseInt(v))}
     right={RAM().as(v => parseInt(v))}
     levelsVisible={true}
+    cssClasses={props.cssClasses}
   />
 )
 
@@ -49,10 +51,10 @@ const time = interval(1000).pipe(
   shareReplay(1),
 )
 
-export const DateTime = () => (
+export const DateTime = (props: WidgetProps) => (
   <PanelButton
     tooltipText={bindAs(time, t => t.date)}
-    cssClasses={['flat', 'circular']}
+    cssClasses={(props.cssClasses ?? []).concat(['flat', 'circular'])}
     onClicked={() => execAsync(['swaync-client', '-t'])}
   >
     <label label={bindAs(time, t => t.clock)} />

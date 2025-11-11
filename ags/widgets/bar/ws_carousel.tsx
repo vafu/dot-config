@@ -5,17 +5,18 @@ import { binding } from 'rxbinding'
 import { Subscription } from 'rxjs'
 import obtainWmService from 'services'
 import { Workspace } from 'services/wm/types'
+import { WidgetProps } from 'widgets'
 
 const workspaceService = await obtainWmService('workspace')
 
-export const WSCarousel = (props: { monitor: Gdk.Monitor }) => {
+export const WSCarousel = (props: { monitor: Gdk.Monitor } & WidgetProps) => {
   const workspaces = workspaceService.workspacesOn(props.monitor)
 
   const carousel = new Adw.Carousel({
     orientation: Gtk.Orientation.VERTICAL,
     allow_mouse_drag: false,
     allow_scroll_wheel: false,
-    cssClasses: ['ws-carousel'],
+    cssClasses: (props.cssClasses ?? []).concat(['ws-carousel']),
   })
 
   let sub: Subscription | null = null

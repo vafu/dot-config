@@ -6,17 +6,18 @@ import { bindAs, binding } from 'rxbinding'
 import { Subscription, switchMap } from 'rxjs'
 import obtainWmService from 'services'
 import { Tab } from 'services/wm/types'
+import { WidgetProps } from 'widgets'
 
 const workspaceService = await obtainWmService('workspace')
 
-export const TabsCarousel = (props: { monitor: Gdk.Monitor }) => {
+export const TabsCarousel = (props: { monitor: Gdk.Monitor } & WidgetProps) => {
   const activeWs = workspaceService.activeWorkspaceFor(props.monitor)
   const tabs = activeWs.pipe(switchMap(w => w.tabs))
   const selectedTab = activeWs.pipe(switchMap(w => w.selectedTab))
 
   const carousel = new Adw.Carousel({
     orientation: Gtk.Orientation.HORIZONTAL,
-    css_classes: ['tab-carousel'],
+    css_classes: (props.cssClasses ?? []).concat(['tab-carousel']),
     allow_mouse_drag: false,
     allow_scroll_wheel: false,
     hexpand: true,
