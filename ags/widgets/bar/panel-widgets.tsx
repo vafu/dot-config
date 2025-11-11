@@ -20,7 +20,6 @@ export const PanelButton = (props: PanelButtonProps, child: Gtk.Widget) =>
 
 export const PanelButtonGroup = (props: { children: Gtk.Widget[] }) => {
   const widgets = props.children
-  console.log(widgets)
   widgets.forEach(b => {
     b.add_css_class('flat')
     b.add_css_class('circular')
@@ -91,7 +90,6 @@ export type IconIndicatorProps = {
 }
 
 export const IconIndicator = (props: IconIndicatorProps) => {
-  console.log(props.icon, props.tinted)
   return (props.isMaterial ?? true) ? (
     <MaterialIcon
       icon={props.icon}
