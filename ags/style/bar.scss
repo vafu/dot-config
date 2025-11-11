@@ -9,6 +9,7 @@
 
   .barblock {
     background-color: #{$bg};
+    transition: background-color 100ms;
     border-radius: 12px;
     padding: 0 8px;
     margin-top: 4px;

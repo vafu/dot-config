@@ -1,4 +1,4 @@
-import { bind, exec, execAsync, GLib, Variable } from 'astal'
+import { bind, execAsync, GLib, Variable } from 'astal'
 import { DualIndicator, IconIndicator, PanelButton } from './panel-widgets'
 import { interval, map, shareReplay, startWith } from 'rxjs'
 import AstalBattery from 'gi://AstalBattery?version=0.1'
@@ -16,8 +16,14 @@ import {
 import { MaterialIcon } from 'widgets/materialicon'
 import { WidgetProps } from 'widgets'
 
-const CPU = Variable('0').poll(3000, () => exec('bash scripts/cpu.sh'))
-const RAM = Variable('0').poll(3000, () => exec('bash scripts/ram.sh'))
+const CPU = Variable('0').poll(
+  3000,
+  async () => await execAsync('bash scripts/cpu.sh'),
+)
+const RAM = Variable('0').poll(
+  3000,
+  async () => await execAsync('bash scripts/ram.sh'),
+)
 
 const stages = [
   { level: 35, class: 'warn' },
@@ -55,7 +61,7 @@ export const DateTime = (props: WidgetProps) => (
   <PanelButton
     tooltipText={bindAs(time, t => t.date)}
     cssClasses={(props.cssClasses ?? []).concat(['flat', 'circular'])}
-    onClicked={() => execAsync(['swaync-client', '-t'])}
+    onClicked={() => execAsync(['swaync-client', '-t']).catch()}
   >
     <label label={bindAs(time, t => t.clock)} />
   </PanelButton>

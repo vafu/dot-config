@@ -1,8 +1,7 @@
-import { exec, execAsync, Gio, GLib, GObject } from 'astal'
+import { execAsync, Gio, GLib, GObject } from 'astal'
 import { Gtk } from 'astal/gtk4'
 import astalify from 'astal/gtk4/astalify'
 import Soup from 'gi://Soup?version=3.0'
-import { async } from 'rxjs'
 
 const TINTED_CLASS_NAME = 'tinted'
 

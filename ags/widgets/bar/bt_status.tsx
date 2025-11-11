@@ -1,4 +1,4 @@
-import { bind, exec, Variable } from 'astal'
+import { bind } from 'astal'
 import {
   batteryStatusFor,
   BluetoothDeviceType,
@@ -31,7 +31,6 @@ import {
   SingleIndicator,
 } from './panel-widgets'
 
-// TODO: make async
 const btDevices = fromConnectable(AstalBluetooth.get_default(), 'devices').pipe(
   debounceTime(200),
   shareReplay(1),
@@ -85,12 +84,14 @@ function BtDeviceBattery(props: {
                   filter(v => v.type === 'single'),
                   map(v => v.primary),
                 )
-                return SingleIndicator({
-                  levelVisible: levelVisible,
-                  level: binding(battery),
-                  stages: stages,
-                  ...iconIndicatorProps,
-                })
+                return [
+                  SingleIndicator({
+                    levelVisible: levelVisible,
+                    level: binding(battery),
+                    stages: stages,
+                    ...iconIndicatorProps,
+                  }),
+                ]
 
               case 'dual':
                 const left = charge.pipe(
@@ -102,16 +103,18 @@ function BtDeviceBattery(props: {
                   map(v => v.secondary),
                 )
 
-                return DualIndicator({
-                  left: binding(left),
-                  right: binding(right),
-                  levelsVisible: levelVisible,
-                  stages: stages,
-                  ...iconIndicatorProps,
-                })
+                return [
+                  DualIndicator({
+                    left: binding(left),
+                    right: binding(right),
+                    levelsVisible: levelVisible,
+                    stages: stages,
+                    ...iconIndicatorProps,
+                  }),
+                ]
 
               case 'none':
-                return IconIndicator(iconIndicatorProps)
+                return [IconIndicator(iconIndicatorProps)]
             }
           }),
         ),
@@ -211,7 +214,7 @@ export const BluetoothStatus = () => {
         <overlay>
           <MaterialIcon icon={bindAs(btStatus, s => s.icon)} />
           <label
-            type='overlay'
+            type="overlay"
             cssClasses={['bt-count']}
             label={bindAs(btStatus, s => {
               const connected: number = s.connected

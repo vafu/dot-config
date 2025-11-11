@@ -14,7 +14,6 @@ import { MonitorService } from 'services/wm/types'
 import { getPomodoroService } from 'services/pomodoro'
 import { execAsync } from 'astal'
 import { distinctUntilChanged, map, shareReplay } from 'rxjs'
-import { WSSideOverlay } from 'widgets/ws-indicator'
 
 App.start({
   css: style,

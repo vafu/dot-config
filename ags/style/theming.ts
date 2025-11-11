@@ -1,12 +1,14 @@
-import { exec, execAsync, Gio } from 'astal'
+import { execAsync, Gio, writeFile, writeFileAsync } from 'astal'
 import { App, Gtk } from 'astal/gtk4'
-import obtainWmService from 'services'
+import { distinctUntilChanged, map, shareReplay, startWith } from 'rxjs'
+import { getPomodoroService } from 'services/pomodoro'
 const settings = Gio.Settings.new('org.gnome.desktop.interface')
-const colors = ['green', 'red', 'purple']
 
 export function prepareTheme() {
   prepareGtk()
   prepareIcons()
+  preparePomodoro()
+
   // obtainWmService('workspace').activeWorkroom.subscribe((wr) =>
   //   exec(
   //     `gsettings set org.gnome.desktop.interface accent-color '${colors[wr.idx]}'`
@@ -14,34 +16,59 @@ export function prepareTheme() {
   // )
 }
 
+function preparePomodoro() {
+  const pomodoro_color_css = getPomodoroService().state.pipe(
+    distinctUntilChanged(
+      (p, c) => p.state == c.state && c.elapsed - p.elapsed < 60,
+    ),
+    map(s => {
+      if (s.state == 'pomodoro') {
+        const progress = s.elapsed / s.duration
+        if (progress < 0.5)
+          return `mix(@bg_mixed_green, @bg_mixed_yellow, ${progress * 2})`
+        return `mix(@bg_mixed_yellow, @bg_mixed_red, ${progress * 2 - 1})`
+      }
+      return '@theme_bg_color'
+    }),
+    startWith('@theme_bg_color'),
+    map(r => `@define-color bg ${r};`),
+    shareReplay(1),
+  )
+
+  pomodoro_color_css.subscribe(d => {
+    writeFile('./style/dyn.css', d)
+  })
+}
+
 function prepareGtk() {
   // TODO: fix sync accent on nix
   // syncAccent(null)
   const colorScheme = settings.get_string('color-scheme')
-  updateGtkTheme(colorScheme)
+  updateGtkTheme(colorScheme).catch()
   settings.connect('changed::color-scheme', (s: Gio.Settings) => {
     const newColorScheme = s.get_string('color-scheme')
-    updateGtkTheme(newColorScheme)
+    updateGtkTheme(newColorScheme).catch()
   })
   settings.connect('changed::accent-color', (s: Gio.Settings) => {
-    syncAccent(s.get_string('accent-color'))
+    syncAccent(s.get_string('accent-color')).catch()
   })
 }
 function prepareIcons() {
   const d = App.get_monitors()[0].display
-  const t = Gtk.IconTheme.get_for_display(d)
   const s = Gtk.Settings.get_for_display(d)
   s.set_property('gtk-icon-theme-name', 'Material')
 }
-function syncAccent(color?: string) {
-  execAsync(`bash scripts/sync_accent.sh ${color ?? ''}`)
+async function syncAccent(color?: string) {
+  await execAsync(`bash scripts/sync_accent.sh ${color ?? ''}`)
 }
-function updateGtkTheme(colorScheme: string) {
-  const themeName = settings.get_string('gtk-theme').replace("-dark", '')
+async function updateGtkTheme(colorScheme: string) {
+  const themeName = settings.get_string('gtk-theme').replace('-dark', '')
 
   const isDark = colorScheme === 'prefer-dark'
   const theme = isDark ? `${themeName}-dark` : themeName
-  const style = isDark ? "dark" : "light"
-  execAsync(`gsettings set org.gnome.desktop.interface gtk-theme '${theme}'`)
-  execAsync(`bash scripts/legacy_alacritty.sh --${style}`)
+  const style = isDark ? 'dark' : 'light'
+  await execAsync(
+    `gsettings set org.gnome.desktop.interface gtk-theme '${theme}'`,
+  )
+  await execAsync(`bash scripts/legacy_alacritty.sh --${style}`)
 }
