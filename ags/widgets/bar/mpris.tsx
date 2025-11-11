@@ -34,6 +34,7 @@ export const MPRISWidget = () => {
       ),
     ),
     startWith(''),
+    shareReplay(1),
   )
 
   const playerStateCss = player.pipe(
@@ -67,6 +68,7 @@ export const MPRISWidget = () => {
         ellipsize={Pango.EllipsizeMode.MIDDLE}
         max_width_chars={30}
         label={binding(metadata)}
+        tooltipText={binding(metadata)}
         cssClasses={bindAs(playerStateCss, c => [c])}
       />
     </box>
