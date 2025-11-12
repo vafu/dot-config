@@ -83,12 +83,14 @@ const WSCarousel = (ws: Workspace) => {
       carousel.append(tabView)
     })
 
+    let firstSelect = true
     selectedtabsub = ws.selectedTab.subscribe(tab => {
       for (let i = 0; i < carousel.get_n_pages(); i++) {
         const page = carousel.get_nth_page(i) as Gtk.Overlay
         if (page['tabId'] == tab.tabId) {
-          carousel.scroll_to(page, true)
+          carousel.scroll_to(page, !firstSelect)
           page['subject'].next(false)
+          firstSelect = false 
         } else {
           page['subject'].next(true)
         }
