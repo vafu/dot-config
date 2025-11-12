@@ -140,8 +140,8 @@ function BtDeviceBattery(props: {
                 connected
                   ? of('Connected')
                   : fromConnectable(d.device, 'connecting').pipe(
-                      map(connecting => (connecting ? 'Connecting...' : '')),
-                    ),
+                    map(connecting => (connecting ? 'Connecting...' : '')),
+                  ),
               ),
             ),
           )}
@@ -190,20 +190,26 @@ export const BluetoothStatus = () => {
     switchMap(powered =>
       powered
         ? fromConnectable(btservice, 'adapter').pipe(
-            switchMap(adapter =>
-              combineLatest(
-                fromConnectable(adapter, 'discovering'),
-                fromConnectable(btservice, 'is_connected'),
-              ),
+          switchMap(adapter =>
+            combineLatest(
+              fromConnectable(adapter, 'discovering'),
+              fromConnectable(btservice, 'is_connected'),
+              fromConnectable(btservice, "devices").pipe(
+                switchMap(a => combineLatest(
+                  a.map(d => fromConnectable(d, "connected"))
+                )),
+                map(c => c.filter(c => c).length)
+              )
             ),
-            map(([discovering, connected]) =>
-              discovering
-                ? { icon: 'bluetooth_searching', connected: 0 }
-                : connected
-                  ? { icon: 'bluetooth_connected', connected: 1 }
-                  : { icon: 'bluetooth' },
-            ),
-          )
+          ),
+          map(([discovering, connected, connectedCount]) =>
+            discovering
+              ? { icon: 'bluetooth_searching', connected: 0 }
+              : connected
+                ? { icon: 'bluetooth_connected', connected: connectedCount }
+                : { icon: 'bluetooth' },
+          ),
+        )
         : of({ icon: 'bluetooth_disabled' }),
     ),
   )

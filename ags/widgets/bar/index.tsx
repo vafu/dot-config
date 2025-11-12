@@ -46,17 +46,15 @@ export default (gdkmonitor: Gdk.Monitor) => {
 
         {/** right **/}
         <box>
-          <box>
-            <box cssClasses={['barblock']}>
-              <Tray />
-              <PowerProfilesIndicator />
-              <BluetoothStatus />
-              <EthIndicator />
-              <WifiIndicator />
-              <BatteryIndicator />
-            </box>
-            <DateTime cssClasses={['barblock']} />
+          <box cssClasses={['barblock']}>
+            <Tray />
+            <PowerProfilesIndicator />
+            <BluetoothStatus />
+            <EthIndicator />
+            <WifiIndicator />
+            <BatteryIndicator />
           </box>
+          <DateTime cssClasses={['barblock']} />
         </box>
       </centerbox>
     </window>
