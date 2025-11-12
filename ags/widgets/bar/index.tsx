@@ -2,7 +2,7 @@ import { Astal, Gdk, Gtk } from 'astal/gtk4'
 import { MPRISWidget } from './mpris'
 import { PomodoroWidget } from './pomodoro'
 import { TabsCarousel } from './tabs_carousel'
-import { WSCarousel } from './ws_carousel'
+import { WSMatrix } from './ws_carousel'
 import { Tray } from './tray'
 import {
   SysStats,
@@ -13,6 +13,7 @@ import {
   WifiIndicator,
 } from './indicators'
 import { BluetoothStatus } from './bt_status'
+import { WindowTitle } from './windowtitle'
 
 export default (gdkmonitor: Gdk.Monitor) => {
   return (
@@ -32,13 +33,15 @@ export default (gdkmonitor: Gdk.Monitor) => {
       <centerbox>
         {/** left **/}
         <box>
-          <WSCarousel monitor={gdkmonitor} cssClasses={['barblock']} />
           <SysStats cssClasses={['barblock']} />
           <MPRISWidget cssClasses={['barblock']} />
         </box>
 
         {/** center **/}
-        <TabsCarousel monitor={gdkmonitor} cssClasses={['barblock']} />
+        <centerbox cssClasses={['barblock']} hexpand={true}>
+          <WSMatrix monitor={gdkmonitor} />
+          <WindowTitle />
+        </centerbox>
 
         {/** right **/}
         <box>

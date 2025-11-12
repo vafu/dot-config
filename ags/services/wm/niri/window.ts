@@ -1,5 +1,5 @@
+import AstalApps from 'gi://AstalApps?version=0.1'
 import { Tab, Window, WindowService } from '../types'
-import AstalHyprland from 'gi://AstalHyprland?version=0.1'
 import AstalNiri from 'gi://AstalNiri?version=0.1'
 import { fromConnectable } from 'rxbinding'
 import {
@@ -12,8 +12,10 @@ import {
   shareReplay,
   switchMap,
 } from 'rxjs'
+import app from 'astal/gtk4/app'
 
 const niri = AstalNiri.get_default()
+const apps = AstalApps.Apps.new()
 
 const focusedClient = fromConnectable(niri, 'focused_window')
 
@@ -22,6 +24,7 @@ const emptyWindow: Window = {
   cls: of(''),
   title: of(''),
   tab: empty(),
+  icon: empty(),
 }
 
 const activeWindow = focusedClient.pipe(
@@ -34,15 +37,25 @@ const activeWindow = focusedClient.pipe(
   }),
 )
 
-const clientToWindow = (c: AstalNiri.Window) =>
+export const clientToWindow = (c: AstalNiri.Window) =>
   ({
     id: c.id.toString(),
     cls: fromConnectable(c, 'appId'),
     title: fromConnectable(c, 'title'),
     tab: EMPTY as Observable<Tab>,
+    icon: fromConnectable(c, 'appId').pipe(
+      map(w => {
+        const res = apps.list.find(a => a.entry.startsWith(w))
+        if (!!res) {
+          return res.iconName
+        } else {
+          return ''
+        }
+      }),
+    ),
   }) as Window
 
-const getFor = (wsId: number, tabId: number) =>
+const getFor = (wsId: number) =>
   fromConnectable(niri, 'workspaces').pipe(
     map(all => all.find(w => w.idx == wsId)),
     switchMap(w => fromConnectable(w, 'windows')),

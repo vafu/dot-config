@@ -12,6 +12,7 @@ export interface Window {
   cls: Observable<string>
   title: Observable<string>
   tab: Observable<Tab>
+  icon: Observable<string>
 }
 
 export interface WorkspaceService {
@@ -28,6 +29,7 @@ export interface Tab {
   tabId: number
   workspace: Workspace
   title: Observable<string>
+  icon: Observable<string>
 }
 
 export interface Workspace extends GObject.Object {
@@ -41,6 +43,8 @@ export interface Workspace extends GObject.Object {
   urgent: Observable<boolean>
 
   switchToTab(idx: number, move: boolean): void
+
+  activeWindow: Observable<Window>
 }
 
 export interface MonitorService {

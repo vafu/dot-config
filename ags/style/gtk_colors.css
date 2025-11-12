@@ -39,4 +39,6 @@
 @define-color bg_mixed_yellow mix(@theme_bg_color, @yellow_1, 0.3);
 @define-color bg_mixed_green mix(@theme_bg_color, @green_1, 0.2);
 
+@define-color bg_tint alpha(@theme_bg_color, 0.8);
+
 @define-color shadow #0005;

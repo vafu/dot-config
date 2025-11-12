@@ -30,6 +30,28 @@
   margin-top: -14px;
 }
 
+.ws-matrix {
+  min-width: 80px;
+}
+
+.tint {
+  background-color: #{$bg_tint};
+}
+
+.window-title {
+  font-weight: bolder;
+  padding: 0 10px;
+  .cls {
+    color: #{$app_title};
+    padding: 0 8px;
+  }
+  transition: 100ms;
+}
+
+.center {
+  min-width: 500px;
+}
+
 .tab-carousel {
   color: #{$ws_empty};
 
@@ -45,7 +67,7 @@
 .ws-carousel {
   color: #{$ws_empty};
 
-  padding: 0 4px;
+  margin: 0 8px;
 
   .selected {
     padding: 1px 0;

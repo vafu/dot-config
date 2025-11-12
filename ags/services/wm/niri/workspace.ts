@@ -1,26 +1,21 @@
 import { Gdk } from 'astal/gtk4'
 import {
   combineLatest,
-  combineLatestAll,
   distinctUntilChanged,
-  EMPTY,
   filter,
   map,
   Observable,
-  pipe,
-  share,
   shareReplay,
   startWith,
   switchMap,
-  window,
   zip,
 } from 'rxjs'
-import { Tab, Workspace, WorkspaceService } from '../types'
+import { Tab, Window, Workspace, WorkspaceService } from '../types'
 import AstalNiri from 'gi://AstalNiri?version=0.1'
 import { fromConnectable } from 'rxbinding'
 import { mapToMonitor } from './monitors'
 import { GObject } from 'astal'
-import { logNext } from 'commons/rx'
+import { clientToWindow } from './window'
 
 const niri = AstalNiri.get_default()
 
@@ -80,6 +75,7 @@ class NiriWorkspace extends GObject.Object implements Workspace {
   occupied: Observable<boolean>
   urgent: Observable<boolean>
   name: Observable<string>
+  activeWindow: Observable<Window>
 
   constructor(id: number) {
     super()
@@ -94,8 +90,13 @@ class NiriWorkspace extends GObject.Object implements Workspace {
     this.name = thisWs.pipe(
       map(ws => ws.idx.toString()),
       filter(n => !!n),
-      shareReplay(1),
       startWith(''),
+      shareReplay(1),
+    )
+
+    this.activeWindow = focusedWindowOn(id).pipe(
+      map(clientToWindow),
+      shareReplay(1),
     )
 
     this.tabs = thisWs.pipe(
@@ -125,6 +126,7 @@ class NiriWorkspace extends GObject.Object implements Workspace {
               tabId: v.col_idx,
               workspace: this,
               title: fromConnectable(v.window, 'title'),
+              icon: clientToWindow(v.window).icon,
             } as Tab
           }
         }
