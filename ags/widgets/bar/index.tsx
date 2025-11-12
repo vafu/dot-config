@@ -38,10 +38,11 @@ export default (gdkmonitor: Gdk.Monitor) => {
         </box>
 
         {/** center **/}
-        <centerbox cssClasses={['barblock']} hexpand={true}>
+        <box cssClasses={['barblock']} hexpand={true} homogeneous={true}>
           <WSMatrix monitor={gdkmonitor} />
           <WindowTitle />
-        </centerbox>
+          <box />
+        </box>
 
         {/** right **/}
         <box>

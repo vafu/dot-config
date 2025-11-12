@@ -1,9 +1,9 @@
-import { Binding } from 'astal'
+import { Binding, Gio } from 'astal'
 import { Gdk, Gtk } from 'astal/gtk4'
 import { Image, ImageProps } from 'astal/gtk4/widget'
 import Adw from 'gi://Adw?version=1'
 import { bindAs, binding } from 'rxbinding'
-import { BehaviorSubject, Subscription } from 'rxjs'
+import { BehaviorSubject, Observable, Subscription } from 'rxjs'
 import obtainWmService from 'services'
 import { Workspace } from 'services/wm/types'
 import { WidgetProps } from 'widgets'
@@ -17,7 +17,7 @@ export const WSMatrix = (props: { monitor: Gdk.Monitor } & WidgetProps) => {
     orientation: Gtk.Orientation.VERTICAL,
     allow_mouse_drag: false,
     allow_scroll_wheel: false,
-    halign: Gtk.Align.START,
+    hexpand: true,
     cssClasses: (props.cssClasses ?? []).concat(['ws-carousel']),
   })
 
@@ -75,7 +75,10 @@ const WSCarousel = (ws: Workspace) => {
     tabs.forEach(tab => {
       const subject = new BehaviorSubject(false)
       const tabView = (
-        <TintedIcon iconName={binding(tab.icon)} tinted={binding(subject)} />
+        <TintedIcon
+          tinted={binding(subject)}
+          fileOrIcon={tab.icon}
+        />
       )
       tabView['tabId'] = tab.tabId
       tabView['subject'] = subject
@@ -114,9 +117,19 @@ const WSCarousel = (ws: Workspace) => {
 }
 
 const TintedIcon = (
-  props: ImageProps & { tinted: Binding<boolean> | boolean },
+  props: ImageProps & { tinted: Binding<boolean> | boolean, fileOrIcon: Observable<string> },
 ) => {
   const image = Image(props)
+
+  props.fileOrIcon.subscribe(p => {
+    const file = Gio.file_new_for_path(p)
+    if (file.query_exists(null)) {
+      image.set_from_file(p)
+    } else {
+      image.set_from_icon_name(p)
+    }
+  })
+
   return (
     <overlay>
       <revealer

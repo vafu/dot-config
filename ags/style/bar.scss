@@ -31,7 +31,7 @@
 }
 
 .ws-matrix {
-  min-width: 80px;
+  min-width: 150px;
 }
 
 .tint {
@@ -41,10 +41,12 @@
 .window-title {
   font-weight: bolder;
   padding: 0 10px;
+
   .cls {
     color: #{$app_title};
     padding: 0 8px;
   }
+
   transition: 100ms;
 }
 
@@ -55,7 +57,7 @@
 .tab-carousel {
   color: #{$ws_empty};
 
-  > carouseltab {
+  >carouseltab {
     font-weight: bolder;
   }
 
@@ -84,7 +86,7 @@
 }
 
 .mpris-widget {
-  > label {
+  >label {
     font-weight: bolder;
   }
 
@@ -103,6 +105,7 @@
     background-color: #{$secondary_sidebar_fg_color};
     border-radius: 0 12px 12px 0;
   }
+
   transition: 100ms;
 }
 
@@ -115,7 +118,7 @@ levelindicator {
   min-height: 8px;
   min-width: 8px;
 
-  > .track {
+  >.track {
     color: #{$bat_track};
   }
 
@@ -130,7 +133,7 @@ levelindicator {
   }
 
   &.sys {
-    > .level {
+    >.level {
       &.warn {
         color: #{$sys_warn};
       }
@@ -150,7 +153,7 @@ levelindicator {
   }
 
   &.battery {
-    > .level {
+    >.level {
       &.default {
         color: #{$bat_low};
       }

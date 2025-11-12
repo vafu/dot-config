@@ -10,10 +10,9 @@ const cls = active.pipe(switchMap(a => a.cls))
 const title = active.pipe(switchMap(a => a.title))
 
 export const WindowTitle = (props: WidgetProps) => (
-  <box
-    cssClasses={(props.cssClasses ?? []).concat(['window-title'])}
+  <label
     halign={Gtk.Align.CENTER}
-  >
-    <label ellipsize={Pango.EllipsizeMode.END} label={binding(title)} />
-  </box>
+    maxWidthChars={50}
+    cssClasses={(props.cssClasses ?? []).concat(['window-title'])}
+    ellipsize={Pango.EllipsizeMode.END} label={binding(title)} />
 )
