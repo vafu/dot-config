@@ -45,7 +45,9 @@ export const clientToWindow = (c: AstalNiri.Window) =>
     tab: EMPTY as Observable<Tab>,
     icon: fromConnectable(c, 'appId').pipe(
       map(w => {
-        const res = apps.list.find(a => a.entry.startsWith(w))
+        const res = apps.list.find(a =>
+          a.entry.toLowerCase().includes(w.toLowerCase())
+        )
         if (!!res) {
           return res.iconName
         } else {

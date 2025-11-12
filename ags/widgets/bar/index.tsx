@@ -1,8 +1,7 @@
 import { Astal, Gdk, Gtk } from 'astal/gtk4'
 import { MPRISWidget } from './mpris'
 import { PomodoroWidget } from './pomodoro'
-import { TabsCarousel } from './tabs_carousel'
-import { WSMatrix } from './ws_carousel'
+import { WSMatrix } from './ws_matrix'
 import { Tray } from './tray'
 import {
   SysStats,
