@@ -34,6 +34,7 @@ export default (gdkmonitor: Gdk.Monitor) => {
         {/** left **/}
         <box>
           <SysStats cssClasses={['barblock']} />
+          <PomodoroWidget cssClasses={['barblock']} />
           <MPRISWidget cssClasses={['barblock']} />
         </box>
 
@@ -54,7 +55,6 @@ export default (gdkmonitor: Gdk.Monitor) => {
               <WifiIndicator />
               <BatteryIndicator />
             </box>
-            <PomodoroWidget cssClasses={['barblock']} />
             <DateTime cssClasses={['barblock']} />
           </box>
         </box>
