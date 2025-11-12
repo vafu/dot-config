@@ -73,7 +73,7 @@ export const PanelButtonGroup = (props: { children: Gtk.Widget[] }) => {
 }
 
 const STYLE: Partial<RenderStyle> = {
-  thickness: 2,
+  thickness: 4,
 }
 
 const ARC_STYLE: Partial<RenderStyle> = {

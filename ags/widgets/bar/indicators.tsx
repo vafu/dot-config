@@ -26,6 +26,7 @@ const RAM = Variable('0').poll(
 )
 
 const stages = [
+  { level: 0, class: 'normal' },
   { level: 35, class: 'warn' },
   { level: 50, class: 'high' },
   { level: 80, class: 'danger' },

@@ -132,23 +132,25 @@ levelindicator {
     padding-bottom: 6px;
   }
 
-  &.sys {
-    >.level {
-      &.warn {
-        color: #{$sys_warn};
-      }
+  >.level {
+    &.normal {
+      color: #{$fg};
+    }
 
-      &.high {
-        color: #{$sys_high};
-      }
+    &.warn {
+      color: #{$sys_warn};
+    }
 
-      &.danger {
-        color: #{$sys_danger};
-      }
+    &.high {
+      color: #{$sys_high};
+    }
 
-      &.critical {
-        color: #{$sys_critical};
-      }
+    &.danger {
+      color: #{$sys_danger};
+    }
+
+    &.critical {
+      color: #{$sys_critical};
     }
   }
 
