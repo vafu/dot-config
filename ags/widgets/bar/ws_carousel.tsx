@@ -59,7 +59,6 @@ const WSCarousel = (ws: Workspace) => {
     allow_mouse_drag: false,
     allow_scroll_wheel: false,
     css_classes: ['ws-matrix'],
-    hexpand: true,
   })
 
   carousel.set_spacing(12)
@@ -100,13 +99,15 @@ const WSCarousel = (ws: Workspace) => {
 
   return (
     <overlay>
-      <box
+      <revealer
         hexpand={true}
         vexpand={true}
-        css_classes={['tint']}
+        transitionType={Gtk.RevealerTransitionType.CROSSFADE}
+        revealChild={bindAs(ws.active, a => !a)}
         type="overlay"
-        visible={bindAs(ws.active, a => !a)}
-      />
+      >
+        <box hexpand={true} vexpand={true} css_classes={['tint']} />
+      </revealer>
       {carousel}
     </overlay>
   )
@@ -118,13 +119,15 @@ const TintedIcon = (
   const image = Image(props)
   return (
     <overlay>
-      <box
+      <revealer
         hexpand={true}
         vexpand={true}
-        css_classes={['tint']}
-        visible={props.tinted}
+        transitionType={Gtk.RevealerTransitionType.CROSSFADE}
+        revealChild={props.tinted}
         type="overlay"
-      />
+      >
+        <box hexpand={true} vexpand={true} css_classes={['tint']} />
+      </revealer>
       {image}
     </overlay>
   ) as Gtk.Overlay
