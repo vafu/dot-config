@@ -97,14 +97,20 @@ export const IconIndicator = (props: IconIndicatorProps) => {
       tinted={props.tinted ?? false}
       tooltipText={props.tooltip ?? props.icon}
       visible={props.visible ?? true}
-      cssClasses={(props.cssClasses ?? []).concat(['panel-widget'])}
+      setup={w => {
+        props.cssClasses?.forEach(c => w.add_css_class(c))
+        w.add_css_class('panel-widget')
+      }}
     />
   ) : (
     <image
       iconName={props.icon}
       tooltipText={props.tooltip ?? props.icon}
       visible={props.visible ?? true}
-      cssClasses={(props.cssClasses ?? []).concat(['panel-widget'])}
+      setup={w => {
+        props.cssClasses?.forEach(c => w.add_css_class(c))
+        w.add_css_class('panel-widget')
+      }}
     />
   )
 }
