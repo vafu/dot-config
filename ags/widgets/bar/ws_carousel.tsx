@@ -3,7 +3,7 @@ import { Gdk, Gtk } from 'astal/gtk4'
 import { Image, ImageProps } from 'astal/gtk4/widget'
 import Adw from 'gi://Adw?version=1'
 import { bindAs, binding } from 'rxbinding'
-import { BehaviorSubject, Observable, Subscription, switchMap } from 'rxjs'
+import { BehaviorSubject, Subscription } from 'rxjs'
 import obtainWmService from 'services'
 import { Workspace } from 'services/wm/types'
 import { WidgetProps } from 'widgets'
@@ -90,7 +90,7 @@ const WSCarousel = (ws: Workspace) => {
         if (page['tabId'] == tab.tabId) {
           carousel.scroll_to(page, !firstSelect)
           page['subject'].next(false)
-          firstSelect = false 
+          firstSelect = false
         } else {
           page['subject'].next(true)
         }
