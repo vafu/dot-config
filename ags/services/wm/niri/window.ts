@@ -7,12 +7,15 @@ import {
   EMPTY,
   empty,
   map,
+  merge,
+  mergeWith,
   Observable,
   of,
   shareReplay,
   switchMap,
 } from 'rxjs'
 import app from 'astal/gtk4/app'
+import { GLib } from 'astal'
 
 const niri = AstalNiri.get_default()
 const apps = AstalApps.Apps.new()
@@ -36,6 +39,39 @@ const activeWindow = focusedClient.pipe(
     }
   }),
 )
+const iconNameCache = new Map<string, string>
+
+const APP_TITLE_ICON_OVERRIDES = [
+  { prefix: "- Nvim", icon: `${GLib.get_user_config_dir()}/ags/assets/icons/Neovim.svg` }
+]
+
+function getIconForAppId(appId: string): string {
+  let icon = iconNameCache.get(appId)
+  if (!icon) {
+    const res = apps.list.find(a =>
+      a.entry.toLowerCase().includes(appId.toLowerCase())
+    )
+    if (!!res) {
+      icon = res.iconName
+      iconNameCache.set(appId, icon)
+    } else {
+      return ''
+    }
+  }
+
+  return icon
+}
+
+function iconFor(c: AstalNiri.Window): Observable<string> {
+  return fromConnectable(c, "title").pipe(
+    switchMap((t: string) => {
+      const override = APP_TITLE_ICON_OVERRIDES.find((o) => t.includes(o.prefix))
+      return !!override ? of(override.icon) : fromConnectable(c, "appId").pipe(
+        map(getIconForAppId)
+      )
+    })
+  )
+}
 
 export const clientToWindow = (c: AstalNiri.Window) =>
   ({
@@ -43,18 +79,7 @@ export const clientToWindow = (c: AstalNiri.Window) =>
     cls: fromConnectable(c, 'appId'),
     title: fromConnectable(c, 'title'),
     tab: EMPTY as Observable<Tab>,
-    icon: fromConnectable(c, 'appId').pipe(
-      map(w => {
-        const res = apps.list.find(a =>
-          a.entry.toLowerCase().includes(w.toLowerCase())
-        )
-        if (!!res) {
-          return res.iconName
-        } else {
-          return ''
-        }
-      }),
-    ),
+    icon: iconFor(c)
   }) as Window
 
 const getFor = (wsId: number) =>
