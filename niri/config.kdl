@@ -28,7 +28,8 @@ input {
 }
 
 cursor {
-    xcursor-theme "phinger-cursors-gruvbox-material"
+    // xcursor-theme "phinger-cursors-gruvbox-material"
+    xcursor-theme "catppuccin-macchiato-dark-cursors"
     xcursor-size 24
 }
 
@@ -79,7 +80,7 @@ overview {
     position x=1280 y=0
 }
 
-output "DP-2" {
+output "Dell Inc. DELL S2722DC 942BHD3" {
     transform "90"
 }
 
@@ -267,7 +268,6 @@ binds {
     // ...
 
     // And you can also move a whole workspace to another monitor:
-    // Mod+Shift+Ctrl+Left  { move-workspace-to-monitor-left; }
     // ...
     //
     // Mod+Ctrl+Page_Down { move-column-to-workspace-down; }
@@ -279,10 +279,17 @@ binds {
     // Mod+Ctrl+Page_Down { move-window-to-workspace-down; }
     // ...
 
-    Mod+Shift+Page_Down { move-workspace-down; }
-    Mod+Shift+Page_Up   { move-workspace-up; }
-    Mod+Shift+U         { move-workspace-down; }
-    Mod+Shift+I         { move-workspace-up; }
+    Mod+Shift+Ctrl+J  { move-workspace-down; }
+    Mod+Shift+Ctrl+K  { move-workspace-up; }
+    Mod+Shift+Ctrl+H  { move-workspace-to-monitor-left; }
+    Mod+Shift+Ctrl+L  { move-workspace-to-monitor-right; }
+
+    Mod+Shift+Ctrl+Down  { move-workspace-down; }
+    Mod+Shift+Ctrl+Up  { move-workspace-up; }
+    Mod+Shift+Ctrl+Left  { move-workspace-to-monitor-left; }
+    Mod+Shift+Ctrl+Right  { move-workspace-to-monitor-left; }
+
+
 
     // You can bind mouse wheel scroll ticks using the following syntax.
     // These binds will change direction based on the natural-scroll setting.

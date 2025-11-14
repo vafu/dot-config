@@ -62,6 +62,7 @@ in
       astal.tray
       astal.bluetooth
       astal.mpris
+      astal.apps
       inputs.astal.packages.${pkgs.system}.niri
       networkmanager
     ];
