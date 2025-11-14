@@ -1,1 +1,1 @@
-@define-color bg mix(@bg_mixed_yellow, @bg_mixed_red, 0.06937816182772316);
+@define-color bg @theme_bg_color;
