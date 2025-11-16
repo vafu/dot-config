@@ -28,8 +28,8 @@ input {
 }
 
 cursor {
-    // xcursor-theme "phinger-cursors-gruvbox-material"
-    xcursor-theme "catppuccin-macchiato-dark-cursors"
+    xcursor-theme "phinger-cursors-gruvbox-material"
+    // xcursor-theme "catppuccin-macchiato-dark-cursors"
     xcursor-size 24
 }
 
@@ -237,6 +237,7 @@ binds {
     Mod+Shift+L     { move-column-right; }
     Mod+Shift+J     { move-window-down-or-to-workspace-down; }
     Mod+Shift+K     { move-window-up-or-to-workspace-up; }
+    Mod+Shift+Y     { spawn-sh "~/.config/scripts/darklight.sh"; }
 
     // Alternative commands that move across workspaces when reaching
     // the first or last window in a column.
