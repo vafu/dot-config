@@ -9,7 +9,9 @@
       "Bash(tsc:*)",
       "Bash(brightnessctl get:*)",
       "Bash(brightnessctl max:*)",
-      "Bash(brightnessctl set:*)"
+      "Bash(brightnessctl set:*)",
+      "Bash(bash scripts/cpu.sh:*)",
+      "Bash(bash scripts/ram.sh:*)"
     ],
     "deny": [],
     "ask": []

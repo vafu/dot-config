@@ -1,12 +1,15 @@
 import Gio from 'gi://Gio?version=2.0'
 import { monitorFile, readFileAsync } from 'ags/file'
-import { subprocess } from 'ags/process'
+import { execAsync, subprocess } from 'ags/process'
 import {
     defer,
     EMPTY,
     filter,
+    from,
+    interval,
     merge,
     Observable,
+    startWith,
     switchMap,
 } from 'rxjs'
 import { fromPromise } from 'rxjs/internal/observable/innerFrom'
@@ -45,4 +48,11 @@ export function fromJsonProcess<T>(command: string): Observable<T> {
             out => e.next(JSON.parse(out) as T)
         )
     })
+}
+
+export function execPeriodically(interval_ms: number, cmd: string): Observable<string> {
+    return interval(interval_ms).pipe(
+        startWith(0),
+        switchMap(() => from(execAsync(cmd))),
+    )
 }

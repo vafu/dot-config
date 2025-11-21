@@ -32,8 +32,10 @@ app.start({
 
       // Wait for first monitor emission to get initial value
       ms.activeMonitor.pipe(first()).subscribe(initialMonitor => {
-        OSD(binding(ms.activeMonitor, initialMonitor))
-        Rsynapse(binding(ms.activeMonitor, initialMonitor))
+        createRoot(() => {
+          OSD(binding(ms.activeMonitor, initialMonitor))
+          Rsynapse(binding(ms.activeMonitor, initialMonitor))
+        })
       })
     })
   },
@@ -101,3 +103,4 @@ function dndOn() {
 function dndOff() {
   execAsync('./scripts/dnd.sh off').catch()
 }
+

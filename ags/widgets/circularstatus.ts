@@ -1,5 +1,4 @@
 import GObject from 'gi://GObject?version=2.0'
-import { timeout } from 'ags/time'
 import { Gdk, Gtk } from 'ags/gtk4'
 import cairo from 'gi://cairo?version=1.0'
 
@@ -48,7 +47,7 @@ export class LevelIndicatorWidget extends Gtk.Overlay {
         GTypeName: 'LevelIndicator',
         CssName: 'levelindicator',
       },
-      this
+      this,
     )
   }
 
@@ -76,7 +75,7 @@ export class LevelIndicatorWidget extends Gtk.Overlay {
     // Set initial values from props or defaults using the setters
     this.level = level ?? 0
     this.min = min ?? 0
-    this.max = max ?? 0
+    this.max = max ?? 100
     if (stages) this.stages = stages
 
     this._trackView.add_css_class('track')
@@ -91,7 +90,7 @@ export class LevelIndicatorWidget extends Gtk.Overlay {
       trackColor: this._trackView.get_color(),
       levelColor: this._levelView.get_color(),
       curveDirection: 'end',
-      ...(style || {})
+      ...(style || {}),
     }
     this.add_css_class(this._style.style)
     this.add_overlay(this._trackView)
@@ -135,12 +134,11 @@ export class LevelIndicatorWidget extends Gtk.Overlay {
     this.add_css_class(this._style.style)
   }
 
-
   private _drawTrack = (
     w: Gtk.DrawingArea,
     cr: cairo.Context,
     width: number,
-    height: number
+    height: number,
   ): void => {
     if (width <= 0 || height <= 0) return // Don't draw if no space
 
@@ -163,14 +161,14 @@ export class LevelIndicatorWidget extends Gtk.Overlay {
     w: Gtk.DrawingArea,
     cr: cairo.Context,
     width: number,
-    height: number
+    height: number,
   ): void => {
     if (width <= 0 || height <= 0) return // Don't draw if no space
     if (this.prev_class != null) w.remove_css_class(this.prev_class)
     const range = this._maxValue - this._minValue
     const clampedLevel = Math.max(
       this._minValue,
-      Math.min(this._level, this._maxValue)
+      Math.min(this._level, this._maxValue),
     )
     const value = clampedLevel - this._minValue
     const fraction =
@@ -202,7 +200,7 @@ export class LevelIndicatorWidget extends Gtk.Overlay {
     color: Gdk.RGBA,
     cr: cairo.Context,
     width: number,
-    height: number
+    height: number,
   ): void {
     // Ensure thickness doesn't exceed bounds
     const safeThickness = Math.max(1, style.thickness)
@@ -280,7 +278,7 @@ export class LevelIndicatorWidget extends Gtk.Overlay {
     color: Gdk.RGBA,
     cr: cairo.Context,
     width: number,
-    height: number
+    height: number,
   ): void {
     const safeRadius = Math.max(1, style.radius)
     const safeThickness = Math.max(1, style.thickness)

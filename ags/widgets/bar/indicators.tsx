@@ -14,13 +14,16 @@ import {
   bindString,
   fromChain,
 } from 'rxbinding'
+import { execPeriodically } from 'rxbinding/util'
 import { MaterialIcon } from 'widgets/materialicon'
 import { WidgetProps } from 'widgets'
-import { createPoll } from 'ags/time'
-import { createBinding } from 'gnim'
 
-const CPU = createPoll('0', 3000, 'bash scripts/cpu.sh')
-const RAM = createPoll('0', 3000, 'bash scripts/ram.sh')
+const CPU = execPeriodically(3000, 'bash scripts/cpu.sh').pipe(
+  map(v => parseInt(v)),
+)
+const RAM = execPeriodically(3000, 'bash scripts/ram.sh').pipe(
+  map(v => parseInt(v)),
+)
 
 const stages = [
   { level: 0, class: 'normal' },
@@ -34,8 +37,8 @@ export const SysStats = (props: WidgetProps) => (
   <DualIndicator
     icon="memory"
     stages={stages}
-    left={CPU.as(v => parseInt(v))}
-    right={RAM.as(v => parseInt(v))}
+    left={binding(CPU, 0)}
+    right={binding(RAM, 0)}
     levelsVisible={true}
     cssClasses={props.cssClasses}
   />
@@ -74,8 +77,8 @@ const battery = AstalBattery.get_default()
 export const BatteryIndicator = () => (
   <IconIndicator
     isMaterial={false}
-    tooltip={createBinding(battery, 'percentage').as(String)}
-    icon={createBinding(battery, 'battery_icon_name')}
+    tooltip={bindAs(fromConnectable(battery, 'percentage'), p => String(p), '')}
+    icon={binding(fromConnectable(battery, 'battery_icon_name'), '')}
   />
 )
 
@@ -91,8 +94,8 @@ function cycleProfiles() {
 }
 export const PowerProfilesIndicator = () => (
   <button
-    tooltipText={createBinding(profiles, 'active_profile')}
-    iconName={createBinding(profiles, 'iconName')}
+    tooltipText={binding(fromConnectable(profiles, 'active_profile'), '')}
+    iconName={binding(fromConnectable(profiles, 'iconName'), '')}
     cssClasses={['panel-button', 'flat', 'circular']}
     onClicked={cycleProfiles}
   />
@@ -162,8 +165,8 @@ const { wifi } = AstalNetwork.get_default()
 export const WifiIndicator = () => (
   <IconIndicator
     isMaterial={false}
-    tooltip={createBinding(wifi, 'ssid').as(String)}
-    icon={createBinding(wifi, 'iconName')}
+    tooltip={bindAs(fromConnectable(wifi, 'ssid'), s => String(s), '')}
+    icon={binding(fromConnectable(wifi, 'iconName'), '')}
   />
 )
 
@@ -188,6 +191,11 @@ export const DndIndicator = () => (
     visible={binding(isDndEnabled, false)}
   />
 )
+
+
+
+
+
 
 
 
