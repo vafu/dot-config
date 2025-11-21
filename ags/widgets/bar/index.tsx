@@ -10,6 +10,7 @@ import {
   EthIndicator,
   PowerProfilesIndicator,
   WifiIndicator,
+  MutedIndicator,
 } from './indicators'
 import { BluetoothStatus } from './bt_status'
 import { WindowTitle } from './windowtitle'
@@ -55,6 +56,7 @@ export default (gdkmonitor: Gdk.Monitor) => {
             <Tray />
             <PowerProfilesIndicator />
             <BluetoothStatus />
+            <MutedIndicator/>
             <EthIndicator />
             <WifiIndicator />
             <BatteryIndicator />
