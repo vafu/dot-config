@@ -1,5 +1,4 @@
-import { Gdk, Gtk } from 'astal/gtk4'
-import { Label } from 'astal/gtk4/widget'
+import { Gdk, Gtk, Widget } from 'ags/gtk4'
 import Adw from 'gi://Adw?version=1'
 import Pango from 'gi://Pango?version=1.0'
 import { binding } from 'rxbinding'
@@ -66,10 +65,12 @@ export const TabsCarousel = (props: { monitor: Gdk.Monitor } & WidgetProps) => {
 }
 
 const Tab = (tab: Tab) => (
-  <Label
-    label={binding(tab.title)}
+  <Widget.Label
+    label={binding(tab.title, '')}
     ellipsize={Pango.EllipsizeMode.END}
     max_width_chars={50}
     cssName="carouseltab"
   />
 )
+
+

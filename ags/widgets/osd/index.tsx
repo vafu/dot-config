@@ -1,27 +1,25 @@
-import { App, Astal, Gdk } from 'astal/gtk4'
-import { Hidden, OnScreenProgress, State } from './OSD'
-import { binding, fromConnectable } from 'rxbinding'
+import App from 'ags/gtk4/app'
+import { Astal, Gdk } from 'ags/gtk4'
+import { Hidden, OnScreenProgress } from './OSD'
+import { binding, fromConnectable, asObservable } from 'rxbinding'
 import obtainWmService from 'services'
 import AstalWp from 'gi://AstalWp?version=0.1'
-import {
-  combineLatest,
-  delay,
-  map,
-  merge,
-  Observable,
-  of,
-  switchMap,
-} from 'rxjs'
-import { Binding } from 'astal'
+import { catchError, combineLatest, delay, map, merge, NEVER, of, switchMap } from 'rxjs'
+import { Accessor } from 'gnim'
+import { logNext } from 'commons/rx'
 const service = await obtainWmService('brightness')
 const brightness = fromConnectable(service, 'screen').pipe(
   map(b => ({
-    type: 'level',
+    type: 'level' as const,
     value: b,
     iconName: 'display-brightness-symbolic',
   })),
+  catchError(err => {
+    console.error('Brightness error:', err)
+    return NEVER
+  }),
 )
-const audio = fromConnectable(AstalWp.get_default(), 'default_speaker').pipe(
+const audio = fromConnectable(AstalWp.get_default()!!, 'default_speaker').pipe(
   switchMap(s =>
     combineLatest([
       fromConnectable(s, 'volume'),
@@ -29,13 +27,13 @@ const audio = fromConnectable(AstalWp.get_default(), 'default_speaker').pipe(
     ]),
   ),
   map(([volume, icon]) => ({
-    type: 'level',
+    type: 'level' as const,
     value: volume,
     iconName: icon,
   })),
 )
 
-export default function OSD(monitor: Binding<Gdk.Monitor>) {
+export default function OSD(monitor: Accessor<Gdk.Monitor>) {
   const source = merge(audio, brightness).pipe(
     switchMap(s => merge(of(s), of(Hidden).pipe(delay(1000)))),
   )
@@ -45,10 +43,19 @@ export default function OSD(monitor: Binding<Gdk.Monitor>) {
     map(s => s != Hidden),
   )
 
+  const monitorBinding = binding(
+    asObservable(monitor).pipe(
+      logNext(m => `OSD monitor: ${m ? m.constructor.name : 'null'}`),
+    ),
+    monitor.get(),
+  )
+
+  console.log('OSD: Creating window with monitor:', monitor.get())
+
   return (
     <window
-      visible={binding(visible)}
-      gdkmonitor={monitor}
+      visible={binding(visible, false)}
+      gdkmonitor={monitorBinding}
       cssClasses={['OSD']}
       name={'OSD'}
       application={App}
@@ -61,3 +68,10 @@ export default function OSD(monitor: Binding<Gdk.Monitor>) {
     </window>
   )
 }
+
+
+
+
+
+
+

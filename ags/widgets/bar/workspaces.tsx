@@ -2,7 +2,7 @@ import { range } from 'commons'
 import Gtk from 'gi://Gtk?version=4.0'
 import { binding } from 'rxbinding'
 import { combineLatest, map, of, startWith, switchMap } from 'rxjs'
-import { Gdk } from 'astal/gtk4'
+import { Gdk } from 'ags/gtk4'
 import obtainWmService from 'services'
 
 const workspaceService = await obtainWmService('workspace')
@@ -49,7 +49,7 @@ const workspaces = (props: { monitor: Gdk.Monitor }) =>
         valign={Gtk.Align.CENTER}
         halign={Gtk.Align.CENTER}
         label={`${ws}`}
-        cssClasses={binding(combineLatest(classes))}
+        cssClasses={binding(combineLatest(classes), [])}
       />
     )
   })

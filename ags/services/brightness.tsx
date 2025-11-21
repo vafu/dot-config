@@ -1,12 +1,12 @@
-import GObject, { register, property } from 'astal/gobject'
-import { monitorFile, readFileAsync } from 'astal/file'
-import { exec, execAsync } from 'astal/process'
+import { Object as GObject, register, getter, setter } from 'gnim/gobject'
+import { monitorFile, readFileAsync } from 'ags/file'
+import { exec, execAsync } from 'ags/process'
 
 const get = (args: string) => Number(exec(`brightnessctl ${args}`))
 const screen = exec(`bash -c "ls -w1 /sys/class/backlight | head -1"`)
 
-@register({ GTypeName: 'Brightness' })
-export default class Brightness extends GObject.Object {
+@register()
+export default class Brightness extends GObject {
   static instance: Brightness
   static get_default() {
     if (!this.instance) this.instance = new Brightness()
@@ -17,11 +17,12 @@ export default class Brightness extends GObject.Object {
   #screenMax = get('max')
   #screen = get('get') / (get('max') || 1)
 
-  @property(Number)
+  @getter(Number)
   get screen() {
     return this.#screen
   }
 
+  @setter(Number)
   set screen(percent) {
     if (percent < 0) percent = 0
 
@@ -42,3 +43,6 @@ export default class Brightness extends GObject.Object {
     })
   }
 }
+
+
+

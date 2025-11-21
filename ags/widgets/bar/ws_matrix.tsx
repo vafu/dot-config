@@ -1,12 +1,12 @@
-import { Binding, Gio } from 'astal'
-import { Gdk, Gtk } from 'astal/gtk4'
-import { Image, ImageProps } from 'astal/gtk4/widget'
+import Gio from 'gi://Gio?version=2.0'
+import { Gdk, Gtk } from 'ags/gtk4'
 import Adw from 'gi://Adw?version=1'
 import { bindAs, binding } from 'rxbinding'
 import { BehaviorSubject, Observable, Subscription } from 'rxjs'
 import obtainWmService from 'services'
 import { Workspace } from 'services/wm/types'
 import { WidgetProps } from 'widgets'
+import { Accessor, createRoot } from 'gnim'
 
 const workspaceService = await obtainWmService('workspace')
 
@@ -28,7 +28,7 @@ export const WSMatrix = (props: { monitor: Gdk.Monitor } & WidgetProps) => {
     if (!!sub) sub.unsubscribe()
 
     while (carousel.get_n_pages() > 0) {
-      carousel.remove(carousel.get_first_child())
+      carousel.remove(carousel.get_first_child()!!)
     }
 
     workspaces.forEach(ws => {
@@ -69,17 +69,15 @@ const WSCarousel = (ws: Workspace) => {
   ws.tabs.subscribe(tabs => {
     if (!!selectedtabsub) selectedtabsub.unsubscribe()
     while (carousel.get_n_pages() > 0) {
-      carousel.remove(carousel.get_first_child())
+      carousel.remove(carousel.get_first_child()!!)
     }
 
     tabs.forEach(tab => {
       const subject = new BehaviorSubject(false)
-      const tabView = (
-        <TintedIcon
-          tinted={binding(subject)}
-          fileOrIcon={tab.icon}
-        />
-      )
+      const tabView = TintedIcon({
+        tinted: binding(subject, false),
+        fileOrIcon: tab.icon,
+      })
       tabView['tabId'] = tab.tabId
       tabView['subject'] = subject
       carousel.append(tabView)
@@ -106,8 +104,7 @@ const WSCarousel = (ws: Workspace) => {
         hexpand={true}
         vexpand={true}
         transitionType={Gtk.RevealerTransitionType.CROSSFADE}
-        revealChild={bindAs(ws.active, a => !a)}
-        type="overlay"
+        revealChild={bindAs(ws.active, a => !a, true)}
       >
         <box hexpand={true} vexpand={true} css_classes={['tint']} />
       </revealer>
@@ -117,11 +114,15 @@ const WSCarousel = (ws: Workspace) => {
 }
 
 const TintedIcon = (
-  props: ImageProps & { tinted: Binding<boolean> | boolean, fileOrIcon: Observable<string> },
+  props: Partial<Gtk.Image.ConstructorProps & {
+    tinted: Accessor<boolean> | boolean
+    fileOrIcon: Observable<string>
+  }>,
 ) => {
-  const image = Image(props)
+  const { tinted, fileOrIcon, children, ...imageProps } = props 
+  const image = new Gtk.Image(imageProps)
 
-  props.fileOrIcon.subscribe(p => {
+  fileOrIcon.subscribe(p => {
     const file = Gio.file_new_for_path(p)
     if (file.query_exists(null)) {
       image.set_from_file(p)
@@ -130,18 +131,20 @@ const TintedIcon = (
     }
   })
 
-  return (
-    <overlay>
-      <revealer
-        hexpand={true}
-        vexpand={true}
-        transitionType={Gtk.RevealerTransitionType.CROSSFADE}
-        revealChild={props.tinted}
-        type="overlay"
-      >
-        <box hexpand={true} vexpand={true} css_classes={['tint']} />
-      </revealer>
-      {image}
-    </overlay>
-  ) as Gtk.Overlay
+  const overlay = new Gtk.Overlay()
+  const revealer = createRoot(() => (
+    <revealer
+      hexpand={true}
+      vexpand={true}
+      transitionType={Gtk.RevealerTransitionType.CROSSFADE}
+      revealChild={tinted}
+    >
+      <box hexpand={true} vexpand={true} css_classes={['tint']} />
+    </revealer>
+  )) as Gtk.Revealer
+
+  overlay.add_overlay(revealer)
+  overlay.set_child(image)
+
+  return overlay
 }

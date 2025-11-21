@@ -1,12 +1,9 @@
-import {
-  AstalIO,
-  execAsync,
-  Gio,
-  GLib,
-  readFileAsync,
-  writeFileAsync,
-} from 'astal'
-import { App } from 'astal/gtk4'
+import { execAsync } from 'ags/process'
+import { readFileAsync, writeFileAsync } from 'ags/file'
+import Gio from 'gi://Gio?version=2.0'
+import GLib from 'gi://GLib?version=2.0'
+import App from 'ags/gtk4/app'
+import AstalIO from 'gi://AstalIO?version=0.1'
 
 const sass_input = `${GLib.get_tmp_dir()}/tmp.scss`
 const sass = `${GLib.get_tmp_dir()}/compiled.css`

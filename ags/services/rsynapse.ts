@@ -1,5 +1,6 @@
-import { GLib, GObject } from 'astal'
-import Gio from 'gi://Gio'
+import GLib from 'gi://GLib?version=2.0'
+import GObject from 'gi://GObject?version=2.0'
+import Gio from 'gi://Gio?version=2.0'
 import { BehaviorSubject, Observable } from 'rxjs'
 import {
   distinctUntilChanged,

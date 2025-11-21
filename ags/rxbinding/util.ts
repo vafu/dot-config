@@ -1,4 +1,6 @@
-import { Gio, monitorFile, readFileAsync, subprocess } from 'astal'
+import Gio from 'gi://Gio?version=2.0'
+import { monitorFile, readFileAsync } from 'ags/file'
+import { subprocess } from 'ags/process'
 import {
     defer,
     EMPTY,

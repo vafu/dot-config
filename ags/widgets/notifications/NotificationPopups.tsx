@@ -1,8 +1,9 @@
-import { Astal, Gtk, Gdk, App } from 'astal/gtk4'
+import { Astal, Gtk, Gdk, App } from 'ags/gtk4'
 import Notifd from 'gi://AstalNotifd'
 import Notification from './Notification'
-import { type Subscribable } from 'astal/binding'
-import { Variable, bind, timeout } from 'astal'
+import { type Subscribable } from 'astal'
+import { Variable, bind } from 'astal'
+import { timeout } from 'ags/time'
 
 // see comment below in constructor
 const TIMEOUT_DELAY = 5000

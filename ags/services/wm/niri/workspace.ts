@@ -1,4 +1,4 @@
-import { Gdk } from 'astal/gtk4'
+import Gdk from 'gi://Gdk?version=4.0'
 import {
   combineLatest,
   distinctUntilChanged,
@@ -14,7 +14,7 @@ import { Tab, Window, Workspace, WorkspaceService } from '../types'
 import AstalNiri from 'gi://AstalNiri?version=0.1'
 import { fromConnectable } from 'rxbinding'
 import { mapToMonitor } from './monitors'
-import { GObject } from 'astal'
+import GObject from 'gi://GObject?version=2.0'
 import { clientToWindow } from './window'
 
 const niri = AstalNiri.get_default()
@@ -169,3 +169,5 @@ class NiriWorkspace extends GObject.Object implements Workspace {
 }
 
 export const workspaceService: WorkspaceService = new NiriWorkspaceService()
+
+

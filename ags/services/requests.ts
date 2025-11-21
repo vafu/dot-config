@@ -28,9 +28,8 @@ export function requestsFor<T extends Request>(
   )
 }
 
-export function handleRequest(req: string, handler: (response: any) => void) {
-  const split = req.split(' ')
-  const args = split.splice(1)
+export function handleRequest(argv: string[], handler: (response: any) => void) {
+  const [command, ...args] = argv
   const dyn = {}
 
   for (let i = 0; i < args.length; i++) {
@@ -39,7 +38,7 @@ export function handleRequest(req: string, handler: (response: any) => void) {
     }
   }
 
-  const request = { command: split[0], ...dyn }
+  const request = { command, ...dyn }
 
   responses
     .pipe(
@@ -67,3 +66,4 @@ function parseStringToValue(input: string): number | boolean | string {
 
   return input
 }
+

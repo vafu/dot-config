@@ -1,4 +1,5 @@
-import { App, Gdk, Gtk } from 'astal/gtk4'
+import app from 'ags/gtk4/app'
+import { Gdk, Gtk } from 'ags/gtk4'
 import Adw from 'gi://Adw?version=1'
 import Bar from 'widgets/bar'
 import style from './style/style'
@@ -12,10 +13,12 @@ import obtainWmService from 'services'
 import { bindCommands } from 'commands'
 import { MonitorService } from 'services/wm/types'
 import { getPomodoroService } from 'services/pomodoro'
-import { execAsync } from 'astal'
-import { distinctUntilChanged, map, shareReplay } from 'rxjs'
+import { execAsync } from 'ags/process'
+import { distinctUntilChanged, first, map, shareReplay } from 'rxjs'
+import { createRoot } from 'gnim'
+import GObject from 'ags/gobject'
 
-App.start({
+app.start({
   css: style,
   requestHandler: handleRequest,
   main() {
@@ -26,15 +29,19 @@ App.start({
     obtainWmService('monitor').then(ms => {
       setupPomodoro()
       setupForMonitor(ms, Bar)
-      Rsynapse(binding(ms.activeMonitor))
-      OSD(binding(ms.activeMonitor))
+
+      // Wait for first monitor emission to get initial value
+      ms.activeMonitor.pipe(first()).subscribe(initialMonitor => {
+        OSD(binding(ms.activeMonitor, initialMonitor))
+        Rsynapse(binding(ms.activeMonitor, initialMonitor))
+      })
     })
   },
 })
 
 function setupForMonitor(
   ms: MonitorService,
-  widgetFactory: (m: Gdk.Monitor) => Gtk.Widget,
+  widgetFactory: (m: Gdk.Monitor) => GObject.Object,
 ) {
   const mmap = new Map<Gdk.Monitor, Gtk.Window>()
   ms.monitors.pipe(diffs()).subscribe(monitors => {
@@ -46,7 +53,9 @@ function setupForMonitor(
       }
     })
     monitors.added.forEach(m => {
-      mmap.set(m, widgetFactory(m) as Gtk.Window)
+      createRoot(() => {
+        mmap.set(m, widgetFactory(m) as Gtk.Window)
+      })
     })
   })
 }

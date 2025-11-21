@@ -19,7 +19,7 @@ export function PowerProfileQuicktoggle() {
       iconName={bind(p, 'iconName')}
       label={bind(p, 'active_profile')}
       onClicked={() => cycleProfiles()}
-      setup={(self) => {
+      $={(self) => {
         subscribeTo(self, fromConnectable(p, 'active_profile'), (profile) => {
           profiles.forEach((p) => self.remove_css_class(p.profile))
           self.add_css_class(profile)

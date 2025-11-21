@@ -1,8 +1,9 @@
 import Gtk from 'gi://Gtk?version=4.0'
 import { Observable, Subscription } from 'rxjs'
-import { Gdk } from 'astal/gtk4'
+import { Gdk } from 'ags/gtk4'
 import obtainWmService from 'services'
-import { Gio, GObject } from 'astal'
+import Gio from 'gi://Gio?version=2.0'
+import GObject from 'gi://GObject?version=2.0'
 import { Workspace } from 'services/wm/types'
 
 const workspaceService = await obtainWmService('workspace')

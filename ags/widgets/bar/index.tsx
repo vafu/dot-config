@@ -1,4 +1,4 @@
-import { Astal, Gdk, Gtk } from 'astal/gtk4'
+import { Astal, Gdk, Gtk } from 'ags/gtk4'
 import { MPRISWidget } from './mpris'
 import { PomodoroWidget } from './pomodoro'
 import { WSMatrix } from './ws_matrix'
@@ -31,21 +31,26 @@ export default (gdkmonitor: Gdk.Monitor) => {
     >
       <centerbox>
         {/** left **/}
-        <box>
+        <box $type="start">
           <SysStats cssClasses={['barblock']} />
           <PomodoroWidget cssClasses={['barblock']} />
           <MPRISWidget cssClasses={['barblock']} />
         </box>
 
         {/** center **/}
-        <box cssClasses={['barblock']} hexpand={true} homogeneous={true}>
+        <box
+          cssClasses={['barblock']}
+          hexpand={true}
+          homogeneous={true}
+          $type="center"
+        >
           <WSMatrix monitor={gdkmonitor} />
           <WindowTitle />
           <box />
         </box>
 
         {/** right **/}
-        <box>
+        <box $type="end">
           <box cssClasses={['barblock']}>
             <Tray />
             <PowerProfilesIndicator />

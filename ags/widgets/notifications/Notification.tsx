@@ -1,5 +1,5 @@
 import { GLib } from "astal"
-import { Gtk, Astal, Widget } from "astal/gtk4"
+import { Gtk, Astal, Widget } from 'ags/gtk4'
 import Notifd from "gi://AstalNotifd"
 
 // const isIcon = (icon: string) =>
@@ -35,7 +35,7 @@ export default function Notification(props: Props) {
 
     return <box
         cssClasses={["Notification", "${urgency(n)}"]}
-        setup={setup}
+        $={setup}
         onHoverLeave={onHoverLost}>
         <box vertical>
             <box cssClasses={["header"]}>

@@ -62,15 +62,15 @@ export const MPRISWidget = (props: WidgetProps) => {
 
   return (
     <box
-      visible={bindAs(metadata, m => m.length > 0)}
+      visible={bindAs(metadata, m => m.length > 0, false)}
       cssClasses={(props.cssClasses ?? []).concat(['mpris-widget'])}
     >
       <label
         ellipsize={Pango.EllipsizeMode.MIDDLE}
         max_width_chars={30}
-        label={binding(metadata)}
-        tooltipText={binding(metadata)}
-        cssClasses={bindAs(playerStateCss, c => [c])}
+        label={binding(metadata, '')}
+        tooltipText={binding(metadata, '')}
+        cssClasses={bindAs(playerStateCss, c => [c], [])}
       />
     </box>
   )

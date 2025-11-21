@@ -1,4 +1,4 @@
-import { Gio } from "astal";
+import Gio from 'gi://Gio?version=2.0'
 import { catchError, Observable, share, shareReplay } from "rxjs";
 
 type State = 'pomodoro' | 'short-break' | 'long-break' | 'none'

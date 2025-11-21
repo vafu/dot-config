@@ -1,5 +1,6 @@
-import { GObject, timeout } from 'astal'
-import { astalify, Gdk, Gtk } from 'astal/gtk4'
+import GObject from 'gi://GObject?version=2.0'
+import { timeout } from 'ags/time'
+import { Gdk, Gtk } from 'ags/gtk4'
 import cairo from 'gi://cairo?version=1.0'
 
 type Orientation = 'horizontal' | 'vertical'
@@ -68,12 +69,15 @@ export class LevelIndicatorWidget extends Gtk.Overlay {
   private _levelView = new Gtk.DrawingArea()
   // - Constructor -
   constructor(props: Partial<LevelIndicatorProps> = {}) {
-    super(props)
+    // Extract custom props that don't belong to Gtk.Overlay
+    const { level, min, max, stages, style, ...overlayProps } = props
+    super(overlayProps)
 
     // Set initial values from props or defaults using the setters
-    this.level = props.level ?? 0
-    this.min = props.min ?? 0
-    this.max = props.max ?? 100
+    this.level = level ?? 0
+    this.min = min ?? 0
+    this.max = max ?? 0
+    if (stages) this.stages = stages
 
     this._trackView.add_css_class('track')
     this._levelView.add_css_class('level')
@@ -87,6 +91,7 @@ export class LevelIndicatorWidget extends Gtk.Overlay {
       trackColor: this._trackView.get_color(),
       levelColor: this._levelView.get_color(),
       curveDirection: 'end',
+      ...(style || {})
     }
     this.add_css_class(this._style.style)
     this.add_overlay(this._trackView)
@@ -353,7 +358,5 @@ export class LevelIndicatorWidget extends Gtk.Overlay {
     }
   }
 }
-export const LevelIndicator = astalify<
-  LevelIndicatorWidget,
-  LevelIndicatorProps
->(LevelIndicatorWidget)
+// In AGS v3, custom GObject widgets can be used directly without astalify
+export const LevelIndicator = LevelIndicatorWidget

@@ -1,17 +1,11 @@
-import { astalify, Gtk } from 'astal/gtk4'
-import { type } from 'astal/gtk4/astalify'
+import { Gtk } from 'ags/gtk4'
+// Type utilities moved to ags/gtk4
 
 export * from './adw'
 
-export const SearchEntry = astalify<
-  Gtk.SearchEntry,
-  Gtk.SearchEntry.ConstructorProps
->(Gtk.SearchEntry)
-
-export const ToggleButton = astalify<
-  Gtk.ToggleButton,
-  Gtk.ToggleButton.ConstructorProps
->(Gtk.ToggleButton)
+// In AGS v3, widgets can be used directly in JSX without astalify
+export const SearchEntry = Gtk.SearchEntry
+export const ToggleButton = Gtk.ToggleButton
 
 export type WidgetProps = {
   cssClasses?: string[]

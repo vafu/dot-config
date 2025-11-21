@@ -1,6 +1,7 @@
-import { Gtk } from 'astal/gtk4'
+import { Gtk } from 'ags/gtk4'
 import { bindAs, bindProp } from 'rxbinding'
 import { filter, Observable, shareReplay } from 'rxjs'
+import { createRoot } from 'gnim/jsx/scope'
 
 export type Level = {
   type: 'level'
@@ -20,22 +21,22 @@ export function OnScreenProgress({ states }: { states: Observable<State> }) {
 
   const levels = state.pipe(filter(v => v.type == 'level')) as Observable<Level>
 
-  return (
+  return createRoot(() => (
     <revealer
-      revealChild={bindAs(state, s => s != Hidden)}
+      revealChild={bindAs(state, s => s != Hidden, false)}
       transitionType={Gtk.RevealerTransitionType.CROSSFADE}
     >
       <box cssClasses={['OSD']} orientation={Gtk.Orientation.VERTICAL}>
         <image
-          iconName={bindProp(levels, 'iconName')}
+          iconName={bindProp(levels, 'iconName', '')}
           iconSize={Gtk.IconSize.LARGE}
         />
         <levelbar
           valign={Gtk.Align.CENTER}
           widthRequest={100}
-          value={bindProp(levels, 'value')}
+          value={bindProp(levels, 'value', 0)}
         />
       </box>
     </revealer>
-  )
+  ))
 }

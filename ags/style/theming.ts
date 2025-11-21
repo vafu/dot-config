@@ -1,5 +1,8 @@
-import { execAsync, Gio, writeFile, writeFileAsync } from 'astal'
-import { App, Gtk } from 'astal/gtk4'
+import { execAsync } from 'ags/process'
+import { writeFile, writeFileAsync } from 'ags/file'
+import Gio from 'gi://Gio?version=2.0'
+import App from 'ags/gtk4/app'
+import { Gtk } from 'ags/gtk4'
 import { distinctUntilChanged, map, shareReplay, startWith } from 'rxjs'
 import { getPomodoroService } from 'services/pomodoro'
 const settings = Gio.Settings.new('org.gnome.desktop.interface')
@@ -72,3 +75,5 @@ async function updateGtkTheme(colorScheme: string) {
   )
   await execAsync(`bash scripts/legacy_alacritty.sh --${style}`)
 }
+
+

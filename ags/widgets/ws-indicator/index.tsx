@@ -1,4 +1,4 @@
-import { Astal, Gdk } from 'astal/gtk4'
+import { Astal, Gdk } from 'ags/gtk4'
 import { WSIndicator } from './ws'
 import obtainWmService from 'services'
 import { delay, merge, of, shareReplay, switchMap } from 'rxjs'

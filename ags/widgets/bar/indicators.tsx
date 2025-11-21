@@ -1,5 +1,6 @@
-import { bind, execAsync, GLib, Variable } from 'astal'
-import { DualIndicator, IconIndicator, PanelButton } from './panel-widgets'
+import { execAsync } from 'ags/process'
+import GLib from 'gi://GLib?version=2.0'
+import { DualIndicator, IconIndicator } from './panel-widgets'
 import { interval, map, shareReplay, startWith } from 'rxjs'
 import AstalBattery from 'gi://AstalBattery?version=0.1'
 import AstalNetwork from 'gi://AstalNetwork?version=0.1'
@@ -15,15 +16,11 @@ import {
 } from 'rxbinding'
 import { MaterialIcon } from 'widgets/materialicon'
 import { WidgetProps } from 'widgets'
+import { createPoll } from 'ags/time'
+import { createBinding } from 'gnim'
 
-const CPU = Variable('0').poll(
-  3000,
-  async () => await execAsync('bash scripts/cpu.sh'),
-)
-const RAM = Variable('0').poll(
-  3000,
-  async () => await execAsync('bash scripts/ram.sh'),
-)
+const CPU = createPoll('0', 3000, 'bash scripts/cpu.sh')
+const RAM = createPoll('0', 3000, 'bash scripts/ram.sh')
 
 const stages = [
   { level: 0, class: 'normal' },
@@ -37,8 +34,8 @@ export const SysStats = (props: WidgetProps) => (
   <DualIndicator
     icon="memory"
     stages={stages}
-    left={CPU().as(v => parseInt(v))}
-    right={RAM().as(v => parseInt(v))}
+    left={CPU.as(v => parseInt(v))}
+    right={RAM.as(v => parseInt(v))}
     levelsVisible={true}
     cssClasses={props.cssClasses}
   />
@@ -50,22 +47,26 @@ const time = interval(1000).pipe(
   startWith(0),
   map(() => {
     const time = GLib.DateTime.new_now_local()
-    return {
-      clock: time.format(clockFormat),
-      date: time.format(dateFormat),
-    }
+    const clock = time.format(clockFormat)
+    const date = time.format(dateFormat)
+    if (!clock || !date) throw new Error('Failed to format time')
+    return { clock, date }
   }),
   shareReplay(1),
 )
 
 export const DateTime = (props: WidgetProps) => (
-  <PanelButton
-    tooltipText={bindAs(time, t => t.date)}
-    cssClasses={(props.cssClasses ?? []).concat(['flat', 'circular'])}
+  <button
+    tooltip_text={bindAs(time, t => t.date, '')}
+    cssClasses={(props.cssClasses ?? []).concat([
+      'panel-button',
+      'flat',
+      'circular',
+    ])}
     onClicked={() => execAsync(['swaync-client', '-t']).catch()}
   >
-    <label label={bindAs(time, t => t.clock)} />
-  </PanelButton>
+    <label label={bindAs(time, t => t.clock, '')} />
+  </button>
 )
 
 // Battery
@@ -73,8 +74,8 @@ const battery = AstalBattery.get_default()
 export const BatteryIndicator = () => (
   <IconIndicator
     isMaterial={false}
-    tooltip={bind(battery, 'percentage').as(String)}
-    icon={bind(battery, 'battery_icon_name')}
+    tooltip={createBinding(battery, 'percentage').as(String)}
+    icon={createBinding(battery, 'battery_icon_name')}
   />
 )
 
@@ -89,20 +90,21 @@ function cycleProfiles() {
   p.set_active_profile(profiles[(currentIdx + 1) % profiles.length].profile)
 }
 export const PowerProfilesIndicator = () => (
-  <PanelButton
-    tooltipText={bind(profiles, 'active_profile')}
-    iconName={bind(profiles, 'iconName')}
+  <button
+    tooltipText={createBinding(profiles, 'active_profile')}
+    iconName={createBinding(profiles, 'iconName')}
+    cssClasses={['panel-button', 'flat', 'circular']}
     onClicked={cycleProfiles}
   />
 )
 
 // Muted
 const isMuted = fromChain(
-  fromConnectable(AstalWp.get_default(), 'default_speaker'),
+  fromConnectable(AstalWp.get_default()!!, 'default_speaker'),
   'mute',
 )
 export const MutedIndicator = () => (
-  <image iconName="audio-volume-muted" visible={binding(isMuted)} />
+  <image iconName="audio-volume-muted" visible={binding(isMuted, false)} />
 )
 
 // ETH
@@ -149,9 +151,9 @@ const ethSpeed = fromChain(
 export const EthIndicator = () => (
   <IconIndicator
     isMaterial={false}
-    icon={binding(ethIcon)}
+    icon={binding(ethIcon, '')}
     tooltip={bindString(ethSpeed)}
-    visible={binding(ethEnabled)}
+    visible={binding(ethEnabled, false)}
   />
 )
 
@@ -160,8 +162,8 @@ const { wifi } = AstalNetwork.get_default()
 export const WifiIndicator = () => (
   <IconIndicator
     isMaterial={false}
-    tooltip={bind(wifi, 'ssid').as(String)}
-    icon={bind(wifi, 'iconName')}
+    tooltip={createBinding(wifi, 'ssid').as(String)}
+    icon={createBinding(wifi, 'iconName')}
   />
 )
 
@@ -183,6 +185,11 @@ export const DndIndicator = () => (
       fill: false,
       size: 24,
     }}
-    visible={binding(isDndEnabled)}
+    visible={binding(isDndEnabled, false)}
   />
 )
+
+
+
+
+

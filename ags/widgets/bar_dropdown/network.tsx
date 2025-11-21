@@ -41,8 +41,8 @@ export function NetworkQuicktoggle(
 ) {
   return (
     <Quicktoggle
-      enabled={binding(wifiEnabled)}
-      hasExtra={binding(wifiEnabled)}
+      enabled={binding(wifiEnabled, false)}
+      hasExtra={binding(wifiEnabled, false)}
       onClicked={() =>
         network.get_wifi().set_enabled(!network.get_wifi().get_enabled())
       }
@@ -51,7 +51,7 @@ export function NetworkQuicktoggle(
         openPage(NetworkPage())
       }}
       iconName={bind(network.wifi, 'iconName')}
-      label={binding(activeSsid)}
+      label={binding(activeSsid, '')}
     />
   )
 }
@@ -84,7 +84,7 @@ function List() {
                     ></ActionRow>
                   ))
               )
-            )
+            ), []
           )}
         </ListBox>
       </Adw.Clamp>
@@ -102,7 +102,7 @@ function NetworkPage() {
           titleWidget={
             <box>
               <image iconName={bind(network.wifi, 'iconName')} />
-              <label label={binding(activeSsid)} cssClasses={['title']} />
+              <label label={binding(activeSsid, '')} cssClasses={['title']} />
             </box>
           }
         />

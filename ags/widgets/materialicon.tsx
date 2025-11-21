@@ -1,6 +1,8 @@
-import { execAsync, Gio, GLib, GObject } from 'astal'
-import { Gtk } from 'astal/gtk4'
-import astalify from 'astal/gtk4/astalify'
+import { execAsync } from 'ags/process'
+import Gio from 'gi://Gio?version=2.0'
+import GLib from 'gi://GLib?version=2.0'
+import GObject from 'gi://GObject?version=2.0'
+import { Gtk } from 'ags/gtk4'
 import Soup from 'gi://Soup?version=3.0'
 
 const TINTED_CLASS_NAME = 'tinted'
@@ -35,8 +37,22 @@ class MaterialIconInternal extends Gtk.Image {
     )
   }
 
-  constructor(props: Partial<MaterialIconProps>) {
-    super(props)
+  constructor(props: Partial<MaterialIconProps> = {}) {
+    // Extract custom props that don't belong to Gtk.Image
+    // Also extract JSX special props like 'setup' and '$'
+    const { icon, tinted, style, setup, $, ...imageProps } = props as any
+    super(imageProps)
+    
+    // Initialize after parent constructor
+    if (icon) this.icon = icon
+    if (tinted !== undefined) this.tinted = tinted
+    if (style) this.style = style
+    
+    // Handle setup callback (AGS v2) or $ callback (AGS v3)
+    const setupFn = $ || setup
+    if (setupFn) {
+      setupFn(this)
+    }
   }
 
   _style: IconStyle = {
@@ -168,6 +184,4 @@ function iconFromStyle(name: string, style: IconStyle): string {
   return r
 }
 
-export const MaterialIcon = astalify<MaterialIconInternal, MaterialIconProps>(
-  MaterialIconInternal,
-)
+export const MaterialIcon = MaterialIconInternal

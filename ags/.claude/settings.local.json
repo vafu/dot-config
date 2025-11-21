@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tree:*)",
+      "Bash(ags quit:*)",
+      "Bash(ags run:*)",
+      "Bash(ags list:*)",
+      "Bash(npx tsc:*)",
+      "Bash(tsc:*)",
+      "Bash(brightnessctl get:*)",
+      "Bash(brightnessctl max:*)",
+      "Bash(brightnessctl set:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

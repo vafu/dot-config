@@ -1,4 +1,5 @@
-import { execAsync, Gio } from 'astal'
+import { execAsync } from 'ags/process'
+import Gio from 'gi://Gio?version=2.0'
 import { Quicktoggle } from './quicktoggle'
 import { bindAs } from 'rxbinding'
 import { Observable } from 'rxjs'
@@ -30,7 +31,7 @@ export function DarkLightQuicktoggle() {
     <Quicktoggle
       enabled={false}
       iconName={'night-light-symbolic'}
-      label={bindAs(dark, d => (d ? 'Dark' : 'Light'))}
+      label={bindAs(dark, d => (d ? 'Dark' : 'Light'), 'Light')}
       onClicked={() => toggle()}
     />
   )

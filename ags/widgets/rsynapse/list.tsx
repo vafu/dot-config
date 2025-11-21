@@ -1,10 +1,11 @@
-import { bind, Binding, Gio, GLib, GObject } from 'astal'
-import { App, Astal, Gdk, Gtk } from 'astal/gtk4'
+import { Accessor } from 'gnim'
+import Gio from 'gi://Gio?version=2.0'
+import App from 'ags/gtk4/app'
+import { Astal, Gdk, Gtk } from 'ags/gtk4'
 import Adw from 'gi://Adw?version=1'
-import GL from 'gi://GL?version=1.0'
-import { bindAs, binding } from 'rxbinding'
+import { binding } from 'rxbinding'
 import { getRsynapseService, RsynapseResult } from 'services/rsynapse'
-import { ActionRow, ListBox } from 'widgets/adw'
+import { ActionRow } from 'widgets/adw'
 import rsynapseUi, { RsynapseSearch } from 'widgets/rsynapse'
 
 const MAX_ITEMS = 10
@@ -13,7 +14,7 @@ const rsynapse = getRsynapseService()
 const items = new Gio.ListStore({ item_type: RsynapseResult.$gtype })
 export const selection = new Gtk.SingleSelection({ model: items })
 
-export function Rsynapse(monitor: Binding<Gdk.Monitor>) {
+export function Rsynapse(monitor: Accessor<Gdk.Monitor>) {
   selection.set_autoselect(true)
 
   const factory = new Gtk.SignalListItemFactory()
@@ -65,7 +66,7 @@ export function Rsynapse(monitor: Binding<Gdk.Monitor>) {
   return (
     <window
       gdkmonitor={monitor}
-      visible={binding(rsynapseUi.active)}
+      visible={binding(rsynapseUi.active, false)}
       application={App}
       layer={Astal.Layer.OVERLAY}
       exclusivity={Astal.Exclusivity.NORMAL}

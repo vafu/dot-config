@@ -1,6 +1,6 @@
 import Pango from 'gi://Pango?version=1.0'
 import { binding } from 'rxbinding'
-import { Gtk } from 'astal/gtk4'
+import { Gtk } from 'ags/gtk4'
 import obtainWmService from 'services'
 import { switchMap } from 'rxjs'
 import { WidgetProps } from 'widgets'
@@ -14,5 +14,5 @@ export const WindowTitle = (props: WidgetProps) => (
     halign={Gtk.Align.CENTER}
     maxWidthChars={50}
     cssClasses={(props.cssClasses ?? []).concat(['window-title'])}
-    ellipsize={Pango.EllipsizeMode.END} label={binding(title)} />
+    ellipsize={Pango.EllipsizeMode.END} label={binding(title, '')} />
 )

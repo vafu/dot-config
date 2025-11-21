@@ -1,7 +1,7 @@
 {
-  "name": "astal-shell",
-  "dependencies": {
-    "astal": "/usr/share/astal/gjs/",
+ "dependencies": {
+    "ags": "*",
+    "gnim": "*",
     "rxjs": "^7.8.2",
     "rxjs-etc": "^10.6.2"
   },

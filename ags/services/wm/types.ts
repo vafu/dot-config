@@ -1,5 +1,5 @@
-import { GObject } from 'astal'
-import { Gdk } from 'astal/gtk4'
+import GObject from 'gi://GObject?version=2.0'
+import Gdk from 'gi://Gdk?version=4.0'
 import { Observable } from 'rxjs'
 
 export interface WindowService {
@@ -51,3 +51,4 @@ export interface MonitorService {
   monitors: Observable<Gdk.Monitor[]>
   activeMonitor: Observable<Gdk.Monitor>
 }
+

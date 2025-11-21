@@ -1,6 +1,7 @@
 import AstalHyprland from 'gi://AstalHyprland?version=0.1'
 import { MonitorService } from '../types'
-import { Gdk, App } from 'astal/gtk4'
+import { App } from 'ags/gtk4'
+import Gdk from 'gi://Gdk?version=4.0'
 import { Observable, map, retry } from 'rxjs'
 import { fromConnectable } from 'rxbinding'
 

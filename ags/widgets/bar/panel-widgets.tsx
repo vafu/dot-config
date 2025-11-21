@@ -1,30 +1,32 @@
-import { Binding } from 'astal'
-import { Button, ButtonProps, MenuButton } from 'astal/gtk4/widget'
+import { Accessor } from 'gnim'
+import { Gtk } from 'ags/gtk4'
 import { MaterialIcon } from 'widgets/materialicon'
-import { Gtk } from 'astal/gtk4'
 import { LevelIndicator, RenderStyle } from 'widgets/circularstatus'
 import { BehaviorSubject, combineLatest, map, of, tap } from 'rxjs'
 import { binding, fromConnectable } from 'rxbinding'
 import { WidgetProps } from 'widgets'
+import GObject from 'gnim/gobject'
 
-type PanelButtonProps = ButtonProps & WidgetProps
-export const PanelButton = (props: PanelButtonProps, child: Gtk.Widget) =>
-  Button({
-    setup: self => {
-      self.add_css_class('panel-button')
-      self.add_css_class('flat')
-      self.add_css_class('circular')
-    },
-    child: child,
-    ...props,
-  })
+type PanelButtonProps = Gtk.Button.ConstructorProps & WidgetProps
+export const PanelButton = (props: PanelButtonProps) => {
+  const { cssClasses, child, ...buttonProps } = props
+  const button = new Gtk.Button(buttonProps)
+  button.add_css_class('panel-button')
+  button.add_css_class('flat')
+  button.add_css_class('circular')
+  cssClasses?.forEach(c => button.add_css_class(c))
+  button.set_child(child as Gtk.Widget)
+  return button
+}
 
-export const PanelButtonGroup = (props: { children: Gtk.Widget[] }) => {
+export const PanelButtonGroup = (props: { children: GObject.Object[] }) => {
   const widgets = props.children
   widgets.forEach(b => {
-    b.add_css_class('flat')
-    b.add_css_class('circular')
-    b.add_css_class('panel-widget')
+    if (b instanceof Gtk.Widget) {
+      b.add_css_class('flat')
+      b.add_css_class('circular')
+      b.add_css_class('panel-widget')
+    }
   })
 
   const hovered = new BehaviorSubject(false)
@@ -46,26 +48,23 @@ export const PanelButtonGroup = (props: { children: Gtk.Widget[] }) => {
 
   const main = (
     <box cssClasses={['button-subgroup-main']}>{widgets.shift()}</box>
-  )
+  ) as Gtk.Widget
 
   const group = (
     <revealer
       transition_type={Gtk.RevealerTransitionType.SLIDE_RIGHT}
-      revealChild={binding(revealed)}
+      revealChild={binding(revealed, false)}
     >
       <box cssClasses={['button-subgroup']}>{widgets}</box>
     </revealer>
   ) as Gtk.Revealer
 
   return (
-    <box
-      onHoverEnter={() => {
-        hovered.next(true)
-      }}
-      onHoverLeave={() => {
-        hovered.next(false)
-      }}
-    >
+    <box>
+      <Gtk.EventControllerMotion
+        onEnter={() => hovered.next(true)}
+        onLeave={() => hovered.next(false)}
+      />
       {group}
       {main}
     </box>
@@ -84,10 +83,10 @@ const ARC_STYLE: Partial<RenderStyle> = {
 
 export type IconIndicatorProps = {
   isMaterial?: boolean
-  icon: Binding<string> | string
-  tinted?: Binding<boolean> | boolean
-  tooltip?: Binding<string> | string
-  visible?: Binding<boolean> | boolean
+  icon: Accessor<string> | string
+  tinted?: Accessor<boolean> | boolean
+  tooltip?: Accessor<string> | string
+  visible?: Accessor<boolean> | boolean
 } & WidgetProps
 
 export const IconIndicator = (props: IconIndicatorProps) => {
@@ -97,7 +96,7 @@ export const IconIndicator = (props: IconIndicatorProps) => {
       tinted={props.tinted ?? false}
       tooltipText={props.tooltip ?? props.icon}
       visible={props.visible ?? true}
-      setup={w => {
+      $={w => {
         props.cssClasses?.forEach(c => w.add_css_class(c))
         w.add_css_class('panel-widget')
       }}
@@ -107,7 +106,7 @@ export const IconIndicator = (props: IconIndicatorProps) => {
       iconName={props.icon}
       tooltipText={props.tooltip ?? props.icon}
       visible={props.visible ?? true}
-      setup={w => {
+      $={w => {
         props.cssClasses?.forEach(c => w.add_css_class(c))
         w.add_css_class('panel-widget')
       }}
@@ -116,15 +115,15 @@ export const IconIndicator = (props: IconIndicatorProps) => {
 }
 
 const SlimIconIndicator = (props: IconIndicatorProps) => {
-  const iconIndicator = IconIndicator(props)
+  const iconIndicator = IconIndicator(props) as Gtk.Widget
   iconIndicator.set_css_classes([])
   return iconIndicator
 }
 
 export const SingleIndicator = (
   props: {
-    levelVisible?: Binding<boolean> | boolean
-    level: Binding<number> | number
+    levelVisible?: Accessor<boolean> | boolean
+    level: Accessor<number> | number
     stages: { level: number; class: string }[]
   } & IconIndicatorProps,
 ) => (
@@ -141,9 +140,9 @@ export const SingleIndicator = (
 
 export const DualIndicator = (
   props: {
-    left: Binding<number> | number
-    levelsVisible: Binding<boolean> | boolean
-    right: Binding<number> | number
+    left: Accessor<number> | number
+    levelsVisible: Accessor<boolean> | boolean
+    right: Accessor<number> | number
     stages: { level: number; class: string }[]
   } & IconIndicatorProps,
 ) => (
@@ -165,3 +164,4 @@ export const DualIndicator = (
     />
   </box>
 )
+

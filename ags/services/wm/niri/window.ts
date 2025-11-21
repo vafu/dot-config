@@ -14,8 +14,8 @@ import {
   shareReplay,
   switchMap,
 } from 'rxjs'
-import app from 'astal/gtk4/app'
-import { GLib } from 'astal'
+import app from 'ags/gtk4/app'
+import GLib from 'gi://GLib?version=2.0'
 
 const niri = AstalNiri.get_default()
 const apps = AstalApps.Apps.new()
@@ -95,3 +95,4 @@ export const windowService: WindowService = {
   active: activeWindow,
   getFor: getFor,
 }
+

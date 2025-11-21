@@ -1,9 +1,9 @@
-import { Gtk } from 'astal/gtk4'
+import { Gtk } from 'ags/gtk4'
 import { NetworkQuicktoggle } from './network'
 import { PowerProfileQuicktoggle } from './power_profile'
 import { BluetoothQuicktoggle } from './bluetooth'
 import Adw from 'gi://Adw?version=1'
-import { execAsync } from 'astal'
+import { execAsync } from 'ags/process'
 import { DarkLightQuicktoggle } from './darklight'
 
 export const QuicktoggleMenu = () => {
