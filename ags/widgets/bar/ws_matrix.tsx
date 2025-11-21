@@ -105,6 +105,7 @@ const WSCarousel = (ws: Workspace) => {
         vexpand={true}
         transitionType={Gtk.RevealerTransitionType.CROSSFADE}
         revealChild={bindAs(ws.active, a => !a, true)}
+        $type='overlay'
       >
         <box hexpand={true} vexpand={true} css_classes={['tint']} />
       </revealer>
@@ -119,10 +120,10 @@ const TintedIcon = (
     fileOrIcon: Observable<string>
   }>,
 ) => {
-  const { tinted, fileOrIcon, children, ...imageProps } = props 
+  const { tinted, fileOrIcon, ...imageProps } = props 
   const image = new Gtk.Image(imageProps)
 
-  fileOrIcon.subscribe(p => {
+  fileOrIcon!!.subscribe(p => {
     const file = Gio.file_new_for_path(p)
     if (file.query_exists(null)) {
       image.set_from_file(p)
