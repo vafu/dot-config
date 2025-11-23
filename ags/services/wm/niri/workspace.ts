@@ -5,6 +5,7 @@ import {
   filter,
   map,
   Observable,
+  scan,
   shareReplay,
   startWith,
   switchMap,
@@ -99,34 +100,53 @@ class NiriWorkspace extends GObject.Object implements Workspace {
       shareReplay(1),
     )
 
-    this.tabs = thisWs.pipe(
-      switchMap(w => fromConnectable(w, 'windows')),
-      filter(a => a.length > 0),
-      distinctUntilChanged((p, c) => p.map(w => w.id) == c.map(w => w.id)),
-      switchMap(a =>
+    // Get monitor width for this workspace
+    // TODO: Fix get_modes() pointer issue - hardcoding to 1920 for now
+    const monitorWidth = thisWs.pipe(
+      map(ws => 1920), // Hardcoded for now due to GJS pointer conversion issues
+      distinctUntilChanged(),
+      shareReplay(1),
+    )
+
+    this.tabs = combineLatest([
+      thisWs.pipe(
+        switchMap(w => fromConnectable(w, 'windows')),
+        filter(a => a.length > 0),
+        distinctUntilChanged((p, c) => p.map(w => w.id) == c.map(w => w.id)),
+      ),
+      monitorWidth,
+    ]).pipe(
+      switchMap(([windows, mWidth]) =>
         zip(
-          a.map(w =>
+          windows.map(w =>
             fromConnectable(w, 'layout').pipe(
-              map(l => l.pos_in_scrolling_layout[0]),
-              distinctUntilChanged(),
-              map(pos => ({
+              map(l => ({
+                col_idx: l.pos_in_scrolling_layout[0],
+                tile_width: l.tile_size[0],
                 window: w,
-                col_idx: pos,
               })),
+              distinctUntilChanged(
+                (p, c) =>
+                  p.col_idx == c.col_idx && p.tile_width == c.tile_width,
+              ),
             ),
           ),
-        ),
+        ).pipe(map(a => ({ windows: a, monitorWidth: mWidth }))),
       ),
-      map(a => {
+      map(({ windows, monitorWidth }) => {
         const result = new Array<Tab>()
-        for (let i = 0; i < a.length; i++) {
-          const v = a[i]
+        for (let i = 0; i < windows.length; i++) {
+          const v = windows[i]
           if (!result[v.col_idx - 1]) {
             result[v.col_idx - 1] = {
               tabId: v.col_idx,
               workspace: this,
               title: fromConnectable(v.window, 'title'),
               icon: clientToWindow(v.window).icon,
+              width: fromConnectable(v.window, 'layout').pipe(
+                map(l => l.tile_size[0] / monitorWidth),
+                distinctUntilChanged(),
+              ),
             } as Tab
           }
         }
@@ -161,6 +181,78 @@ class NiriWorkspace extends GObject.Object implements Workspace {
       switchMap(w => fromConnectable(w, 'isUrgent')),
       shareReplay(1),
     )
+
+    // Calculate viewport scroll position
+    // Since tile_pos_in_workspace_view is null for tiled windows (niri#2381),
+    // we mimic Niri's scroll behavior: viewport scrolls minimally to keep focused window visible
+    this.viewportOffset = combineLatest([
+      focusedWindowOn(id).pipe(startWith(null)),
+      thisWs.pipe(switchMap(w => fromConnectable(w, 'windows'))),
+      monitorWidth,
+    ]).pipe(
+      map(([focusedWin, windows, mWidth]) => {
+        if (!focusedWin || windows.length === 0) {
+          return null
+        }
+
+        const layout = focusedWin.layout
+        const focusedColIdx = layout.pos_in_scrolling_layout[0]
+
+        // Build map of column index to column width
+        const columnWidths = new Map<number, number>()
+        windows.forEach(win => {
+          const winLayout = win.layout
+          const colIdx = winLayout.pos_in_scrolling_layout[0]
+          const tileWidth = winLayout.tile_size[0]
+          // Use max width if multiple windows in same column
+          columnWidths.set(
+            colIdx,
+            Math.max(columnWidths.get(colIdx) || 0, tileWidth),
+          )
+        })
+
+        // Calculate focused tab's absolute position in pixels
+        const gap = 12
+        let focusedTabLeft = 0
+        for (let i = 1; i < focusedColIdx; i++) {
+          if (columnWidths.has(i)) {
+            focusedTabLeft += columnWidths.get(i)! + gap
+          }
+        }
+        const focusedTabWidth = columnWidths.get(focusedColIdx) || 0
+        const focusedTabRight = focusedTabLeft + focusedTabWidth
+
+        // Normalize to 0-1 range
+        const left = focusedTabLeft / mWidth
+        const right = focusedTabRight / mWidth
+
+        console.log(
+          `[WS${id}] focusedCol=${focusedColIdx}, tabLeft=${left.toFixed(3)}, tabRight=${right.toFixed(3)}`,
+        )
+
+        return { left, right }
+      }),
+      // Use scan to track viewport state and scroll minimally to show focused tab
+      scan((currentOffset, focusedTab) => {
+        if (!focusedTab) return 0
+
+        const viewportRight = currentOffset + 1.0
+
+        // Scroll to keep focused tab visible
+        if (focusedTab.right > viewportRight) {
+          // Tab extends past right edge
+          return focusedTab.right - 1.0
+        } else if (focusedTab.left < currentOffset) {
+          // Tab starts before left edge
+          return focusedTab.left
+        }
+        
+        // Tab is fully visible, no scroll needed
+        return currentOffset
+      }, 0),
+      distinctUntilChanged(),
+      shareReplay(1),
+    )
   }
 
   switchToTab(idx: number, move: boolean): void {
@@ -169,5 +261,4 @@ class NiriWorkspace extends GObject.Object implements Workspace {
 }
 
 export const workspaceService: WorkspaceService = new NiriWorkspaceService()
-
 

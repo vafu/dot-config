@@ -30,6 +30,7 @@ export interface Tab {
   workspace: Workspace
   title: Observable<string>
   icon: Observable<string>
+  width: Observable<number> // Relative width (0-1 range, fraction of monitor width)
 }
 
 export interface Workspace extends GObject.Object {
@@ -45,6 +46,7 @@ export interface Workspace extends GObject.Object {
   switchToTab(idx: number, move: boolean): void
 
   activeWindow: Observable<Window>
+  viewportOffset: Observable<number> // Horizontal scroll position (relative, 0-1 range)
 }
 
 export interface MonitorService {

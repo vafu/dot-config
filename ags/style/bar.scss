@@ -34,6 +34,32 @@
   min-width: 150px;
 }
 
+.workspace-strip-fixed {
+  min-width: 300px;
+  max-width: 300px;
+  min-height: 24px;
+  max-height: 24px;
+}
+
+.column-item {
+  border-radius: 6px;
+  background-color: color-mix(in srgb, #{$ws_occupied} 15%, transparent);
+  transition: background-color 150ms;
+  
+  /* Center icon vertically */
+  image {
+    margin-top: auto;
+    margin-bottom: auto;
+  }
+}
+
+.viewport-overlay {
+  background-color: color-mix(in srgb, #{$ws_active} 12%, transparent);
+  border: 1px solid color-mix(in srgb, #{$ws_active} 30%, transparent);
+  border-radius: 8px;
+  transition: all 150ms ease-out;
+}
+
 .tint {
   background-color: #{$bg_tint};
 }
@@ -187,3 +213,10 @@ levelindicator {
     outline-offset: $outline-offset * 0.5;
   }
 }
+
+
+
+
+
+
+
