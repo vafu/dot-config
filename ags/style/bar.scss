@@ -44,17 +44,26 @@
 .column-item {
   border-radius: 6px;
   background-color: color-mix(in srgb, #{$ws_occupied} 15%, transparent);
-  transition: background-color 150ms;
+  transition: background-color 150ms, opacity 200ms ease-out;
+  opacity: 1;
   
   /* Center icon vertically */
   image {
     margin-top: auto;
     margin-bottom: auto;
   }
+  
+  &.fade-in {
+    opacity: 0;
+  }
+  
+  &.fade-out {
+    opacity: 0;
+  }
 }
 
 .viewport-overlay {
-  background-color: color-mix(in srgb, #{$ws_active} 12%, transparent);
+  background-color: color-mix(in srgb, #{$ws_active} 5%, transparent);
   border: 1px solid color-mix(in srgb, #{$ws_active} 30%, transparent);
   border-radius: 8px;
   transition: all 150ms ease-out;
@@ -213,6 +222,8 @@ levelindicator {
     outline-offset: $outline-offset * 0.5;
   }
 }
+
+
 
 
 

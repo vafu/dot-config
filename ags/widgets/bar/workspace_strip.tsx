@@ -64,9 +64,47 @@ export const WorkspaceStrip = (
   outerOverlay.set_child(overlay)
   outerOverlay.add_overlay(tintRevealer)
 
-  // Track column widgets and subscriptions
+  // Track column widgets and their animation state
   const columnWidgets: Map<number, Gtk.Overlay> = new Map()
+  const columnTargetPositions: Map<number, number> = new Map()
+  const columnCurrentPositions: Map<number, number> = new Map()
   let layoutSub: Subscription | null = null
+  let animationFrameId: number | null = null
+
+  const startAnimation = () => {
+    if (animationFrameId !== null) return // Animation already in progress
+    
+    const animate = () => {
+      let stillAnimating = false
+      
+      columnWidgets.forEach((widget, tabId) => {
+        const target = columnTargetPositions.get(tabId) ?? 0
+        const current = columnCurrentPositions.get(tabId) ?? 0
+        const diff = target - current
+        
+        if (Math.abs(diff) < 0.5) {
+          // Close enough, snap to target
+          columnCurrentPositions.set(tabId, target)
+          fixed.move(widget, Math.round(target), 0)
+        } else {
+          // Smooth easing: move 20% of remaining distance each frame
+          const newPos = current + diff * 0.2
+          columnCurrentPositions.set(tabId, newPos)
+          fixed.move(widget, Math.round(newPos), 0)
+          stillAnimating = true
+        }
+      })
+      
+      if (!stillAnimating) {
+        animationFrameId = null
+        return false // Stop animation
+      }
+      
+      return true // Continue animation
+    }
+    
+    animationFrameId = fixed.add_tick_callback(animate)
+  }
 
   // Subscribe to combined tabs + viewportOffset to calculate positions
   layoutSub = combineLatest([ws.tabs, ws.viewportOffset]).subscribe(
@@ -100,6 +138,10 @@ export const WorkspaceStrip = (
 
         visibleTabs.add(tab.tabId)
 
+        // Update position and size
+        const tabPixelX = (tabStartPos - widgetStartOffset) * pixelsPerMonitorWidth
+        const tabPixelWidth = currentWidth * pixelsPerMonitorWidth
+        
         // Create widget if needed
         if (!columnWidgets.has(tab.tabId)) {
           const column = createColumnWidget({
@@ -109,14 +151,35 @@ export const WorkspaceStrip = (
           })
           columnWidgets.set(tab.tabId, column)
           fixed.put(column, 0, 0)
+          
+          // Start with fade-in class
+          column.add_css_class('fade-in')
+          
+          // Initialize position based on where it's appearing from
+          // If it's on the right edge, start it from the right; if on left, start from left
+          const viewportCenter = widgetWidth / 2
+          let initialPos = tabPixelX
+          if (tabPixelX > viewportCenter) {
+            // Appearing from right - start further right
+            initialPos = widgetWidth
+          } else {
+            // Appearing from left - start further left
+            initialPos = -tabPixelWidth
+          }
+          columnCurrentPositions.set(tab.tabId, initialPos)
+          fixed.move(column, Math.round(initialPos), 0)
+          
+          // Remove fade-in class after a brief delay to trigger transition
+          setTimeout(() => {
+            column.remove_css_class('fade-in')
+          }, 50)
         }
 
-        // Update position and size
-        const tabPixelX = (tabStartPos - widgetStartOffset) * pixelsPerMonitorWidth
-        const tabPixelWidth = currentWidth * pixelsPerMonitorWidth
         const column = columnWidgets.get(tab.tabId)!
 
-        fixed.move(column, Math.round(tabPixelX), 0)
+        // Set target position for animation
+        columnTargetPositions.set(tab.tabId, tabPixelX)
+        
         column.set_size_request(Math.max(16, Math.round(tabPixelWidth)), widgetHeight)
 
         console.log(
@@ -124,18 +187,27 @@ export const WorkspaceStrip = (
         )
       })
 
-      // Remove widgets that are no longer visible
+      // Fade out and remove widgets that are no longer visible
       columnWidgets.forEach((widget, tabId) => {
         if (!visibleTabs.has(tabId)) {
-          fixed.remove(widget)
-          columnWidgets.delete(tabId)
+          // Add fade-out class
+          widget.add_css_class('fade-out')
+          setTimeout(() => {
+            fixed.remove(widget)
+            columnWidgets.delete(tabId)
+            columnTargetPositions.delete(tabId)
+            columnCurrentPositions.delete(tabId)
+          }, 200) // Match CSS transition time
         }
       })
 
-      // Position viewport overlay based on viewportOffset
+      // Position viewport overlay (fixed, no animation)
       viewport.set_margin_start(
         Math.round((viewportOffset - widgetStartOffset) * pixelsPerMonitorWidth)
       )
+      
+      // Start animation for tab positions
+      startAnimation()
     },
   )
 
@@ -216,4 +288,13 @@ const TintedIcon = (
 
   return overlay
 }
+
+
+
+
+
+
+
+
+
 
