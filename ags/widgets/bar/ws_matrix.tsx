@@ -51,6 +51,8 @@ export const WSMatrix = (props: { monitor: Gdk.Monitor } & WidgetProps) => {
     })
   })
 
-  return carousel
+  return <overlay>
+    {carousel}
+  </overlay>
 }
 

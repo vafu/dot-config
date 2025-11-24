@@ -18,7 +18,7 @@ export const WorkspaceStrip = (
     scale?: number // How many monitor widths to show in the widget
   } = {},
 ) => {
-  const widgetWidth = options.widgetWidth ?? 300
+  const widgetWidth = options.widgetWidth ?? 200
   const widgetHeight = options.widgetHeight ?? 24
   const scale = options.scale ?? 3 // Show 3 monitor widths worth of space in the widget
 
@@ -92,15 +92,15 @@ export const WorkspaceStrip = (
 
   const startAnimation = () => {
     if (animationFrameId !== null) return // Animation already in progress
-    
+
     const animate = () => {
       let stillAnimating = false
-      
+
       columnWidgets.forEach((widget, tabId) => {
         const target = columnTargetPositions.get(tabId) ?? 0
         const current = columnCurrentPositions.get(tabId) ?? 0
         const diff = target - current
-        
+
         if (Math.abs(diff) < 0.5) {
           // Close enough, snap to target
           columnCurrentPositions.set(tabId, target)
@@ -113,15 +113,15 @@ export const WorkspaceStrip = (
           stillAnimating = true
         }
       })
-      
+
       if (!stillAnimating) {
         animationFrameId = null
         return false // Stop animation
       }
-      
+
       return true // Continue animation
     }
-    
+
     animationFrameId = fixed.add_tick_callback(animate)
   }
 
@@ -156,7 +156,7 @@ export const WorkspaceStrip = (
 
         // Check if tab is visible
         const isVisible = tabEndPos > widgetStartOffset && tabStartPos < widgetEndOffset
-        
+
         // Check if tab is beyond visible edges
         if (tabEndPos <= widgetStartOffset) {
           hasContentLeft = true
@@ -164,7 +164,7 @@ export const WorkspaceStrip = (
         if (tabStartPos >= widgetEndOffset) {
           hasContentRight = true
         }
-        
+
         if (!isVisible) return
 
         visibleTabs.add(tab.tabId)
@@ -172,7 +172,7 @@ export const WorkspaceStrip = (
         // Update position and size
         const tabPixelX = (tabStartPos - widgetStartOffset) * pixelsPerMonitorWidth
         const tabPixelWidth = currentWidth * pixelsPerMonitorWidth
-        
+
         // Create widget if needed
         if (!columnWidgets.has(tab.tabId)) {
           const column = createColumnWidget({
@@ -182,7 +182,7 @@ export const WorkspaceStrip = (
           })
           columnWidgets.set(tab.tabId, column)
           fixed.put(column, 0, 0)
-          
+
           // Initialize position based on where it's appearing from
           // If it's on the right edge, start it from the right; if on left, start from left
           const viewportCenter = widgetWidth / 2
@@ -198,7 +198,7 @@ export const WorkspaceStrip = (
           }
           columnCurrentPositions.set(tab.tabId, initialPos)
           fixed.move(column, Math.round(initialPos), 0)
-          
+
           // Remove slide-in class after animation completes
           setTimeout(() => {
             column.remove_css_class('slide-in-left')
@@ -210,7 +210,7 @@ export const WorkspaceStrip = (
 
         // Set target position for animation
         columnTargetPositions.set(tab.tabId, tabPixelX)
-        
+
         column.set_size_request(Math.max(16, Math.round(tabPixelWidth)), widgetHeight)
 
         console.log(
@@ -241,11 +241,11 @@ export const WorkspaceStrip = (
       viewport.set_margin_start(
         Math.round((viewportOffset - widgetStartOffset) * pixelsPerMonitorWidth)
       )
-      
+
       // Update edge indicators
       leftIndicator.set_opacity(hasContentLeft ? 1 : 0)
       rightIndicator.set_opacity(hasContentRight ? 1 : 0)
-      
+
       // Start animation for tab positions
       startAnimation()
     },
@@ -311,7 +311,7 @@ const TintedIcon = (
   const overlay = new Gtk.Overlay()
   overlay.set_halign(Gtk.Align.CENTER)
   overlay.set_valign(Gtk.Align.CENTER)
-  
+
   const revealer = createRoot(() => (
     <revealer
       hexpand={false}

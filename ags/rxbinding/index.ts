@@ -10,8 +10,8 @@ import {
   tap,
 } from 'rxjs'
 import { Accessor, createBinding } from 'gnim'
-import Gtk from 'gi://Gtk?version=4.0'
 import GObject from 'ags/gobject'
+import { Gtk } from 'ags/gtk4'
 
 const empty = Symbol('empty value')
 

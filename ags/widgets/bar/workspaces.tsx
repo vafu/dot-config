@@ -1,8 +1,7 @@
 import { range } from 'commons'
-import Gtk from 'gi://Gtk?version=4.0'
 import { binding } from 'rxbinding'
 import { combineLatest, map, of, startWith, switchMap } from 'rxjs'
-import { Gdk } from 'ags/gtk4'
+import { Gdk, Gtk } from 'ags/gtk4'
 import obtainWmService from 'services'
 
 const workspaceService = await obtainWmService('workspace')

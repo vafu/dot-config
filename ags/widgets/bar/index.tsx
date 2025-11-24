@@ -35,7 +35,8 @@ export default (gdkmonitor: Gdk.Monitor) => {
         <box $type="start">
           <SysStats cssClasses={['barblock']} />
           <PomodoroWidget cssClasses={['barblock']} />
-          <MPRISWidget cssClasses={['barblock']} />
+          {//          <MPRISWidget cssClasses={['barblock']} />
+          }
         </box>
 
         {/** center **/}
@@ -56,7 +57,7 @@ export default (gdkmonitor: Gdk.Monitor) => {
             <Tray />
             <PowerProfilesIndicator />
             <BluetoothStatus />
-            <MutedIndicator/>
+            <MutedIndicator />
             <EthIndicator />
             <WifiIndicator />
             <BatteryIndicator />

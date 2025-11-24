@@ -100,10 +100,17 @@ class NiriWorkspace extends GObject.Object implements Workspace {
       shareReplay(1),
     )
 
-    // Get monitor width for this workspace
-    // TODO: Fix get_modes() pointer issue - hardcoding to 1920 for now
     const monitorWidth = thisWs.pipe(
-      map(ws => 1920), // Hardcoded for now due to GJS pointer conversion issues
+      switchMap(ws => 
+        fromConnectable(ws, 'output').pipe(
+          switchMap(name => outputs.pipe(
+            map(a => a.find(o => o.name == name)),
+            filter(o => !!o)
+          ))
+        )
+      ),
+      switchMap(o => fromConnectable(o, "logical")),
+      map(l => l.get_width()),
       distinctUntilChanged(),
       shareReplay(1),
     )
@@ -246,7 +253,7 @@ class NiriWorkspace extends GObject.Object implements Workspace {
           // Tab starts before left edge
           return focusedTab.left
         }
-        
+
         // Tab is fully visible, no scroll needed
         return currentOffset
       }, 0),
