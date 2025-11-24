@@ -44,8 +44,7 @@
 .column-item {
   border-radius: 6px;
   background-color: color-mix(in srgb, #{$ws_occupied} 15%, transparent);
-  transition: background-color 150ms, opacity 200ms ease-out;
-  opacity: 1;
+  transition: background-color 150ms;
   
   /* Center icon vertically */
   image {
@@ -53,12 +52,64 @@
     margin-bottom: auto;
   }
   
-  &.fade-in {
-    opacity: 0;
+  &.slide-in-left {
+    animation: slideInFromLeft 250ms ease-out;
   }
   
-  &.fade-out {
+  &.slide-in-right {
+    animation: slideInFromRight 250ms ease-out;
+  }
+  
+  &.slide-out-left {
+    animation: slideOutToLeft 250ms ease-in;
+  }
+  
+  &.slide-out-right {
+    animation: slideOutToRight 250ms ease-in;
+  }
+}
+
+@keyframes slideInFromLeft {
+  from {
     opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOutToLeft {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+}
+
+@keyframes slideOutToRight {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(20px);
   }
 }
 
@@ -67,6 +118,27 @@
   border: 1px solid color-mix(in srgb, #{$ws_active} 30%, transparent);
   border-radius: 8px;
   transition: all 150ms ease-out;
+}
+
+.edge-indicator {
+  transition: opacity 200ms ease-out;
+  pointer-events: none;
+  
+  &.left {
+    background: linear-gradient(to right, 
+      color-mix(in srgb, #{$ws_active} 12%, #{$bg}),
+      color-mix(in srgb, #{$ws_active} 8%, transparent) 40%,
+      color-mix(in srgb, #{$ws_active} 4%, transparent) 70%,
+      transparent);
+  }
+  
+  &.right {
+    background: linear-gradient(to left, 
+      color-mix(in srgb, #{$ws_active} 12%, #{$bg}),
+      color-mix(in srgb, #{$ws_active} 8%, transparent) 40%,
+      color-mix(in srgb, #{$ws_active} 4%, transparent) 70%,
+      transparent);
+  }
 }
 
 .tint {
@@ -222,6 +294,10 @@ levelindicator {
     outline-offset: $outline-offset * 0.5;
   }
 }
+
+
+
+
 
 
 

@@ -39,10 +39,29 @@ export const WorkspaceStrip = (
   })
   viewport.set_size_request(viewportWidthInWidget, widgetHeight)
 
-  // Overlay to combine fixed + viewport indicator
+  // Edge indicators for overflow content
+  const leftIndicator = new Gtk.Box({
+    css_classes: ['edge-indicator', 'left'],
+    halign: Gtk.Align.START,
+    valign: Gtk.Align.FILL,
+  })
+  leftIndicator.set_size_request(30, widgetHeight)
+  leftIndicator.set_opacity(0)
+
+  const rightIndicator = new Gtk.Box({
+    css_classes: ['edge-indicator', 'right'],
+    halign: Gtk.Align.END,
+    valign: Gtk.Align.FILL,
+  })
+  rightIndicator.set_size_request(30, widgetHeight)
+  rightIndicator.set_opacity(0)
+
+  // Overlay to combine fixed + viewport indicator + edge indicators
   const overlay = new Gtk.Overlay()
   overlay.set_child(fixed)
   overlay.add_overlay(viewport)
+  overlay.add_overlay(leftIndicator)
+  overlay.add_overlay(rightIndicator)
 
   // Wrapper for workspace tint
   const outerOverlay = new Gtk.Overlay()
@@ -117,6 +136,10 @@ export const WorkspaceStrip = (
       const widgetStartOffset = viewportOffset - scale / 2
       const widgetEndOffset = viewportOffset + scale / 2
 
+      // Track if there's content beyond visible edges
+      let hasContentLeft = false
+      let hasContentRight = false
+
       // Process all tabs: calculate positions, determine visibility, create/update widgets
       const visibleTabs = new Set<number>()
       let cumulativePos = 0
@@ -133,6 +156,14 @@ export const WorkspaceStrip = (
 
         // Check if tab is visible
         const isVisible = tabEndPos > widgetStartOffset && tabStartPos < widgetEndOffset
+        
+        // Check if tab is beyond visible edges
+        if (tabEndPos <= widgetStartOffset) {
+          hasContentLeft = true
+        }
+        if (tabStartPos >= widgetEndOffset) {
+          hasContentRight = true
+        }
         
         if (!isVisible) return
 
@@ -152,9 +183,6 @@ export const WorkspaceStrip = (
           columnWidgets.set(tab.tabId, column)
           fixed.put(column, 0, 0)
           
-          // Start with fade-in class
-          column.add_css_class('fade-in')
-          
           // Initialize position based on where it's appearing from
           // If it's on the right edge, start it from the right; if on left, start from left
           const viewportCenter = widgetWidth / 2
@@ -162,17 +190,20 @@ export const WorkspaceStrip = (
           if (tabPixelX > viewportCenter) {
             // Appearing from right - start further right
             initialPos = widgetWidth
+            column.add_css_class('slide-in-right')
           } else {
             // Appearing from left - start further left
             initialPos = -tabPixelWidth
+            column.add_css_class('slide-in-left')
           }
           columnCurrentPositions.set(tab.tabId, initialPos)
           fixed.move(column, Math.round(initialPos), 0)
           
-          // Remove fade-in class after a brief delay to trigger transition
+          // Remove slide-in class after animation completes
           setTimeout(() => {
-            column.remove_css_class('fade-in')
-          }, 50)
+            column.remove_css_class('slide-in-left')
+            column.remove_css_class('slide-in-right')
+          }, 250)
         }
 
         const column = columnWidgets.get(tab.tabId)!
@@ -187,17 +218,22 @@ export const WorkspaceStrip = (
         )
       })
 
-      // Fade out and remove widgets that are no longer visible
+      // Slide out and remove widgets that are no longer visible
       columnWidgets.forEach((widget, tabId) => {
         if (!visibleTabs.has(tabId)) {
-          // Add fade-out class
-          widget.add_css_class('fade-out')
+          // Determine slide direction based on current position
+          const currentPos = columnCurrentPositions.get(tabId) ?? 0
+          if (currentPos < widgetWidth / 2) {
+            widget.add_css_class('slide-out-left')
+          } else {
+            widget.add_css_class('slide-out-right')
+          }
           setTimeout(() => {
             fixed.remove(widget)
             columnWidgets.delete(tabId)
             columnTargetPositions.delete(tabId)
             columnCurrentPositions.delete(tabId)
-          }, 200) // Match CSS transition time
+          }, 250) // Match CSS animation time
         }
       })
 
@@ -205,6 +241,10 @@ export const WorkspaceStrip = (
       viewport.set_margin_start(
         Math.round((viewportOffset - widgetStartOffset) * pixelsPerMonitorWidth)
       )
+      
+      // Update edge indicators
+      leftIndicator.set_opacity(hasContentLeft ? 1 : 0)
+      rightIndicator.set_opacity(hasContentRight ? 1 : 0)
       
       // Start animation for tab positions
       startAnimation()
@@ -288,6 +328,13 @@ const TintedIcon = (
 
   return overlay
 }
+
+
+
+
+
+
+
 
 
 

@@ -11,7 +11,11 @@
       "Bash(brightnessctl max:*)",
       "Bash(brightnessctl set:*)",
       "Bash(bash scripts/cpu.sh:*)",
-      "Bash(bash scripts/ram.sh:*)"
+      "Bash(bash scripts/ram.sh:*)",
+      "Bash(git checkout:*)",
+      "Bash(niri msg --help:*)",
+      "Bash(niri msg:*)",
+      "Bash(timeout 5 niri msg:*)"
     ],
     "deny": [],
     "ask": []
