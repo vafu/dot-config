@@ -9,6 +9,8 @@ alacritty/dark.theme
 alacritty/light.theme
 alacritty/theme.toml
 
+!libinput-gestures.conf
+
 !ags/**
 !.zshrc
 !foot/**
