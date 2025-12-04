@@ -29,6 +29,92 @@ function focusedWindowOn(wsId: number): Observable<AstalNiri.Window> {
   return focusedWindow.pipe(filter(w => w.workspace.id == wsId))
 }
 
+/**
+ * Calculate viewport offset that mimics Niri's behavior:
+ * - Preserve viewport position when tabs are removed
+ * - Scroll minimally to keep focused window visible
+ */
+function calculateViewportOffset(
+  wsId: number,
+  focusedWin: AstalNiri.Window | null,
+  windows: AstalNiri.Window[],
+  mWidth: number,
+  state: {
+    viewportOffsetPx: number
+    lastWindowIds: string[]
+    monitorWidth: number
+  },
+): {
+  viewportOffsetPx: number
+  lastWindowIds: string[]
+  monitorWidth: number
+} {
+  if (!focusedWin || windows.length === 0) {
+    return { viewportOffsetPx: 0, lastWindowIds: [], monitorWidth: mWidth }
+  }
+
+  // Build column map: colIdx -> {width, windowId, left, right}
+  const gap = 12
+  const columns = new Map<number, { width: number; windowId: string; left: number; right: number }>()
+  
+  windows.forEach(win => {
+    const colIdx = win.layout.pos_in_scrolling_layout[0]
+    const width = win.layout.tile_size[0]
+    if (!columns.has(colIdx) || columns.get(colIdx)!.width < width) {
+      columns.set(colIdx, { width, windowId: win.id.toString(), left: 0, right: 0 })
+    }
+  })
+
+  // Calculate positions by iterating columns in order
+  let cumulativePos = 0
+  Array.from(columns.keys())
+    .sort((a, b) => a - b)
+    .forEach(colIdx => {
+      const col = columns.get(colIdx)!
+      col.left = cumulativePos
+      col.right = cumulativePos + col.width
+      cumulativePos += col.width + gap
+    })
+
+  const focusedColIdx = focusedWin.layout.pos_in_scrolling_layout[0]
+  const focusedCol = columns.get(focusedColIdx)
+  if (!focusedCol) {
+    return { viewportOffsetPx: 0, lastWindowIds: [], monitorWidth: mWidth }
+  }
+
+  const currentWindowIds = Array.from(columns.values()).map(c => c.windowId)
+  const windowWasRemoved =
+    state.lastWindowIds.length > 0 &&
+    state.lastWindowIds.some(id => !currentWindowIds.includes(id))
+
+  console.log(
+    `[WS${wsId}] Cols=[${Array.from(columns.keys()).join(',')}] focused=${focusedColIdx} viewport=${state.viewportOffsetPx.toFixed(0)} removed=${windowWasRemoved}`,
+  )
+
+  // Start with current viewport position
+  let newViewportPx = state.viewportOffsetPx
+
+  // Only scroll if focused window is not fully visible
+  const isVisible = focusedCol.left >= newViewportPx && focusedCol.right <= newViewportPx + mWidth
+
+  if (!isVisible) {
+    if (focusedCol.right > newViewportPx + mWidth) {
+      newViewportPx = focusedCol.right - mWidth
+    } else if (focusedCol.left < newViewportPx) {
+      newViewportPx = focusedCol.left
+    }
+    console.log(`[WS${wsId}] Scrolling to ${newViewportPx.toFixed(0)} to show focused col`)
+  } else if (windowWasRemoved) {
+    console.log(`[WS${wsId}] Window removed, viewport preserved`)
+  }
+
+  return {
+    viewportOffsetPx: Math.max(0, newViewportPx),
+    lastWindowIds: currentWindowIds,
+    monitorWidth: mWidth,
+  }
+}
+
 class NiriWorkspaceService implements WorkspaceService {
   private _workspaces: Map<number, NiriWorkspace> = new Map()
 
@@ -101,15 +187,17 @@ class NiriWorkspace extends GObject.Object implements Workspace {
     )
 
     const monitorWidth = thisWs.pipe(
-      switchMap(ws => 
+      switchMap(ws =>
         fromConnectable(ws, 'output').pipe(
-          switchMap(name => outputs.pipe(
-            map(a => a.find(o => o.name == name)),
-            filter(o => !!o)
-          ))
-        )
+          switchMap(name =>
+            outputs.pipe(
+              map(a => a.find(o => o.name == name)),
+              filter(o => !!o),
+            ),
+          ),
+        ),
       ),
-      switchMap(o => fromConnectable(o, "logical")),
+      switchMap(o => fromConnectable(o, 'logical')),
       map(l => l.get_width()),
       distinctUntilChanged(),
       shareReplay(1),
@@ -146,13 +234,17 @@ class NiriWorkspace extends GObject.Object implements Workspace {
           const v = windows[i]
           if (!result[v.col_idx - 1]) {
             result[v.col_idx - 1] = {
-              tabId: v.col_idx,
               workspace: this,
               title: fromConnectable(v.window, 'title'),
               icon: clientToWindow(v.window).icon,
               width: fromConnectable(v.window, 'layout').pipe(
                 map(l => l.tile_size[0] / monitorWidth),
                 distinctUntilChanged(),
+              ),
+              isActive: focusedWindowOn(id).pipe(
+                map(w => w.layout.pos_in_scrolling_layout[0] === v.col_idx),
+                distinctUntilChanged(),
+                startWith(false),
               ),
             } as Tab
           }
@@ -170,7 +262,7 @@ class NiriWorkspace extends GObject.Object implements Workspace {
         ),
       ),
       filter(t => !!t),
-      distinctUntilChanged((p, c) => p.tabId == c.tabId),
+      distinctUntilChanged(),
       shareReplay(1),
     )
 
@@ -190,73 +282,17 @@ class NiriWorkspace extends GObject.Object implements Workspace {
     )
 
     // Calculate viewport scroll position
-    // Since tile_pos_in_workspace_view is null for tiled windows (niri#2381),
-    // we mimic Niri's scroll behavior: viewport scrolls minimally to keep focused window visible
     this.viewportOffset = combineLatest([
       focusedWindowOn(id).pipe(startWith(null)),
       thisWs.pipe(switchMap(w => fromConnectable(w, 'windows'))),
       monitorWidth,
     ]).pipe(
-      map(([focusedWin, windows, mWidth]) => {
-        if (!focusedWin || windows.length === 0) {
-          return null
-        }
-
-        const layout = focusedWin.layout
-        const focusedColIdx = layout.pos_in_scrolling_layout[0]
-
-        // Build map of column index to column width
-        const columnWidths = new Map<number, number>()
-        windows.forEach(win => {
-          const winLayout = win.layout
-          const colIdx = winLayout.pos_in_scrolling_layout[0]
-          const tileWidth = winLayout.tile_size[0]
-          // Use max width if multiple windows in same column
-          columnWidths.set(
-            colIdx,
-            Math.max(columnWidths.get(colIdx) || 0, tileWidth),
-          )
-        })
-
-        // Calculate focused tab's absolute position in pixels
-        const gap = 12
-        let focusedTabLeft = 0
-        for (let i = 1; i < focusedColIdx; i++) {
-          if (columnWidths.has(i)) {
-            focusedTabLeft += columnWidths.get(i)! + gap
-          }
-        }
-        const focusedTabWidth = columnWidths.get(focusedColIdx) || 0
-        const focusedTabRight = focusedTabLeft + focusedTabWidth
-
-        // Normalize to 0-1 range
-        const left = focusedTabLeft / mWidth
-        const right = focusedTabRight / mWidth
-
-        console.log(
-          `[WS${id}] focusedCol=${focusedColIdx}, tabLeft=${left.toFixed(3)}, tabRight=${right.toFixed(3)}`,
-        )
-
-        return { left, right }
-      }),
-      // Use scan to track viewport state and scroll minimally to show focused tab
-      scan((currentOffset, focusedTab) => {
-        if (!focusedTab) return 0
-
-        const viewportRight = currentOffset + 1.0
-
-        // Scroll to keep focused tab visible
-        if (focusedTab.right > viewportRight) {
-          // Tab extends past right edge
-          return focusedTab.right - 1.0
-        } else if (focusedTab.left < currentOffset) {
-          // Tab starts before left edge
-          return focusedTab.left
-        }
-
-        // Tab is fully visible, no scroll needed
-        return currentOffset
-      }, 0),
+      scan(
+        (state, [focusedWin, windows, mWidth]) =>
+          calculateViewportOffset(id, focusedWin, windows, mWidth, state),
+        { viewportOffsetPx: 0, lastWindowIds: [], monitorWidth: 1920 },
+      ),
+      map(state => state.viewportOffsetPx / state.monitorWidth),
       distinctUntilChanged(),
       shareReplay(1),
     )
@@ -268,4 +304,14 @@ class NiriWorkspace extends GObject.Object implements Workspace {
 }
 
 export const workspaceService: WorkspaceService = new NiriWorkspaceService()
+
+
+
+
+
+
+
+
+
+
 

@@ -3,7 +3,7 @@ import { Gtk } from 'ags/gtk4'
 import Adw from 'gi://Adw?version=1'
 import { bindAs, binding } from 'rxbinding'
 import { BehaviorSubject, combineLatest, Subscription } from 'rxjs'
-import { Workspace } from 'services/wm/types'
+import { Workspace, Tab } from 'services/wm/types'
 import { Accessor, createRoot } from 'gnim'
 
 /**
@@ -83,171 +83,206 @@ export const WorkspaceStrip = (
   outerOverlay.set_child(overlay)
   outerOverlay.add_overlay(tintRevealer)
 
-  // Track column widgets and their animation state
-  const columnWidgets: Map<number, Gtk.Overlay> = new Map()
-  const columnTargetPositions: Map<number, number> = new Map()
-  const columnCurrentPositions: Map<number, number> = new Map()
-  let layoutSub: Subscription | null = null
+  // === Simplified Column Widget Management ===
+  
+  /**
+   * ColumnWidget - Encapsulates a tab widget with its state and subscriptions
+   */
+  class ColumnWidget {
+    widget: Gtk.Overlay
+    targetPosition: number = 0
+    currentPosition: number = 0
+    
+    private iconSubject = new BehaviorSubject('')
+    private tintSubject = new BehaviorSubject(false)
+    private iconSub: Subscription | null = null
+    private activeSub: Subscription | null = null
+    private widthSub: Subscription | null = null
+    private boundTab: Tab | null = null
+
+    constructor() {
+      this.widget = this.createWidget()
+    }
+
+    private createWidget(): Gtk.Overlay {
+      const iconWidget = TintedIcon({
+        tinted: binding(this.tintSubject, false),
+        fileOrIcon: this.iconSubject,
+      })
+      iconWidget.set_vexpand(true)
+      iconWidget.set_hexpand(false)
+      iconWidget.add_css_class('column-item')
+      
+      return iconWidget
+    }
+
+    /**
+     * Bind this widget to a tab's observables
+     * Automatically handles rebinding if tab changes
+     */
+    bindToTab(tab: Tab) {
+      if (this.boundTab === tab) return
+      
+      this.unbind()
+      this.boundTab = tab
+
+      this.iconSub = tab.icon.subscribe(icon => this.iconSubject.next(icon))
+      this.activeSub = tab.isActive.subscribe(isActive => 
+        this.tintSubject.next(!isActive)
+      )
+    }
+
+    /**
+     * Clean up all subscriptions
+     */
+    unbind() {
+      this.iconSub?.unsubscribe()
+      this.activeSub?.unsubscribe()
+      this.widthSub?.unsubscribe()
+      this.iconSub = null
+      this.activeSub = null
+      this.widthSub = null
+      this.boundTab = null
+    }
+
+    destroy() {
+      this.unbind()
+    }
+  }
+
+  // Store column widgets by tab index
+  const columns: ColumnWidget[] = []
   let animationFrameId: number | null = null
 
+  /**
+   * Smooth animation for column positions
+   */
   const startAnimation = () => {
-    if (animationFrameId !== null) return // Animation already in progress
+    if (animationFrameId !== null) return
 
     const animate = () => {
       let stillAnimating = false
 
-      columnWidgets.forEach((widget, tabId) => {
-        const target = columnTargetPositions.get(tabId) ?? 0
-        const current = columnCurrentPositions.get(tabId) ?? 0
-        const diff = target - current
+      columns.forEach(column => {
+        const diff = column.targetPosition - column.currentPosition
 
         if (Math.abs(diff) < 0.5) {
-          // Close enough, snap to target
-          columnCurrentPositions.set(tabId, target)
-          fixed.move(widget, Math.round(target), 0)
+          column.currentPosition = column.targetPosition
+          fixed.move(column.widget, Math.round(column.targetPosition), 0)
         } else {
           // Smooth easing: move 20% of remaining distance each frame
-          const newPos = current + diff * 0.2
-          columnCurrentPositions.set(tabId, newPos)
-          fixed.move(widget, Math.round(newPos), 0)
+          column.currentPosition += diff * 0.2
+          fixed.move(column.widget, Math.round(column.currentPosition), 0)
           stillAnimating = true
         }
       })
 
       if (!stillAnimating) {
         animationFrameId = null
-        return false // Stop animation
+        return false
       }
-
-      return true // Continue animation
+      return true
     }
 
     animationFrameId = fixed.add_tick_callback(animate)
   }
 
-  // Subscribe to combined tabs + viewportOffset to calculate positions
-  layoutSub = combineLatest([ws.tabs, ws.viewportOffset]).subscribe(
-    ([tabs, viewportOffset]) => {
-      console.log(
-        `[WorkspaceStrip WS${ws.wsId}] Layout update: ${tabs.length} tabs, viewportOffset=${viewportOffset.toFixed(3)}`,
-      )
+  /**
+   * Synchronize column widgets with tabs array
+   * - Add new widgets for new tabs
+   * - Remove widgets for removed tabs
+   * - Rebind widgets when tabs change at an index
+   */
+  const syncColumnWidgets = (tabs: Tab[]) => {
+    // Add new columns if needed
+    while (columns.length < tabs.length) {
+      const column = new ColumnWidget()
+      columns.push(column)
+      fixed.put(column.widget, 0, 0)
+    }
 
-      // Calculate widget display range in workspace coordinates
-      const widgetStartOffset = viewportOffset - scale / 2
-      const widgetEndOffset = viewportOffset + scale / 2
+    // Remove excess columns
+    while (columns.length > tabs.length) {
+      const column = columns.pop()!
+      column.destroy()
+      fixed.remove(column.widget)
+    }
 
-      // Track if there's content beyond visible edges
-      let hasContentLeft = false
-      let hasContentRight = false
+    // Bind each column to its corresponding tab
+    tabs.forEach((tab, idx) => {
+      columns[idx].bindToTab(tab)
+    })
+  }
 
-      // Process all tabs: calculate positions, determine visibility, create/update widgets
-      const visibleTabs = new Set<number>()
-      let cumulativePos = 0
+  /**
+   * Update positions and visibility of all column widgets
+   */
+  const updateLayout = (tabs: Tab[], viewportOffset: number) => {
+    const widgetStartOffset = viewportOffset - scale / 2
+    const widgetEndOffset = viewportOffset + scale / 2
 
-      tabs.forEach(tab => {
-        const tabStartPos = cumulativePos
+    let hasContentLeft = false
+    let hasContentRight = false
+    let cumulativePos = 0
 
-        // Get current width synchronously
-        let currentWidth = 0
-        tab.width.subscribe(w => (currentWidth = w)).unsubscribe()
+    tabs.forEach((tab, idx) => {
+      const column = columns[idx]
+      const tabStartPos = cumulativePos
 
-        const tabEndPos = tabStartPos + currentWidth
-        cumulativePos = tabEndPos
+      // Get current width synchronously
+      let currentWidth = 0
+      tab.width.subscribe(w => (currentWidth = w)).unsubscribe()
 
-        // Check if tab is visible
-        const isVisible = tabEndPos > widgetStartOffset && tabStartPos < widgetEndOffset
+      const tabEndPos = tabStartPos + currentWidth
+      cumulativePos = tabEndPos
 
-        // Check if tab is beyond visible edges
-        if (tabEndPos <= widgetStartOffset) {
-          hasContentLeft = true
-        }
-        if (tabStartPos >= widgetEndOffset) {
-          hasContentRight = true
-        }
-
-        if (!isVisible) return
-
-        visibleTabs.add(tab.tabId)
-
-        // Update position and size
-        const tabPixelX = (tabStartPos - widgetStartOffset) * pixelsPerMonitorWidth
-        const tabPixelWidth = currentWidth * pixelsPerMonitorWidth
-
-        // Create widget if needed
-        if (!columnWidgets.has(tab.tabId)) {
-          const column = createColumnWidget({
-            tab,
-            selectedTab: ws.selectedTab,
-            widgetHeight,
-          })
-          columnWidgets.set(tab.tabId, column)
-          fixed.put(column, 0, 0)
-
-          // Initialize position based on where it's appearing from
-          // If it's on the right edge, start it from the right; if on left, start from left
-          const viewportCenter = widgetWidth / 2
-          let initialPos = tabPixelX
-          if (tabPixelX > viewportCenter) {
-            // Appearing from right - start further right
-            initialPos = widgetWidth
-            column.add_css_class('slide-in-right')
-          } else {
-            // Appearing from left - start further left
-            initialPos = -tabPixelWidth
-            column.add_css_class('slide-in-left')
-          }
-          columnCurrentPositions.set(tab.tabId, initialPos)
-          fixed.move(column, Math.round(initialPos), 0)
-
-          // Remove slide-in class after animation completes
-          setTimeout(() => {
-            column.remove_css_class('slide-in-left')
-            column.remove_css_class('slide-in-right')
-          }, 250)
-        }
-
-        const column = columnWidgets.get(tab.tabId)!
-
-        // Set target position for animation
-        columnTargetPositions.set(tab.tabId, tabPixelX)
-
-        column.set_size_request(Math.max(16, Math.round(tabPixelWidth)), widgetHeight)
-
-        console.log(
-          `  Tab ${tab.tabId}: wsPos=${tabStartPos.toFixed(3)}, pixelX=${tabPixelX.toFixed(1)}px, width=${tabPixelWidth.toFixed(1)}px`,
-        )
-      })
-
-      // Slide out and remove widgets that are no longer visible
-      columnWidgets.forEach((widget, tabId) => {
-        if (!visibleTabs.has(tabId)) {
-          // Determine slide direction based on current position
-          const currentPos = columnCurrentPositions.get(tabId) ?? 0
-          if (currentPos < widgetWidth / 2) {
-            widget.add_css_class('slide-out-left')
-          } else {
-            widget.add_css_class('slide-out-right')
-          }
-          setTimeout(() => {
-            fixed.remove(widget)
-            columnWidgets.delete(tabId)
-            columnTargetPositions.delete(tabId)
-            columnCurrentPositions.delete(tabId)
-          }, 250) // Match CSS animation time
-        }
-      })
-
-      // Position viewport overlay (fixed, no animation)
-      viewport.set_margin_start(
-        Math.round((viewportOffset - widgetStartOffset) * pixelsPerMonitorWidth)
-      )
+      // Check visibility
+      const isVisible = tabEndPos > widgetStartOffset && tabStartPos < widgetEndOffset
 
       // Update edge indicators
-      leftIndicator.set_opacity(hasContentLeft ? 1 : 0)
-      rightIndicator.set_opacity(hasContentRight ? 1 : 0)
+      if (tabEndPos <= widgetStartOffset) hasContentLeft = true
+      if (tabStartPos >= widgetEndOffset) hasContentRight = true
 
-      // Start animation for tab positions
-      startAnimation()
+      // Calculate pixel position and size
+      const tabPixelX = (tabStartPos - widgetStartOffset) * pixelsPerMonitorWidth
+      const tabPixelWidth = currentWidth * pixelsPerMonitorWidth
+
+      // Update target position
+      column.targetPosition = tabPixelX
+
+      // Set size and visibility
+      column.widget.set_size_request(
+        Math.max(16, Math.round(tabPixelWidth)),
+        widgetHeight,
+      )
+      column.widget.set_visible(isVisible)
+
+      // Initialize current position for new widgets
+      if (column.currentPosition === 0 && column.targetPosition !== 0) {
+        column.currentPosition = column.targetPosition
+      }
+    })
+
+    // Update viewport overlay position
+    viewport.set_margin_start(
+      Math.round((viewportOffset - widgetStartOffset) * pixelsPerMonitorWidth),
+    )
+
+    // Update edge indicators
+    leftIndicator.set_opacity(hasContentLeft ? 1 : 0)
+    rightIndicator.set_opacity(hasContentRight ? 1 : 0)
+
+    startAnimation()
+  }
+
+  // Main subscription: sync widgets and layout on any change
+  combineLatest([ws.tabs, ws.viewportOffset]).subscribe(
+    ([tabs, viewportOffset]) => {
+      // Ignore empty tab arrays (happens during niri column swaps)
+      if (tabs.length === 0) return
+
+      syncColumnWidgets(tabs)
+      updateLayout(tabs, viewportOffset)
     },
   )
 
@@ -259,31 +294,6 @@ export const WorkspaceStrip = (
   clamp.set_child(outerOverlay)
 
   return clamp
-}
-
-const createColumnWidget = (options: {
-  tab: import('services/wm/types').Tab
-  selectedTab: import('rxjs').Observable<import('services/wm/types').Tab>
-  widgetHeight: number
-}) => {
-  const { tab, selectedTab, widgetHeight } = options
-
-  // Create tint subject that updates based on selection
-  const tintSubject = new BehaviorSubject(false)
-  selectedTab.subscribe(selected => {
-    const isSelected = selected.tabId === tab.tabId
-    tintSubject.next(!isSelected) // Tint when NOT selected
-  })
-
-  const iconWidget = TintedIcon({
-    tinted: binding(tintSubject, false),
-    fileOrIcon: tab.icon,
-  })
-  iconWidget.set_vexpand(true)
-  iconWidget.set_hexpand(false)
-  iconWidget.add_css_class('column-item')
-
-  return iconWidget
 }
 
 const TintedIcon = (
@@ -300,6 +310,9 @@ const TintedIcon = (
   image.set_valign(Gtk.Align.CENTER)
 
   fileOrIcon!!.subscribe(p => {
+    if (!p || p === '') {
+      return // Ignore empty values
+    }
     const file = Gio.file_new_for_path(p)
     if (file.query_exists(null)) {
       image.set_from_file(p)
@@ -328,20 +341,4 @@ const TintedIcon = (
 
   return overlay
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

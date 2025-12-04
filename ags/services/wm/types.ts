@@ -26,11 +26,11 @@ export interface WorkspaceService {
 }
 
 export interface Tab {
-  tabId: number
   workspace: Workspace
   title: Observable<string>
   icon: Observable<string>
   width: Observable<number> // Relative width (0-1 range, fraction of monitor width)
+  isActive: Observable<boolean> // Whether this tab is the selected tab in its workspace
 }
 
 export interface Workspace extends GObject.Object {
@@ -53,4 +53,5 @@ export interface MonitorService {
   monitors: Observable<Gdk.Monitor[]>
   activeMonitor: Observable<Gdk.Monitor>
 }
+
 
