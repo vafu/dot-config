@@ -28,8 +28,8 @@ input {
 }
 
 cursor {
-    xcursor-theme "phinger-cursors-gruvbox-material"
-    // xcursor-theme "catppuccin-macchiato-dark-cursors"
+    // xcursor-theme "phinger-cursors-gruvbox-material"
+    xcursor-theme "catppuccin-macchiato-dark-cursors"
     xcursor-size 24
 }
 
