@@ -42,15 +42,10 @@
 }
 
 .column-item {
+  margin: 2px;
   border-radius: 6px;
   background-color: color-mix(in srgb, #{$ws_occupied} 15%, transparent);
   transition: background-color 150ms;
-  
-  /* Center icon vertically */
-  image {
-    margin-top: auto;
-    margin-bottom: auto;
-  }
   
   &.slide-in-left {
     animation: slideInFromLeft 250ms ease-out;
