@@ -74,7 +74,7 @@ overview {
     // Output scale and rotation has to be taken into account for positioning:
     // outputs are sized in logical, or scaled, pixels.
     // For example, a 3840×2160 output with scale 2.0 will have a logical size of 1920×1080,
-    // so to put another output directly adjacent to it on the right, set its x to 1920.
+    // sowto put another output directly adjacent to it on the right, set its x to 1920.
     // If the position is unset or results in an overlap, the output is instead placed
     // automatically.
     position x=1280 y=0
@@ -188,6 +188,7 @@ binds {
     Mod+Return hotkey-overlay-title="Open a Terminal: alacritty" { spawn "alacritty"; }
     Mod+D hotkey-overlay-title="Run an Application: rsynapase" { spawn-sh "ags request rsynapse"; }
     Ctrl+Shift+L hotkey-overlay-title="Lock the Screen: swaylock" { spawn "hyprlock"; }
+    Ctrl+Shift+O hotkey-overlay-title="Lock the Screen: swaylock" { spawn-sh "~/.config/scripts/suspend.sh"; }
 
     Ctrl+Shift+R { spawn-sh "killall gjs && ags run --gtk 4"; }
 
