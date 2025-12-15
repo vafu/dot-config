@@ -8,25 +8,18 @@
        inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    ags.url = "github:Aylur/ags";
-    astal.url = "github:sameoldlab/astal?ref=feat/niri";
-
+    ags = {
+      url = "github:Aylur/ags";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.astal.follows = "astal";
+    };
+    astal = { 
+      url = "github:sameoldlab/astal?ref=feat/niri";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     nixGL = {
       url = "github:nix-community/nixGL";
       inputs.nixpkgs.follows = "nixpkgs";
-    };
-    hyprland.url = "github:hyprwm/Hyprland";
-    hypr-dynamic-cursors = {
-        url = "github:VirtCode/hypr-dynamic-cursors";
-        inputs.hyprland.follows = "hyprland"; 
-    };
-    hyprland-plugins = {
-        url = "github:hyprwm/hyprland-plugins";
-        inputs.hyprland.follows = "hyprland"; 
-    };
-    hyprWorkspaceLayouts = {
-        url = "github:zakk4223/hyprWorkspaceLayouts";
-        inputs.hyprland.follows = "hyprland"; 
     };
     niri = {
         url = "github:sodiboo/niri-flake";

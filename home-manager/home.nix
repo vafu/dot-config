@@ -29,13 +29,7 @@ in
 
         # Add the theming_patch.diff to the list of existing patches
         patches = (oldAttrs.patches or []) ++ [
-          (final.fetchpatch {
-            # Using the direct AUR cgit link you provided.
-            url = "https://aur.archlinux.org/cgit/aur.git/plain/theming_patch.diff?h=libadwaita-without-adwaita-git";
-            
-            # The correct hash for the patch file from that URL.
-            hash = "sha256-3fQ0coWIK00FEngdAp97Cnd0PvHmBoFCxr7gb+AKpgQ=";
-          })
+           ./theming_patch.diff
         ];
       });
     })
@@ -136,17 +130,4 @@ in
     package = config.lib.nixGL.wrap pkgs.niri;
   };
 
-  
-  wayland.windowManager.hyprland = 
-  {
-      enable = true;
-      package = config.lib.nixGL.wrap inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.hyprland;
-      extraConfig = builtins.readFile /home/vfuchedzhy/.config/hypr/niximport.conf;
-      systemd.variables = ["--all"];
-      plugins = with inputs; [ 
-        hyprland-plugins.packages.${pkgs.system}.hyprscrolling 
-        hypr-dynamic-cursors.packages.${pkgs.system}.hypr-dynamic-cursors 
-        hyprWorkspaceLayouts.packages.${pkgs.system}.default 
-      ];
-  };
 }
