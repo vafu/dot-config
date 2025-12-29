@@ -12,6 +12,8 @@ import {
   switchMap,
 } from 'rxjs'
 import { WidgetProps } from 'widgets'
+import { Subgroup } from './panel-widgets'
+import { MaterialIcon } from 'widgets/materialicon'
 
 const mpris = AstalMpris.get_default()
 const player = fromConnectable(mpris, 'players').pipe(
@@ -61,17 +63,21 @@ export const MPRISWidget = (props: WidgetProps) => {
   )
 
   return (
-    <box
-      visible={bindAs(metadata, m => m.length > 0, false)}
-      cssClasses={(props.cssClasses ?? []).concat(['mpris-widget'])}
+    <Subgroup
+      css_classes={(props.cssClasses ?? []).concat(['mpris-widget'])}
     >
       <label
-        ellipsize={Pango.EllipsizeMode.MIDDLE}
-        max_width_chars={30}
         label={binding(metadata, '')}
         tooltipText={binding(metadata, '')}
-        cssClasses={bindAs(playerStateCss, c => [c], [])}
       />
-    </box>
+      <button css_classes={["flat", "button-subgroup-main"]} onClicked={() =>
+        mpris.players?.at(0)?.play_pause()
+      }>
+        <MaterialIcon
+          icon="music_note"
+          tinted={bindAs(playerStateCss, s => s != "playing", false)}
+        />
+      </button>
+    </Subgroup>
   )
 }

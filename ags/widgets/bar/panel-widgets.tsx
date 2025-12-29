@@ -7,6 +7,36 @@ import { binding, fromConnectable } from 'rxbinding'
 import { WidgetProps } from 'widgets'
 import GObject from 'gnim/gobject'
 
+type SubgroupProps = (Gtk.Box.ConstructorProps) & WidgetProps & { children: GObject.Object[] }
+
+export const Subgroup = (props: SubgroupProps) => {
+  const { css_classes, children, ...boxprops } = props
+
+  const box = new Gtk.Box({
+    ...boxprops
+  })
+
+  const main = children.pop() as Gtk.Widget
+
+  const revealer = new Gtk.Revealer({
+    child: box,
+    reveal_child: false,
+    transition_type: Gtk.RevealerTransitionType.SLIDE_RIGHT
+  })
+
+
+  children.forEach(w => box.append(w as Gtk.Widget))
+
+  return <box css_classes={css_classes}>
+    <Gtk.EventControllerMotion
+      onEnter={() => revealer.set_reveal_child(true)}
+      onLeave={() => revealer.set_reveal_child(false)}
+    />
+    {main}
+    {revealer}
+  </box>
+}
+
 type PanelButtonProps = Gtk.Button.ConstructorProps & WidgetProps
 export const PanelButton = (props: PanelButtonProps) => {
   const { cssClasses, child, ...buttonProps } = props
