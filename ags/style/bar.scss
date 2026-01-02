@@ -30,17 +30,6 @@
   margin-top: -14px;
 }
 
-.ws-matrix {
-  min-width: 150px;
-}
-
-.workspace-strip-fixed {
-  min-width: 300px;
-  max-width: 300px;
-  min-height: 24px;
-  max-height: 24px;
-}
-
 .column-item {
   margin: 2px;
   border-radius: 6px;
@@ -154,10 +143,6 @@
   }
 
   transition: 100ms;
-}
-
-.center {
-  min-width: 500px;
 }
 
 .tab-carousel {

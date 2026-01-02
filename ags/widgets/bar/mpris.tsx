@@ -1,16 +1,12 @@
 import AstalMpris from 'gi://AstalMpris?version=0.1'
-import Pango from 'gi://Pango?version=1.0'
 import { bindAs, binding, fromConnectable } from 'rxbinding'
 import {
   combineLatest,
   concat,
   distinctUntilChanged,
   filter,
-  interval,
   map,
-  merge,
   of,
-  pipe,
   shareReplay,
   startWith,
   switchMap,
@@ -19,7 +15,6 @@ import {
 import { WidgetProps } from 'widgets'
 import { Subgroup } from './panel-widgets'
 import { MaterialIcon } from 'widgets/materialicon'
-import { logNext } from 'commons/rx'
 
 const mpris = AstalMpris.get_default()
 const player = fromConnectable(mpris, 'players').pipe(
