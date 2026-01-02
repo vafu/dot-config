@@ -3,17 +3,23 @@ import Pango from 'gi://Pango?version=1.0'
 import { bindAs, binding, fromConnectable } from 'rxbinding'
 import {
   combineLatest,
+  concat,
+  distinctUntilChanged,
   filter,
+  interval,
   map,
+  merge,
   of,
   pipe,
   shareReplay,
   startWith,
   switchMap,
+  timer,
 } from 'rxjs'
 import { WidgetProps } from 'widgets'
 import { Subgroup } from './panel-widgets'
 import { MaterialIcon } from 'widgets/materialicon'
+import { logNext } from 'commons/rx'
 
 const mpris = AstalMpris.get_default()
 const player = fromConnectable(mpris, 'players').pipe(
@@ -62,15 +68,24 @@ export const MPRISWidget = (props: WidgetProps) => {
     startWith(''),
   )
 
+  const metadataTimer = metadata.pipe(
+    distinctUntilChanged(),
+    switchMap(() => concat(
+      of(true),
+      timer(3000).pipe(map(() => false))
+    )),
+  )
+
   return (
     <Subgroup
       css_classes={(props.cssClasses ?? []).concat(['mpris-widget'])}
+      revealWhen={metadataTimer}
     >
       <label
         label={binding(metadata, '')}
         tooltipText={binding(metadata, '')}
       />
-      <button css_classes={["flat", "button-subgroup-main"]} onClicked={() =>
+      <button css_classes={["flat", "circular", "button-subgroup-main"]} onClicked={() =>
         mpris.players?.at(0)?.play_pause()
       }>
         <MaterialIcon

@@ -2,15 +2,18 @@ import { Accessor } from 'gnim'
 import { Gtk } from 'ags/gtk4'
 import { MaterialIcon } from 'widgets/materialicon'
 import { LevelIndicator, RenderStyle } from 'widgets/circularstatus'
-import { BehaviorSubject, combineLatest, map, of, tap } from 'rxjs'
+import { BehaviorSubject, combineLatest, map, Observable, of, tap } from 'rxjs'
 import { binding, fromConnectable } from 'rxbinding'
 import { WidgetProps } from 'widgets'
 import GObject from 'gnim/gobject'
 
-type SubgroupProps = (Gtk.Box.ConstructorProps) & WidgetProps & { children: GObject.Object[] }
+type SubgroupProps = (Gtk.Box.ConstructorProps)
+  & WidgetProps
+  & { children: GObject.Object[] }
+  & { revealWhen?: Observable<boolean> }
 
 export const Subgroup = (props: SubgroupProps) => {
-  const { css_classes, children, ...boxprops } = props
+  const { css_classes, children, revealWhen, ...boxprops } = props
 
   const box = new Gtk.Box({
     ...boxprops
@@ -24,6 +27,10 @@ export const Subgroup = (props: SubgroupProps) => {
     transition_type: Gtk.RevealerTransitionType.SLIDE_RIGHT
   })
 
+  if (!!revealWhen) {
+    const s = revealWhen.subscribe(reveal => revealer.set_reveal_child(reveal))
+    revealer.connect("destroy", s.unsubscribe)
+  }
 
   children.forEach(w => box.append(w as Gtk.Widget))
 
