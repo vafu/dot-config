@@ -7,6 +7,7 @@ spawn-at-startup "hypridle"
 spawn-at-startup "swaync"
 spawn-at-startup "rsynapse-daemon"
 spawn-at-startup "swww-daemon"
+// spawn-at-startup "LIBGL_ALWAYS_SOFTWARE=1 ghostty --gtk-single-instance=true --initial-window=false"
 spawn-sh-at-startup "ags run --gtk 4"
 spawn-sh-at-startup "export DISPLAY=:0 && dbus-update-activation-environment --systemd DISPLAY"
 
@@ -24,7 +25,7 @@ input {
     }
 
     warp-mouse-to-focus
-    focus-follows-mouse max-scroll-amount="50%"
+    focus-follows-mouse max-scroll-amount="100%"
 }
 
 cursor {
@@ -185,7 +186,8 @@ binds {
     // Mod+Shift+Slash { show-hotkey-overlay; }
 
     // Suggested binds for running programs: terminal, app launcher, screen locker.
-    Mod+Return hotkey-overlay-title="Open a Terminal: alacritty" { spawn "alacritty"; }
+    // Mod+Return hotkey-overlay-title="Open a Terminal" { spawn-sh "ghostty +new-window"; }
+    Mod+Return hotkey-overlay-title="Open a Terminal" { spawn-sh "alacritty"; }
     Mod+D hotkey-overlay-title="Run an Application: rsynapase" { spawn-sh "ags request rsynapse"; }
     Ctrl+Shift+L hotkey-overlay-title="Lock the Screen: swaylock" { spawn "hyprlock"; }
     Ctrl+Shift+O hotkey-overlay-title="Lock the Screen: swaylock" { spawn-sh "~/.config/scripts/suspend.sh"; }
