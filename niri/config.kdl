@@ -7,6 +7,7 @@ spawn-at-startup "hypridle"
 spawn-at-startup "swaync"
 spawn-at-startup "rsynapse-daemon"
 spawn-at-startup "swww-daemon"
+spawn-at-startup "sunsetr"
 spawn-sh-at-startup "ags run --gtk 4"
 spawn-sh-at-startup "export DISPLAY=:0 && dbus-update-activation-environment --systemd DISPLAY"
 
@@ -28,8 +29,8 @@ input {
 }
 
 cursor {
-    // xcursor-theme "phinger-cursors-gruvbox-material"
-    xcursor-theme "catppuccin-macchiato-dark-cursors"
+     xcursor-theme "phinger-cursors-gruvbox-material"
+    //xcursor-theme "catppuccin-macchiato-dark-cursors"
     xcursor-size 24
 }
 
