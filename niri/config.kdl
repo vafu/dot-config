@@ -29,11 +29,7 @@ input {
     focus-follows-mouse max-scroll-amount="100%"
 }
 
-cursor {
-     xcursor-theme "phinger-cursors-gruvbox-material"
-    //xcursor-theme "catppuccin-macchiato-dark-cursors"
-    xcursor-size 24
-}
+include "cursor.kdl"
 
 gestures {
     hot-corners {
