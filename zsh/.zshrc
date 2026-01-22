@@ -1,6 +1,3 @@
-zstyle ':zim:completion' dumpfile ${XDG_CACHE_HOME}/zsh/zcompdump
-zstyle ':completion:complete:*' cache-path ${XDG_CACHE_HOME}/.cache/zsh/zcompcache
-
 # Remove older command from the history if a duplicate is to be added.
 HISTFILE=$HOME/.zsh_history
 setopt HIST_IGNORE_ALL_DUPS
@@ -9,7 +6,7 @@ setopt HIST_IGNORE_ALL_DUPS
 bindkey -v
 
 # Prompt for spelling correction of commands.
-#setopt CORRECT
+setopt CORRECT
 
 # Customize spelling correction prompt.
 #SPROMPT='zsh: correct %F{red}%R%f to %F{green}%r%f [nyae]? '

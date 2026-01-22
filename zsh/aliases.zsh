@@ -6,6 +6,37 @@ alias gpb='git push origin "$(git branch --show-current)"'
 alias gaa="git add ."
 alias gcm="git commit -m"
 
+open_project() {
+  PROJECT_DIR=""
+  if [ -n "$1" ]; then
+    PROJECT_DIR="$1"
+  fi
+  if [ -n "$2" ]; then
+    PROJECT_DIR="$PROJECT_DIR/$2"
+  fi
+  cd $PROJECT_DIR
+}
+
+
+p() {
+  open_project "$HOME/proj" $1
+}
+
+c() {
+  open_project "$HOME/.config" $1
+}
+
+pe() {
+  p $1
+  e
+}
+
+ce() {
+  c $1
+  e
+}
+
+
 gpa() {
   if [ -z "$1" ]; then
     echo "Error: Please provide a commit message."

@@ -84,6 +84,7 @@ in
     nautilus
     firefox
     alacritty
+    foot
     brightnessctl
     wl-clipboard 
     nwg-look
