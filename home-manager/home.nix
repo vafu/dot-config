@@ -84,6 +84,7 @@ in
     nautilus
     firefox
     alacritty
+    foot
     brightnessctl
     wl-clipboard 
     nwg-look
@@ -99,7 +100,21 @@ in
     xwayland-satellite 
     swww
     slack
+    code-cursor
+    cmake
+    ninja
+    powertop
+    delta
+    (pkgs.python312.withPackages (ps: with ps; [
+      dbus-python
+      pygobject3
+    ]))
   ];
+
+  programs.ghostty = {
+    enable = true;
+    enableZshIntegration = true;
+  };
 
   home.sessionVariables = {
     NIXOS_OZONE_WL = "1";
