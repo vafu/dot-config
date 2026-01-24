@@ -73,8 +73,7 @@ async function updateGtkTheme(colorScheme: string) {
   await execAsync(
     `gsettings set org.gnome.desktop.interface gtk-theme '${theme}'`,
   )
-  const sig = isDark ? 1 : 2
-  await execAsync(`pkill -USR${sig} -x foot`)
+  await execAsync(`bash scripts/legacy_alacritty.sh --${style}`)
 }
 
 

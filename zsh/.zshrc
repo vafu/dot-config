@@ -1,6 +1,3 @@
-zstyle ':zim:completion' dumpfile ${XDG_CACHE_HOME}/zsh/zcompdump
-zstyle ':completion:complete:*' cache-path ${XDG_CACHE_HOME}/.cache/zsh/zcompcache
-
 # Remove older command from the history if a duplicate is to be added.
 HISTFILE=$HOME/.zsh_history
 setopt HIST_IGNORE_ALL_DUPS
