@@ -6,7 +6,7 @@ setopt HIST_IGNORE_ALL_DUPS
 bindkey -v
 
 # Prompt for spelling correction of commands.
-#setopt CORRECT
+setopt CORRECT
 
 # Customize spelling correction prompt.
 #SPROMPT='zsh: correct %F{red}%R%f to %F{green}%r%f [nyae]? '
@@ -112,6 +112,21 @@ for key ('j') bindkey -M vicmd ${key} history-substring-search-down
 unset key
 # }}} End configuration added by Zim install
 
+function zle-keymap-select () {
+  case $KEYMAP in
+    vicmd) echo -ne '\e[2 q';;
+    viins|main) echo -ne '\e[5 q';;
+  esac
+}
+zle -N zle-keymap-select
+
+zle-line-init() {
+  zle -K viins 
+  echo -ne "\e[5 q" }
+zle -N zle-line-init
+
+export KEYTIMEOUT=1
+
 source_if_exists() {
   if [[ -f "$1" ]]; then
     source "$1"
@@ -124,3 +139,7 @@ source_if_exists "$ZDOTDIR/niri.zsh"
 source_if_exists "$HOME/.zshrc"
 
 cd /tmp
+
+#THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
+export SDKMAN_DIR="$HOME/.sdkman"
+[[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
