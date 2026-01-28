@@ -3,6 +3,7 @@ size = 10
 
 normal = { family = "JetBrainsMono Nerd Font Mono", style = "Regular" }
 
+
 [cursor.style]
 shape =  "Beam"
 blinking  = "Always"

@@ -1,0 +1,9 @@
+[Unit]
+Description=ags
+
+[Service]
+ExecStart=/usr/bin/ags run --gtk 4
+Restart=always
+
+[Install]
+WantedBy=default.target
