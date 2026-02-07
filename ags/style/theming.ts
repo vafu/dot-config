@@ -5,18 +5,13 @@ import App from 'ags/gtk4/app'
 import { Gtk } from 'ags/gtk4'
 import { distinctUntilChanged, map, shareReplay, startWith } from 'rxjs'
 import { getPomodoroService } from 'services/pomodoro'
+import { requestsFor } from 'services/requests'
 const settings = Gio.Settings.new('org.gnome.desktop.interface')
 
 export function prepareTheme() {
   prepareGtk()
   prepareIcons()
   preparePomodoro()
-
-  // obtainWmService('workspace').activeWorkroom.subscribe((wr) =>
-  //   exec(
-  //     `gsettings set org.gnome.desktop.interface accent-color '${colors[wr.idx]}'`
-  //   )
-  // )
 }
 
 function preparePomodoro() {
@@ -43,11 +38,16 @@ function preparePomodoro() {
   })
 }
 
+type Request = { command: 'scheme-toggle' }
 function prepareGtk() {
-  // TODO: fix sync accent on nix
   // syncAccent(null)
   const colorScheme = settings.get_string('color-scheme')
   updateGtkTheme(colorScheme).catch()
+  requestsFor<Request>('scheme-toggle').subscribe(r => {
+    const newScheme = settings.get_string('color-scheme') == "prefer-light" ? "prefer-dark" : "prefer-light"
+    settings.set_string("color-scheme", newScheme)
+    r.handler({ status: "ok" })
+  })
   settings.connect('changed::color-scheme', (s: Gio.Settings) => {
     const newColorScheme = s.get_string('color-scheme')
     updateGtkTheme(newColorScheme).catch()

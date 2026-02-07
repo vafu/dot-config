@@ -17,8 +17,6 @@ alacritty/theme.toml
 !fuzzel/**
 
 !niri/**
-!systemd/**
-systemd/user/*.wants/**
 
 !hypr/**
 hypr/hyprland.conf
