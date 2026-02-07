@@ -75,5 +75,3 @@ async function updateGtkTheme(colorScheme: string) {
   )
   await execAsync(`bash scripts/legacy_alacritty.sh --${style}`)
 }
-
-

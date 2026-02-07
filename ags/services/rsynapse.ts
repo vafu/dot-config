@@ -2,10 +2,7 @@ import GLib from 'gi://GLib?version=2.0'
 import GObject from 'gi://GObject?version=2.0'
 import Gio from 'gi://Gio?version=2.0'
 import { BehaviorSubject, Observable } from 'rxjs'
-import {
-  distinctUntilChanged,
-  switchMap,
-} from 'rxjs/operators'
+import { distinctUntilChanged, switchMap } from 'rxjs/operators'
 
 export interface RsynapseService {
   results: Observable<RsynapseResult[]>
@@ -23,39 +20,39 @@ export class RsynapseResult extends GObject.Object {
             'ID',
             'Result ID',
             GObject.ParamFlags.READWRITE,
-            null
+            null,
           ),
           title: GObject.ParamSpec.string(
             'title',
             'Title',
             'Result Title',
             GObject.ParamFlags.READWRITE,
-            null
+            null,
           ),
           description: GObject.ParamSpec.string(
             'description',
             'Description',
             'Result Description',
             GObject.ParamFlags.READWRITE,
-            null
+            null,
           ),
           icon: GObject.ParamSpec.string(
             'icon',
             'Icon',
             'Result Icon Name',
             GObject.ParamFlags.READWRITE,
-            null
+            null,
           ),
           command: GObject.ParamSpec.string(
             'command',
             'Command',
             'Result Command',
             GObject.ParamFlags.READWRITE,
-            null
+            null,
           ),
         },
       },
-      this
+      this,
     )
   }
 
@@ -77,9 +74,9 @@ export class RsynapseResult extends GObject.Object {
 
   public launch() {
     const appInfo = Gio.AppInfo.create_from_commandline(
-      this.command,
+      `uwsm app -- ${this.command}`,
       this.title,
-      Gio.AppInfoCreateFlags.NONE
+      Gio.AppInfoCreateFlags.NONE,
     )
     appInfo.launch([], null)
   }
@@ -108,7 +105,7 @@ const initRsynapse = (): RsynapseService => {
   const proxy = RsynapseProxy(
     Gio.DBus.session,
     'com.rsynapse.Engine', // The service name
-    '/org/rsynapse/Engine1' // The object path
+    '/org/rsynapse/Engine1', // The object path
   )
 
   // A subject to manage the query string. Using a BehaviorSubject
@@ -118,14 +115,13 @@ const initRsynapse = (): RsynapseService => {
   // The main results stream. This is what the UI will subscribe to.
   const resultsSubject = new BehaviorSubject<RsynapseResult[]>([])
 
-
   // This is the reactive core. It listens for changes to the query,
   // debounces them to avoid excessive D-Bus calls while typing,
   // and then calls the backend to get new results.
   querySubject
     .pipe(
       distinctUntilChanged(), // Don't search if the query hasn't changed
-      switchMap(async (query) => {
+      switchMap(async query => {
         // Cancel previous requests and run a new one
         if (query.trim() === '') {
           return [] // Return empty results for an empty query
@@ -136,7 +132,7 @@ const initRsynapse = (): RsynapseService => {
             new GLib.Variant('(s)', [query]),
             null,
             1000,
-            null
+            null,
           )
 
           // The actual return value is the first element of the variant tuple.
@@ -153,16 +149,16 @@ const initRsynapse = (): RsynapseService => {
                 description: item[2],
                 icon: item[3],
                 command: item[4],
-              })
+              }),
           )
           return results
         } catch (e) {
           console.error('Rsynapse D-Bus call failed:', e)
           return []
         }
-      })
+      }),
     )
-    .subscribe((results) => {
+    .subscribe(results => {
       // Push the new results into our main results subject.
       resultsSubject.next(results)
     })
