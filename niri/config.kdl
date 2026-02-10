@@ -1,7 +1,11 @@
+spawn-at-startup "uwsm" "finalize"
+spawn-sh-at-startup "runapp -i session-graphical.slice -- hypridle"
 
-spawn-sh-at-startup "uwsm app -s s -t service -- hypridle"
-spawn-sh-at-startup "uwsm app -s b -t service -- ags run"
-spawn-sh-at-startup "uwsm app -s b -- udiskie"
+spawn-sh-at-startup "runapp -- ags run"
+spawn-sh-at-startup "runapp -- rsynapse-daemon"
+spawn-sh-at-startup "runapp -- foot -s"
+
+spawn-sh-at-startup "runapp -i background-graphical.slice -- udiskie"
 
 input {
     keyboard {
@@ -174,9 +178,10 @@ binds {
     // Mod+Shift+Slash { show-hotkey-overlay; }
 
     // Suggested binds for running programs: terminal, app launcher, screen locker.
-    Mod+Return hotkey-overlay-title="Open a Terminal" { spawn-sh "uwsm app -- alacritty"; }
+    Mod+Return hotkey-overlay-title="Open a Terminal" { spawn-sh "footclient"; }
+    // Mod+Return hotkey-overlay-title="Open a Terminal" { spawn-sh "foot"; }
     Mod+D hotkey-overlay-title="Run an Application: rsynapase" { spawn-sh "ags request rsynapse"; }
-    Ctrl+Shift+L hotkey-overlay-title="Lock the Screen: swaylock" { spawn-sh "uwsm app -- hyprlock"; }
+    Ctrl+Shift+L hotkey-overlay-title="Lock the Screen: swaylock" { spawn-sh "runapp -o hyprlock"; }
     Ctrl+Shift+O hotkey-overlay-title="Lock the Screen: swaylock" { spawn-sh "~/.config/scripts/suspend.sh"; }
 
     Ctrl+Shift+R { spawn-sh "systemctl --user restart 'app-niri-ags*.service'"; }

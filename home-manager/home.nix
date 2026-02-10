@@ -42,6 +42,7 @@ in
     defaultWrapper = "mesa";
     installScripts = [ "mesa" ];
   };
+
   programs.ags = {
     enable = true;
     extraPackages = with pkgs; [
@@ -69,7 +70,6 @@ in
     gsettings-desktop-schemas
     glib
     udiskie
-    hyprlock
     libadwaita
     alsa-utils
     grim
@@ -83,19 +83,17 @@ in
     swaynotificationcenter
     nautilus
     firefox
-    alacritty
+    # alacritty
     foot
     brightnessctl
     wl-clipboard 
     nwg-look
     nwg-displays
-    hyprpaper
     endeavour
     evolution-data-server
     hypridle
     nodejs
     neovim
-    ghostty
     mako
     xwayland-satellite 
     swww
@@ -105,21 +103,28 @@ in
     ninja
     powertop
     delta
+    uwsm
+    runapp
+    hyprlock 
     (pkgs.python312.withPackages (ps: with ps; [
       dbus-python
       pygobject3
     ]))
   ];
 
-  programs.ghostty = {
-    enable = true;
-    enableZshIntegration = true;
-  };
-
   home.sessionVariables = {
     NIXOS_OZONE_WL = "1";
     ELECTRON_OZONE_PLATFORM_HINT = "auto";
   };
+
+  xdg.dataFile."wayland-sessions/uwsm-niri.desktop".text = ''
+        [Desktop Entry]
+        Name=Niri (UWSM)
+        Comment=Niri session managed by UWSM
+        Exec=${pkgs.uwsm}/bin/uwsm start -F -- niri --session
+        Type=Application
+        DesktopNames=Niri
+  '';
 
   xdg.desktopEntries."slack" = {
     # This must match the original .desktop file name
@@ -144,5 +149,4 @@ in
     enable = true;
     package = config.lib.nixGL.wrap pkgs.niri;
   };
-
 }
