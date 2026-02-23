@@ -1,6 +1,8 @@
 
 spawn-sh-at-startup "uwsm app -s s -t service -- hypridle"
+spawn-sh-at-startup "uwsm app -s s -t service -- $HOME/.cargo/bin/supprssor"
 spawn-sh-at-startup "uwsm app -s b -t service -- ags run"
+spawn-sh-at-startup "uwsm app -s b -t service -- alacritty --daemon"
 spawn-sh-at-startup "uwsm app -s b -- udiskie"
 
 input {
@@ -174,7 +176,7 @@ binds {
     // Mod+Shift+Slash { show-hotkey-overlay; }
 
     // Suggested binds for running programs: terminal, app launcher, screen locker.
-    Mod+Return hotkey-overlay-title="Open a Terminal" { spawn-sh "uwsm app -- alacritty"; }
+    Mod+Return hotkey-overlay-title="Open a Terminal" { spawn-sh "alacritty msg create-window"; }
     Mod+D hotkey-overlay-title="Run an Application: rsynapase" { spawn-sh "ags request rsynapse"; }
     Ctrl+Shift+L hotkey-overlay-title="Lock the Screen: swaylock" { spawn-sh "uwsm app -- hyprlock"; }
     Ctrl+Shift+O hotkey-overlay-title="Lock the Screen: swaylock" { spawn-sh "~/.config/scripts/suspend.sh"; }
