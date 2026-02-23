@@ -83,7 +83,6 @@ output "Lenovo Group Limited L32p-30 U512DA0P"{
 }
 
 layout {
-    background-color "44415a"
     gaps 12
 
     struts {
@@ -133,12 +132,13 @@ layout {
     // You can change how the focus ring looks.
     focus-ring {
         off
-        width 1
-        active-color "#56526e"
     }
 
     border {
-        off
+        // off
+        width 1
+        active-color "#a7c08080"
+        inactive-color "#414B50"
     }
 
     shadow {
@@ -146,10 +146,11 @@ layout {
         softness 8
         spread 1
         offset x=0 y=0
-        color "#c4a7e7c0"
-        inactive-color "#2a283e70"
-        // inactive-color "0005"
+        color "#a7c08080"
+        inactive-color "#1e2326"
     }
+
+    background-color "495156"
 }
 
 hotkey-overlay {
