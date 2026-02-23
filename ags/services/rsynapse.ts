@@ -74,7 +74,7 @@ export class RsynapseResult extends GObject.Object {
 
   public launch() {
     const appInfo = Gio.AppInfo.create_from_commandline(
-      `uwsm app -- ${this.command}`,
+      `runapp -- ${this.command}`,
       this.title,
       Gio.AppInfoCreateFlags.NONE,
     )

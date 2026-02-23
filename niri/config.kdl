@@ -1,9 +1,12 @@
+spawn-at-startup "uwsm" "finalize"
+spawn-sh-at-startup "runapp -i session-graphical.slice -- hypridle"
 
-spawn-sh-at-startup "uwsm app -s s -t service -- hypridle"
-spawn-sh-at-startup "uwsm app -s s -t service -- $HOME/.cargo/bin/supprssor"
-spawn-sh-at-startup "uwsm app -s b -t service -- ags run"
-spawn-sh-at-startup "uwsm app -s b -t service -- alacritty --daemon"
-spawn-sh-at-startup "uwsm app -s b -- udiskie"
+spawn-sh-at-startup "runapp -- $HOME/.cargo/bin/supprssor"
+spawn-sh-at-startup "runapp -- ags run"
+spawn-sh-at-startup "runapp -- rsynapse-daemon"
+spawn-sh-at-startup "runapp -- foot -s"
+spawn-sh-at-startup "runapp -i background-graphical.slice -- udiskie"
+spawn-sh-at-startup "runapp -i background-graphical.slice -- swww-daemon"
 
 input {
     keyboard {
@@ -71,11 +74,16 @@ overview {
     position x=1280 y=0
 }
 
-output "Dell Inc. DELL S2722DC 942BHD3" {
+output "Dell Inc. DELL U2720Q 5GMS6H3" {
     transform "90"
 }
 
+output "Lenovo Group Limited L32p-30 U512DA0P"{
+    scale 1.2
+}
+
 layout {
+    background-color "44415a"
     gaps 12
 
     struts {
@@ -125,6 +133,8 @@ layout {
     // You can change how the focus ring looks.
     focus-ring {
         off
+        width 1
+        active-color "#56526e"
     }
 
     border {
@@ -134,9 +144,11 @@ layout {
     shadow {
         on
         softness 8
-        spread 0
-        offset x=0 y=2
-        color "#0007"
+        spread 1
+        offset x=0 y=0
+        color "#c4a7e7c0"
+        inactive-color "#2a283e70"
+        // inactive-color "0005"
     }
 }
 
@@ -176,10 +188,10 @@ binds {
     // Mod+Shift+Slash { show-hotkey-overlay; }
 
     // Suggested binds for running programs: terminal, app launcher, screen locker.
-    Mod+Return hotkey-overlay-title="Open a Terminal" { spawn-sh "alacritty msg create-window"; }
+    Mod+Return hotkey-overlay-title="Open a Terminal" { spawn-sh "ghostty +new-window"; }
     Mod+D hotkey-overlay-title="Run an Application: rsynapase" { spawn-sh "ags request rsynapse"; }
-    Ctrl+Shift+L hotkey-overlay-title="Lock the Screen: swaylock" { spawn-sh "uwsm app -- hyprlock"; }
-    Ctrl+Shift+O hotkey-overlay-title="Lock the Screen: swaylock" { spawn-sh "~/.config/scripts/suspend.sh"; }
+    Ctrl+Shift+L hotkey-overlay-title="Lock the Screen: swaylock" { spawn-sh "runapp -o hyprlock"; }
+    Ctrl+Shift+U hotkey-overlay-title="Lock the Screen: swaylock" { spawn-sh "~/.config/scripts/suspend.sh"; }
 
     Ctrl+Shift+R { spawn-sh "systemctl --user restart 'app-niri-ags*.service'"; }
 

@@ -1,41 +1,50 @@
-# -*- conf -*-
-
 [colors]
-background=282828
-foreground=d4be98
-regular0=282828
-regular1=ea6962
-regular2=a9b665
-regular3=d8a657
-regular4=7daea3
-regular5=d3869b
-regular6=89b482
-regular7=a89984
-bright0=928374
-bright1=e78a4e
-bright2=a9b665
-bright3=d8a657
-bright4=7daea3
-bright5=d3869b
-bright6=89b482
-bright7=d4be98
+cursor=272E33 D3C6AA 
+background=272E33 
+foreground=D3C6AA 
+
+regular0=1E2326      # bg_dim
+regular1=E67E80      # red
+regular2=A7C080      # green
+regular3=DBBC7F      # yellow
+regular4=7FBBB3      # blue
+regular5=D699B6      # purple
+regular6=83C092      # aqua
+regular7=D3C6AA      # fg
+
+bright0=414B50       # bg3
+bright1=E67E80       
+bright2=A7C080
+bright3=DBBC7F
+bright4=7FBBB3
+bright5=D699B6
+bright6=83C092
+bright7=D3C6AA
+
+flash=DBBC7F         # yellow
+
 
 [colors2]
-background=f9f5d7
-foreground=654735
-regular0=f9f5d7
-regular1=c14a4a
-regular2=6c782e
-regular3=b47109
-regular4=45707a
-regular5=945e80
-regular6=4c7a5d
-regular7=7c6f64
-bright0=928374
-bright1=c35e0a
-bright2=6c782e
-bright3=b47109
-bright4=45707a
-bright5=945e80
-bright6=4c7a5d
-bright7=654735
+cursor=5C6A72 FFFBEF 
+background=FFFBEF 
+foreground=5C6A72 
+
+regular0=F2EFDF      # bg_dim
+regular1=F85552      # red
+regular2=8DA101      # green
+regular3=DFA000      # yellow
+regular4=3A94C5      # blue
+regular5=DF69BA      # purple
+regular6=35A77C      # aqua
+regular7=5C6A72      # fg
+
+bright0=EDEADA       # bg3
+bright1=F85552       
+bright2=8DA101
+bright3=DFA000
+bright4=3A94C5
+bright5=DF69BA
+bright6=35A77C
+bright7=5C6A72
+
+flash=DFA000         # yellow
