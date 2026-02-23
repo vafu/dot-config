@@ -1,11 +1,12 @@
 spawn-at-startup "uwsm" "finalize"
 spawn-sh-at-startup "runapp -i session-graphical.slice -- hypridle"
 
+spawn-sh-at-startup "runapp -- $HOME/.cargo/bin/supprssor"
 spawn-sh-at-startup "runapp -- ags run"
 spawn-sh-at-startup "runapp -- rsynapse-daemon"
 spawn-sh-at-startup "runapp -- foot -s"
-
 spawn-sh-at-startup "runapp -i background-graphical.slice -- udiskie"
+spawn-sh-at-startup "runapp -i background-graphical.slice -- swww-daemon"
 
 input {
     keyboard {
@@ -82,7 +83,7 @@ output "Lenovo Group Limited L32p-30 U512DA0P"{
 }
 
 layout {
-    background-color "4f5b58"
+    background-color "44415a"
     gaps 12
 
     struts {
@@ -132,6 +133,8 @@ layout {
     // You can change how the focus ring looks.
     focus-ring {
         off
+        width 1
+        active-color "#56526e"
     }
 
     border {
@@ -141,9 +144,11 @@ layout {
     shadow {
         on
         softness 8
-        spread 0
-        offset x=0 y=2
-        color "#0007"
+        spread 1
+        offset x=0 y=0
+        color "#c4a7e7c0"
+        inactive-color "#2a283e70"
+        // inactive-color "0005"
     }
 }
 
