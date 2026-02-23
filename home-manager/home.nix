@@ -106,6 +106,11 @@ in
     uwsm
     runapp
     hyprlock 
+    nerd-fonts.fira-code
+    SDL2
+    libdecor
+    (config.lib.nixGL.wrap pkgs.ghostty)
+    (config.lib.nixGL.wrap pkgs.scrcpy)
     (pkgs.python312.withPackages (ps: with ps; [
       dbus-python
       pygobject3
