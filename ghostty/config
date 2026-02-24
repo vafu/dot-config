@@ -20,7 +20,7 @@
 # # The config file consists of simple key-value pairs,
 # # separated by equals signs.
 font-family = "FiraCode Nerd Font Ret" 
-font-size = 10
+font-size = 9
 adjust-cell-height = 2
 
 window-padding-x = 4
