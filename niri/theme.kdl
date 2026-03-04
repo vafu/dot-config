@@ -1,0 +1,30 @@
+layout {
+    focus-ring {
+        off
+    }
+
+    border {
+        // off
+        width 1
+        active-color "#c4a7e7"
+        inactive-color "#2a283e"
+    }
+
+    shadow {
+        on
+        softness 8
+        spread 1
+        offset x=0 y=0
+        color "#c4a7e7c0"
+        inactive-color "#2a283e70"
+    }
+
+    background-color "44415a"
+}
+
+window-rule {
+    match is-focused=false
+    opacity 0.98
+}
+
+

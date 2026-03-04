@@ -53,5 +53,6 @@ window-decoration = none
 quit-after-last-window-closed = false
 
 # theme = dark:everforest-dark,light:everforest-light
-# theme = dark:rose-pine-dark,light:rose-pine-light
-theme = dark:kanso-mist,light:kanso-pearl
+theme = dark:rose-pine-dark,light:rose-pine-light
+# theme = dark:kanso-ink,light:kanso-pearl
+# theme = dark:kanagawa-wave,light:kanagawa-lotus
