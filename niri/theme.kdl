@@ -1,19 +1,30 @@
 layout { 
-    background-color "#393552"
+    focus-ring {
+        off
+        width 0.5
+        active-color "#e0def4"
+    }
 
     border {
         on
         width 0.5
-        active-color "c4a7e7"
-        inactive-color "1e2326"
+        active-color "#908caa"
+        inactive-color "#56526e"
     }
 
     shadow {
         on
-        softness 8
+        softness 10
         spread 1
         offset x=0 y=0
-        color "#9ccfd8a0"
-        inactive-color "1e2326"
+        color "#c4a7e7c0"
+        inactive-color "#2a283e70"
     }
+
+    background-color "44415a"
+}
+
+window-rule {
+    match is-focused=false
+    opacity 0.98
 }
