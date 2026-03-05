@@ -1,0 +1,24 @@
+layout { 
+    focus-ring {
+        on
+        width 1.5
+        active-color "#c4a7e7"
+    }
+
+    shadow {
+        on
+        softness 8
+        spread 1
+        offset x=0 y=0
+        color "#908caa"
+        inactive-color "#2a283e"
+    }
+
+    background-color "#44415a"
+}
+
+window-rule {
+    geometry-corner-radius 8
+    clip-to-geometry true
+}
+

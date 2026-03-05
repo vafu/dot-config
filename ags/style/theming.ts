@@ -1,4 +1,4 @@
-import { execAsync } from 'ags/process'
+import { exec, execAsync } from 'ags/process'
 import { writeFile, writeFileAsync } from 'ags/file'
 import Gio from 'gi://Gio?version=2.0'
 import App from 'ags/gtk4/app'
@@ -6,6 +6,7 @@ import { Gtk } from 'ags/gtk4'
 import { distinctUntilChanged, map, shareReplay, startWith } from 'rxjs'
 import { getPomodoroService } from 'services/pomodoro'
 import { requestsFor } from 'services/requests'
+import GLib from 'gi://GLib?version=2.0'
 const settings = Gio.Settings.new('org.gnome.desktop.interface')
 
 export function prepareTheme() {
@@ -44,9 +45,12 @@ function prepareGtk() {
   const colorScheme = settings.get_string('color-scheme')
   updateGtkTheme(colorScheme).catch()
   requestsFor<Request>('scheme-toggle').subscribe(r => {
-    const newScheme = settings.get_string('color-scheme') == "prefer-light" ? "prefer-dark" : "prefer-light"
-    settings.set_string("color-scheme", newScheme)
-    r.handler({ status: "ok" })
+    const newScheme =
+      settings.get_string('color-scheme') == 'prefer-light'
+        ? 'prefer-dark'
+        : 'prefer-light'
+    settings.set_string('color-scheme', newScheme)
+    r.handler({ status: 'ok' })
   })
   settings.connect('changed::color-scheme', (s: Gio.Settings) => {
     const newColorScheme = s.get_string('color-scheme')
@@ -70,9 +74,10 @@ async function updateGtkTheme(colorScheme: string) {
   const isDark = colorScheme === 'prefer-dark'
   const theme = isDark ? `${themeName}-dark` : themeName
   const style = isDark ? 'dark' : 'light'
+  const link_from = `${GLib.get_user_config_dir()}/niri/theme_${style}.kdl`
+  const link_to = `${GLib.get_user_config_dir()}/niri/theme.kdl`
+  await exec(['ln', '-sf', link_from, link_to])
   await execAsync(
     `gsettings set org.gnome.desktop.interface gtk-theme '${theme}'`,
   )
-  const sig = isDark ? 1 : 2
-  await execAsync(`pkill -USR${sig} -x foot`)
 }

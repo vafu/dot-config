@@ -29,7 +29,6 @@
 @define-color sys_critical @red_4;
 
 /* global */
-@define-color shadow @shade_color;
 
 @define-color mi_tinted alpha(@theme_fg_color, 0.3);
 
@@ -41,4 +40,6 @@
 
 @define-color bg_tint alpha(@bg, 0.6);
 
-@define-color shadow #0005;
+@define-color shadow #2a283e70;
+@define-color shadow_active #908caa;
+

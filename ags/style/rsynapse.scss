@@ -14,12 +14,12 @@
     transition: 100ms;
   }
 
-  @include elevation-3;
+  @include active_elevated;
   background: #{$osd_bg};
 
   margin: 80px;
   padding: 16px;
-  border-radius: 16px;
+  border-radius: 12px;
 
   .rsynapse-items {
     padding: 12px;

@@ -18,6 +18,11 @@
   box-shadow: 0px 8px 32px 8px #{$shadow};
 }
 
+@mixin active_elevated {
+  box-shadow: 0px 0px 10px 1px #{$shadow_active};
+  /* border: solid 1.5px #908caa; */
+}
+
 materialicon {
   -gtk-icon-size: 20px;
 
