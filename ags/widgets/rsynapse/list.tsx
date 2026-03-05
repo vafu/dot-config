@@ -20,7 +20,7 @@ export function Rsynapse(monitor: Accessor<Gdk.Monitor>) {
   const factory = new Gtk.SignalListItemFactory()
 
   factory.connect('setup', (self, listItem: Gtk.ListItem) => {
-    const row = <ActionRow />
+    const row = <ActionRow cssClasses={[""]}/>
     listItem.set_child(row)
   })
 
@@ -37,6 +37,7 @@ export function Rsynapse(monitor: Accessor<Gdk.Monitor>) {
     model: selection,
     factory: factory,
     focusable: false,
+    cssClasses: ["navigation-sidebar"]
   })
 
   listView.connect('activate', (self, position) => {

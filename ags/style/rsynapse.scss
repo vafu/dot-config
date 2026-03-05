@@ -9,12 +9,8 @@
 }
 
 .rsynapse {
-  .activatable:selected {
-    border-radius: 8px;
-    transition: 100ms;
-  }
-
-  @include active_elevated;
+ 
+  @include elevation-3;
   background: #{$osd_bg};
 
   margin: 80px;
