@@ -1,0 +1,19 @@
+layout { 
+    background-color "#393552"
+
+    border {
+        on
+        width 0.5
+        active-color "c4a7e7"
+        inactive-color "1e2326"
+    }
+
+    shadow {
+        on
+        softness 8
+        spread 1
+        offset x=0 y=0
+        color "#9ccfd8a0"
+        inactive-color "1e2326"
+    }
+}

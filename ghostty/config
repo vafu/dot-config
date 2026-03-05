@@ -19,14 +19,17 @@
 # ==========================
 # # The config file consists of simple key-value pairs,
 # # separated by equals signs.
-font-family = "FiraCode Nerd Font Ret" 
+font-family = "0xProto Nerd Font"
+# font-family = "FiraCode Nerd Font"
+# font-family = "Cousine Nerd Font"
 font-size = 9
-adjust-cell-height = 2
+adjust-cell-height = 8
 
 window-padding-x = 4
 window-padding-y = 4
 window-decoration = none
 
+shell-integration-features=true
 #
 # # Spacing around the equals sign does not matter.
 # # All of these are identical:
