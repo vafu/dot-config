@@ -7,6 +7,7 @@ spawn-sh-at-startup "runapp -- rsynapse-daemon"
 spawn-sh-at-startup "runapp -- foot -s"
 spawn-sh-at-startup "runapp -i background-graphical.slice -- udiskie"
 spawn-sh-at-startup "runapp -i background-graphical.slice -- swww-daemon"
+spawn-sh-at-startup "runapp -i background-graphical.slice -- claude-dbus"
 
 input {
     keyboard {

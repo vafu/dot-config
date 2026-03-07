@@ -14,6 +14,7 @@ import {
 } from './indicators'
 import { BluetoothStatus } from './bt_status'
 import { WindowTitle } from './windowtitle'
+import { ClaudeWidgets } from './claude'
 
 export default (gdkmonitor: Gdk.Monitor) => {
   return (
@@ -35,7 +36,7 @@ export default (gdkmonitor: Gdk.Monitor) => {
         <box $type="start">
           <SysStats cssClasses={['barblock']} />
           <PomodoroWidget cssClasses={['barblock']} />
-          <MPRISWidget cssClasses={['barblock']} />
+          <ClaudeWidgets cssClasses={['barblock']} />
         </box>
 
         {/** center **/}
@@ -52,6 +53,7 @@ export default (gdkmonitor: Gdk.Monitor) => {
 
         {/** right **/}
         <box $type="end">
+          <MPRISWidget cssClasses={['barblock']} />
           <box cssClasses={['barblock']}>
             <Tray />
             <PowerProfilesIndicator />

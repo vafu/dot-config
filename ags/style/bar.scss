@@ -257,6 +257,36 @@ levelindicator {
   }
 }
 
+.claude-widget {
+  border-radius: 12px;
+  transition: background-color 300ms;
+
+  &.attention {
+    background-color: color-mix(in srgb, #{$sys_danger} 30%, #{$bg});
+    animation: claude-attention-pulse 1s ease-in-out infinite alternate;
+  }
+
+  &.no-session {
+    opacity: 0.5;
+  }
+
+  &.thinking {
+    materialicon {
+      animation: claude-thinking-pulse 1.5s ease-in-out infinite;
+    }
+  }
+}
+
+@keyframes claude-thinking-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes claude-attention-pulse {
+  from { background-color: color-mix(in srgb, #{$sys_danger} 20%, #{$bg}); }
+  to { background-color: color-mix(in srgb, #{$sys_danger} 50%, #{$bg}); }
+}
+
 @keyframes urgent {
   from {
     background-color: #{$ws_occupied};
