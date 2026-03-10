@@ -266,11 +266,29 @@ levelindicator {
     animation: claude-attention-pulse 1s ease-in-out infinite alternate;
   }
 
+  &.task-complete {
+    materialicon {
+      color: #{$sys_warn};
+    }
+  }
+
   &.no-session {
     opacity: 0.5;
   }
 
-  &.thinking {
+  .claude-info-label {
+    font-size: 9pt;
+  }
+
+  .claude-info-value {
+    font-size: 9pt;
+  }
+
+  .claude-separator {
+    margin: 4px 0;
+  }
+
+  &.thinking, &.tool-use {
     materialicon {
       animation: claude-thinking-pulse 1.5s ease-in-out infinite;
     }
