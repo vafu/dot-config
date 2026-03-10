@@ -1,6 +1,7 @@
 import Gio from 'gi://Gio?version=2.0'
 import GLib from 'gi://GLib?version=2.0'
 import { BehaviorSubject, Observable } from 'rxjs'
+import { execAsync } from 'ags/process'
 
 export type ClaudeState = 'no-session' | 'idle' | 'thinking' | 'tool-use' | 'compacting'
 
@@ -24,6 +25,7 @@ export interface ClaudeService {
   sessions$: Observable<Map<string, ClaudeStatus>>
   elicitation$: Observable<ClaudeElicitation | null>
   respondToElicitation: (sessionId: string, answer: string) => void
+  iconForCwd: (cwd: string) => Observable<string>
 }
 
 const BUS_NAME = 'com.anthropic.ClaudeCode'
@@ -89,6 +91,9 @@ export function getClaudeService(): ClaudeService {
       const update = propsToStatus(changed)
       console.log(`[Claude] PropertiesChanged: session=${sessionId}`, update)
       updateSession(sessionId, update)
+      if (update.requiresAttention === false && elicitation$.value?.sessionId === sessionId) {
+        elicitation$.next(null)
+      }
     },
   )
 
@@ -173,6 +178,29 @@ export function getClaudeService(): ClaudeService {
     )
   }
 
-  service = { sessions$, elicitation$, respondToElicitation }
+  // Icon picker: cache per cwd
+  const iconCache = new Map<string, BehaviorSubject<string>>()
+  const iconForCwd = (cwd: string): Observable<string> => {
+    if (!cwd) return new BehaviorSubject('smart_toy')
+    const existing = iconCache.get(cwd)
+    if (existing) return existing
+    const subject = new BehaviorSubject<string>('smart_toy')
+    iconCache.set(cwd, subject)
+    execAsync(['pick-icon', '--json', '-n', '1', cwd])
+      .then(output => {
+        try {
+          const results = JSON.parse(output)
+          if (results.length > 0) {
+            subject.next(results[0].icon)
+          }
+        } catch (e) {
+          console.error('[Claude] pick-icon parse error:', e)
+        }
+      })
+      .catch(e => console.error('[Claude] pick-icon error:', e))
+    return subject
+  }
+
+  service = { sessions$, elicitation$, respondToElicitation, iconForCwd }
   return service
 }

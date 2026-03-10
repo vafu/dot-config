@@ -35,7 +35,9 @@ export default (gdkmonitor: Gdk.Monitor) => {
         {/** left **/}
         <box $type="start">
           <SysStats cssClasses={['barblock']} />
+          {/**  
           <PomodoroWidget cssClasses={['barblock']} />
+          **/}
           <ClaudeWidgets cssClasses={['barblock']} />
         </box>
 

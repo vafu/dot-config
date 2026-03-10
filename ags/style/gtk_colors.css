@@ -45,3 +45,14 @@
 @define-color shadow #0003;
 @define-color shadow_active #0003;
 
+/* accent palette */
+@define-color session_blue @blue_1;
+@define-color session_teal @teal_1;
+@define-color session_green @green_1;
+@define-color session_yellow @yellow_1;
+@define-color session_orange @orange_1;
+@define-color session_red @red_1;
+@define-color session_pink @pink_1;
+@define-color session_purple @purple_1;
+@define-color session_slate @dark_1;
+

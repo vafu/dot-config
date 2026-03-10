@@ -1,18 +1,10 @@
 import { Gtk } from 'ags/gtk4'
-import { getClaudeService, ClaudeState, ClaudeStatus } from 'services/claude'
+import { getClaudeService, ClaudeStatus } from 'services/claude'
 import { LevelIndicator } from 'widgets/circularstatus'
 import { MaterialIcon } from 'widgets/materialicon'
 import { bindAs, subscribeTo } from 'rxbinding'
-import { map, distinctUntilChanged, shareReplay } from 'rxjs'
+import { map, distinctUntilChanged, shareReplay, switchMap } from 'rxjs'
 import { WidgetProps } from 'widgets'
-
-const STATE_ICON: Record<ClaudeState, string> = {
-  'no-session': 'smart_toy',
-  'idle': 'smart_toy',
-  'thinking': 'psychology',
-  'tool-use': 'build',
-  'compacting': 'compress',
-}
 
 const CONTEXT_STAGES = [
   { level: 0, class: 'normal' },
@@ -27,7 +19,7 @@ const STYLE = { style: 'line' as const, thickness: 3 }
 const DEFAULT_STATUS: ClaudeStatus = { state: 'no-session', taskComplete: false, requiresAttention: false, contextPct: 0, modelName: '', cwd: '', costUsd: 0 }
 
 const ClaudeWidget = (sessionId: string, cssClasses: string[]) => {
-  const { sessions$, elicitation$, respondToElicitation } = getClaudeService()
+  const { sessions$, elicitation$, respondToElicitation, iconForCwd } = getClaudeService()
 
   const status$ = sessions$.pipe(
     map(sessions => sessions.get(sessionId) ?? DEFAULT_STATUS),
@@ -49,16 +41,46 @@ const ClaudeWidget = (sessionId: string, cssClasses: string[]) => {
   )
 
   const state$ = status$.pipe(map(s => s.state), distinctUntilChanged())
-  const icon$ = status$.pipe(
-    map(s => s.taskComplete ? 'task_alt' : STATE_ICON[s.state]),
+  const projectIcon$ = status$.pipe(
+    map(s => s.cwd),
     distinctUntilChanged(),
+    switchMap(cwd => iconForCwd(cwd)),
+    shareReplay(1),
   )
   const contextPct$ = status$.pipe(map(s => s.contextPct), distinctUntilChanged())
 
+  const mainIcon$ = status$.pipe(
+    map(s => {
+      if (s.state === 'thinking') return 'psychology'
+      if (s.state === 'tool-use') return 'build'
+      if (s.state === 'compacting') return 'compress'
+      if (s.taskComplete) return 'task_alt'
+      return ''
+    }),
+    switchMap(stateIcon =>
+      stateIcon ? projectIcon$.pipe(map(() => stateIcon)) : projectIcon$
+    ),
+    distinctUntilChanged(),
+  )
+
   const icon = (
     <MaterialIcon
-      icon={bindAs(icon$, s => s, 'smart_toy')}
+      icon={bindAs(mainIcon$, s => s, 'smart_toy')}
       tinted={false}
+    />
+  ) as Gtk.Widget
+
+  const showingState$ = status$.pipe(
+    map(s => s.state === 'thinking' || s.state === 'tool-use' || s.state === 'compacting' || s.taskComplete),
+    distinctUntilChanged(),
+  )
+
+  const projectBadge = (
+    <MaterialIcon
+      icon={bindAs(projectIcon$, s => s, 'smart_toy')}
+      visible={bindAs(showingState$, s => s, false)}
+      cssClasses={['claude-project-badge']}
+      valign={Gtk.Align.CENTER}
     />
   ) as Gtk.Widget
 
@@ -133,6 +155,7 @@ const ClaudeWidget = (sessionId: string, cssClasses: string[]) => {
       <box>
         {icon}
         {level}
+        {projectBadge}
       </box>
     </menubutton>
   ) as Gtk.MenuButton
@@ -173,6 +196,7 @@ const ClaudeWidget = (sessionId: string, cssClasses: string[]) => {
             label={option}
             onClicked={() => {
               console.log(`[Claude] popup button clicked: session=${sessionId} option=${option}`)
+              popover.popdown()
               respondToElicitation(sessionId, option)
             }}
           />
