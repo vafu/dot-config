@@ -67,8 +67,14 @@ class MaterialIconInternal extends Gtk.Image {
 
   set icon(icon: string) {
     this._icon = icon
-    fetchForProps(icon, this._style, name => {
-      this.set_from_icon_name(name)
+    this.clear()
+    fetchForProps(icon, this._style, (name, file) => {
+      if (file) {
+        const paintable = Gtk.IconPaintable.new_for_file(file, this._style.size, 1)
+        this.set_from_paintable(paintable)
+      } else {
+        this.set_from_icon_name(name)
+      }
     })
   }
 
@@ -92,7 +98,7 @@ class MaterialIconInternal extends Gtk.Image {
 function fetchForProps(
   name: string,
   props: IconStyle,
-  onResolved: (name: string) => void,
+  onResolved: (name: string, file?: Gio.File) => void,
 ) {
   const resourceName = iconFromStyle(name, props)
   const iconName = `${resourceName}-${props.style}-symbolic`
@@ -149,7 +155,7 @@ function fetchForProps(
               file.replace_contents_finish(res)
               await execAsync(`gtk-update-icon-cache -f ${themedir.get_path()}`)
               GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
-                onResolved(iconName)
+                onResolved(iconName, iconFile)
                 return GLib.SOURCE_REMOVE
               })
             } catch (e) {
