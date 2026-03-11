@@ -18,7 +18,7 @@ const STYLE = { style: 'line' as const, thickness: 3 }
 
 const DEFAULT_STATUS: ClaudeStatus = { state: 'no-session', taskComplete: false, requiresAttention: false, contextPct: 0, modelName: '', cwd: '', costUsd: 0 }
 
-const ClaudeWidget = (sessionId: string, cssClasses: string[]) => {
+const ClaudeWidget = (sessionId: string) => {
   const { sessions$, elicitation$, respondToElicitation, iconForCwd } = getClaudeService()
 
   const status$ = sessions$.pipe(
@@ -148,11 +148,11 @@ const ClaudeWidget = (sessionId: string, cssClasses: string[]) => {
 
   const widget = (
     <menubutton
-      cssClasses={cssClasses.concat(['claude-widget', 'flat', 'circular', 'panel-widget'])}
+      cssClasses={['claude-widget', 'flat', 'circular', 'panel-widget']}
       tooltipText={bindAs(status$, s => `Claude · ${s.modelName || 'idle'} · ${Math.round(s.contextPct)}%`, '')}
       popover={popover}
     >
-      <box>
+      <box cssClasses={['claude-inner']}>
         {icon}
         {level}
         {projectBadge}
@@ -216,14 +216,29 @@ export const ClaudeWidgets = (props: WidgetProps) => {
   const { sessions$ } = getClaudeService()
   const cssClasses = props.cssClasses ?? []
 
-  const container = (<box />) as Gtk.Box
+  const visible$ = sessions$.pipe(
+    map(s => s.size > 0),
+    distinctUntilChanged(),
+  )
+
+  const anyAttention$ = sessions$.pipe(
+    map(s => [...s.values()].some(v => v.requiresAttention)),
+    distinctUntilChanged(),
+  )
+
+  const container = (<box cssClasses={cssClasses} visible={bindAs(visible$, v => v, false)} />) as Gtk.Box
   const widgets = new Map<string, Gtk.Widget>()
+
+  subscribeTo(container, anyAttention$, (attention, box) => {
+    if (attention) box.add_css_class('claude-attention')
+    else box.remove_css_class('claude-attention')
+  })
 
   subscribeTo(container, sessions$, (sessions, box) => {
     // Add widgets for new sessions
     for (const [sessionId] of sessions) {
       if (!widgets.has(sessionId)) {
-        const w = ClaudeWidget(sessionId, cssClasses)
+        const w = ClaudeWidget(sessionId)
         widgets.set(sessionId, w)
         box.append(w)
       }

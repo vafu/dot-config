@@ -1,12 +1,19 @@
 @import 'common.scss';
 
+.claude-attention {
+  animation: claude-attention-pulse 1s ease-in-out infinite alternate;
+}
+
 .claude-widget {
   border-radius: 12px;
   transition: background-color 300ms;
 
+  .claude-inner {
+    padding: 0 4px;
+  }
+
   &.attention {
-    background-color: color-mix(in srgb, #{$sys_danger} 30%, #{$bg});
-    animation: claude-attention-pulse 1s ease-in-out infinite alternate;
+    background-color: transparent;
   }
 
   &.task-complete {
