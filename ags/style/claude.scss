@@ -38,16 +38,12 @@
     margin: 4px 0;
   }
 
-  .claude-project-badge {
-    -gtk-icon-size: 12px;
-  }
-
   &.thinking materialicon:first-child {
     animation: claude-thinking-pulse 1.5s ease-in-out infinite;
   }
 
   &.tool-use materialicon:first-child {
-    animation: claude-thinking-pulse 0.8s ease-in-out infinite;
+    animation: claude-tool-scale 0.6s ease-in-out infinite;
   }
 
   &.compacting materialicon:first-child {
@@ -65,8 +61,8 @@
 }
 
 @keyframes claude-compact-shrink {
-  0%, 100% { -gtk-icon-size: 20px; }
-  50% { -gtk-icon-size: 12px; }
+  0% { transform: scale(1); }
+  100% { transform: scale(0); }
 }
 
 @keyframes claude-attention-shake {
@@ -77,6 +73,11 @@
   60% { transform: translateX(2px); }
   75% { transform: translateX(-1px); }
   90% { transform: translateX(1px); }
+}
+
+@keyframes claude-tool-scale {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(0.7); }
 }
 
 @keyframes claude-attention-pulse {

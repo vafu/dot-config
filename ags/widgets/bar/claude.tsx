@@ -49,38 +49,12 @@ const ClaudeWidget = (sessionId: string) => {
   )
   const contextPct$ = status$.pipe(map(s => s.contextPct), distinctUntilChanged())
 
-  const mainIcon$ = status$.pipe(
-    map(s => {
-      if (s.state === 'thinking') return 'psychology'
-      if (s.state === 'tool-use') return 'build'
-      if (s.state === 'compacting') return 'compress'
-      if (s.taskComplete) return 'task_alt'
-      return ''
-    }),
-    switchMap(stateIcon =>
-      stateIcon ? projectIcon$.pipe(map(() => stateIcon)) : projectIcon$
-    ),
-    distinctUntilChanged(),
-  )
+  const mainIcon$ = projectIcon$
 
   const icon = (
     <MaterialIcon
       icon={bindAs(mainIcon$, s => s, 'smart_toy')}
       tinted={false}
-    />
-  ) as Gtk.Widget
-
-  const showingState$ = status$.pipe(
-    map(s => s.state === 'thinking' || s.state === 'tool-use' || s.state === 'compacting' || s.taskComplete),
-    distinctUntilChanged(),
-  )
-
-  const projectBadge = (
-    <MaterialIcon
-      icon={bindAs(projectIcon$, s => s, 'smart_toy')}
-      visible={bindAs(showingState$, s => s, false)}
-      cssClasses={['claude-project-badge']}
-      valign={Gtk.Align.CENTER}
     />
   ) as Gtk.Widget
 
@@ -155,7 +129,6 @@ const ClaudeWidget = (sessionId: string) => {
       <box cssClasses={['claude-inner']}>
         {icon}
         {level}
-        {projectBadge}
       </box>
     </menubutton>
   ) as Gtk.MenuButton

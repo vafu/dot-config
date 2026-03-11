@@ -178,7 +178,7 @@ export function getClaudeService(): ClaudeService {
     )
   }
 
-  // Icon picker: cache per cwd
+  // Icon picker: cache per cwd, watches .git/HEAD for branch changes
   const iconCache = new Map<string, BehaviorSubject<string>>()
   const iconForCwd = (cwd: string): Observable<string> => {
     if (!cwd) return new BehaviorSubject('smart_toy')
@@ -186,18 +186,54 @@ export function getClaudeService(): ClaudeService {
     if (existing) return existing
     const subject = new BehaviorSubject<string>('smart_toy')
     iconCache.set(cwd, subject)
-    execAsync(['pick-icon', '--json', '-n', '1', cwd])
-      .then(output => {
-        try {
+
+    const dirname = cwd.split('/').pop() ?? ''
+    const name = dirname.replace(/[-_]/g, ' ')
+
+    const refreshIcon = () => {
+      execAsync(['git', '-C', cwd, 'branch', '--show-current'])
+        .catch(() => '')
+        .then(branch => {
+          const br = branch.trim()
+          const isMain = !br || br === 'main' || br === 'master'
+          console.log(`[Claude] iconForCwd: cwd=${cwd} branch=${br || '(none)'} isMain=${isMain}`)
+          const args = ['pick-icon', '--json', '-n', '1']
+          if (isMain) {
+            args.push('-s', name)
+          } else {
+            args.push('-s', br.replace(/[/_-]/g, ' '))
+          }
+          for (const doc of ['CLAUDE.md', 'README.md']) {
+            args.push('-f', `${cwd}/${doc}`)
+          }
+          console.log(`[Claude] iconForCwd: running ${args.join(' ')}`)
+          return execAsync(args)
+        })
+        .then(output => {
+          console.log(`[Claude] iconForCwd: output=${output}`)
           const results = JSON.parse(output)
           if (results.length > 0) {
+            console.log(`[Claude] iconForCwd: picked icon=${results[0].icon} score=${results[0].score} for ${cwd}`)
             subject.next(results[0].icon)
           }
-        } catch (e) {
-          console.error('[Claude] pick-icon parse error:', e)
+        })
+        .catch(e => console.error('[Claude] pick-icon error:', e))
+    }
+
+    refreshIcon()
+
+    // Watch .git/HEAD for branch switches
+    const gitHead = Gio.File.new_for_path(`${cwd}/.git/HEAD`)
+    if (gitHead.query_exists(null)) {
+      const monitor = gitHead.monitor_file(Gio.FileMonitorFlags.NONE, null)
+      monitor.connect('changed', (_m: any, _f: any, _o: any, event: Gio.FileMonitorEvent) => {
+        if (event === Gio.FileMonitorEvent.CHANGES_DONE_HINT) {
+          console.log(`[Claude] iconForCwd: .git/HEAD changed for ${cwd}, refreshing`)
+          refreshIcon()
         }
       })
-      .catch(e => console.error('[Claude] pick-icon error:', e))
+    }
+
     return subject
   }
 
