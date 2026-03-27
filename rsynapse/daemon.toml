@@ -1,0 +1,5 @@
+[plugins."Application Launcher"]
+execute = "runapp -- gtk-launch {id}"
+
+[plugins."Calculator"]
+execute = "wl-copy -- {data}"
