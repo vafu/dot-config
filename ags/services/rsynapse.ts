@@ -7,6 +7,7 @@ import { distinctUntilChanged, switchMap } from 'rxjs/operators'
 export interface RsynapseService {
   results: Observable<RsynapseResult[]>
   search: (query: string) => void
+  execute: (result: RsynapseResult) => void
 }
 
 export class RsynapseResult extends GObject.Object {
@@ -43,10 +44,10 @@ export class RsynapseResult extends GObject.Object {
             GObject.ParamFlags.READWRITE,
             null,
           ),
-          command: GObject.ParamSpec.string(
-            'command',
-            'Command',
-            'Result Command',
+          data: GObject.ParamSpec.string(
+            'data',
+            'Data',
+            'Result Data',
             GObject.ParamFlags.READWRITE,
             null,
           ),
@@ -61,7 +62,7 @@ export class RsynapseResult extends GObject.Object {
   title: string
   description: string
   icon: string
-  command: string
+  data: string
 
   constructor(item: any) {
     super()
@@ -69,16 +70,21 @@ export class RsynapseResult extends GObject.Object {
     this.title = item.title
     this.description = item.description
     this.icon = item.icon
-    this.command = item.command
+    this.data = item.data
   }
 
-  public launch() {
-    const appInfo = Gio.AppInfo.create_from_commandline(
-      `runapp -- ${this.command}`,
-      this.title,
-      Gio.AppInfoCreateFlags.NONE,
-    )
-    appInfo.launch([], null)
+  public execute(proxy: any) {
+    try {
+      proxy.call_sync(
+        'Execute',
+        new GLib.Variant('(s)', [this.id]),
+        null,
+        1000,
+        null,
+      )
+    } catch (e) {
+      console.error('Rsynapse Execute failed:', e)
+    }
   }
 }
 
@@ -91,6 +97,10 @@ const RsynapseIface = `
         <method name="Search">
             <arg type="s" name="query" direction="in"/>
             <arg type="a(sssss)" name="results" direction="out"/>
+        </method>
+        <method name="Execute">
+            <arg type="s" name="id" direction="in"/>
+            <arg type="s" name="result" direction="out"/>
         </method>
     </interface>
 </node>
@@ -148,7 +158,7 @@ const initRsynapse = (): RsynapseService => {
                 title: item[1],
                 description: item[2],
                 icon: item[3],
-                command: item[4],
+                data: item[4],
               }),
           )
           return results
@@ -166,6 +176,7 @@ const initRsynapse = (): RsynapseService => {
   return {
     results: resultsSubject,
     search: (query: string) => querySubject.next(query),
+    execute: (result: RsynapseResult) => result.execute(proxy),
   }
 }
 

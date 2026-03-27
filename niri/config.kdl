@@ -1,3 +1,6 @@
+environment {
+    ZK_NOTEBOOK_DIR "$HOME/Notes"
+}
 spawn-at-startup "uwsm" "finalize"
 spawn-sh-at-startup "runapp -i session-graphical.slice -- hypridle"
 
