@@ -115,6 +115,7 @@ in
       dbus-python
       pygobject3
     ]))
+    zk
   ];
 
   home.sessionVariables = {

@@ -54,7 +54,7 @@ export const RsynapseSearch = (props: { revealed: Observable<boolean> }) => {
         const app = selection.get_item(
           selection.get_selected()
         ) as RsynapseResult
-        app.launch()
+        rsynapse.execute(app)
         // exec(`notify-send ${app.title}`)
         self.set_text('')
         rsynapseUi.hide()

@@ -1,3 +1,6 @@
+environment {
+    ZK_NOTEBOOK_DIR "$HOME/Notes"
+}
 spawn-at-startup "uwsm" "finalize"
 spawn-sh-at-startup "runapp -i session-graphical.slice -- hypridle"
 
@@ -7,6 +10,7 @@ spawn-sh-at-startup "runapp -- rsynapse-daemon"
 spawn-sh-at-startup "runapp -- foot -s"
 spawn-sh-at-startup "runapp -i background-graphical.slice -- udiskie"
 spawn-sh-at-startup "runapp -i background-graphical.slice -- swww-daemon"
+spawn-sh-at-startup "runapp -i background-graphical.slice -- claude-dbus"
 
 input {
     keyboard {
@@ -157,6 +161,7 @@ window-rule {
     match app-id=r#"Nautilus$"#
     open-floating true
 }
+
 
 window-rule {
     geometry-corner-radius 8

@@ -3,6 +3,7 @@
 !.gitignore
 
 !home-manager/**
+!rsynapse/**
 
 !alacritty/**
 alacritty/dark.theme

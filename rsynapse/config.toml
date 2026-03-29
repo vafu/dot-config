@@ -1,0 +1,14 @@
+[plugins."Application Launcher"]
+execute = "runapp -- gtk-launch {id}"
+
+[plugins."Calculator"]
+execute = "wl-copy -- {data}"
+
+[plugins."Commands"]
+execute = "{data}"
+
+[[plugins."Commands".commands]]
+pattern = "^todo\\s*(.*)"
+command = "zk list --format jsonl --quiet -m 'TODO/$1*' --notebook-dir ~/Notes | jq -c '{id: .absPath, title: .title, description: .lead, data: .absPath}'"
+modifiers = { data = "xdg-open {data}", icon = "emblem-documents-symbolic" }
+
