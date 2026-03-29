@@ -18,6 +18,7 @@ alacritty/theme.toml
 !fuzzel/**
 
 !niri/**
+niri/theme.kdl
 
 !hypr/**
 hypr/hyprland.conf
