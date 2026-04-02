@@ -116,6 +116,7 @@ in
       pygobject3
     ]))
     zk
+    pkg-config
   ];
 
   home.sessionVariables = {
