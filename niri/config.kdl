@@ -7,6 +7,7 @@ spawn-sh-at-startup "runapp -i session-graphical.slice -- hypridle"
 spawn-sh-at-startup "runapp -- $HOME/.cargo/bin/supprssor"
 spawn-sh-at-startup "runapp -- ags run"
 spawn-sh-at-startup "runapp -- rsynapse-daemon"
+spawn-sh-at-startup "runapp -- remarked"
 spawn-sh-at-startup "runapp -- foot -s"
 spawn-sh-at-startup "runapp -i background-graphical.slice -- udiskie"
 spawn-sh-at-startup "runapp -i background-graphical.slice -- swww-daemon"
@@ -185,7 +186,8 @@ binds {
 
     // Suggested binds for running programs: terminal, app launcher, screen locker.
     Mod+Return hotkey-overlay-title="Open a Terminal" { spawn-sh "ghostty +new-window"; }
-    Mod+D hotkey-overlay-title="Run an Application: rsynapase" { spawn-sh "ags request rsynapse"; }
+    Mod+D hotkey-overlay-title="Run an Application: rsynapse" { spawn-sh "rsynapse-ui"; }
+    Mod+N hotkey-overlay-title="Run an Application: remarked" { spawn-sh "remarked-ui"; }
     Ctrl+Shift+L hotkey-overlay-title="Lock the Screen: swaylock" { spawn-sh "runapp -o hyprlock"; }
     Ctrl+Shift+U hotkey-overlay-title="Lock the Screen: swaylock" { spawn-sh "~/.config/scripts/suspend.sh"; }
 
@@ -343,12 +345,6 @@ binds {
 
     // Switches focus between the current and the previous workspace.
     // Mod+Tab { focus-workspace-previous; }
-
-    // The following binds move the focused window in and out of a column.
-    // If the window is alone, they will consume it into the nearby column to the side.
-    // If the window is already in a column, they will expel it out.
-    Mod+N  { consume-or-expel-window-left; }
-    Mod+M { consume-or-expel-window-right; }
 
     // Consume one window from the right to the bottom of the focused column.
     Mod+Comma  { consume-window-into-column; }

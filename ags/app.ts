@@ -7,6 +7,7 @@ import OSD from 'widgets/osd'
 import { binding } from 'rxbinding'
 import { diffs } from 'commons/rx'
 import { Rsynapse } from 'widgets/rsynapse'
+import { TodoPopup } from 'widgets/todo/input'
 import { handleRequest } from 'services/requests'
 import { prepareTheme } from 'style/theming'
 import obtainWmService from 'services'
@@ -35,6 +36,7 @@ app.start({
         createRoot(() => {
           OSD(binding(ms.activeMonitor, initialMonitor))
           Rsynapse(binding(ms.activeMonitor, initialMonitor))
+          TodoPopup(binding(ms.activeMonitor, initialMonitor))
         })
       })
     })

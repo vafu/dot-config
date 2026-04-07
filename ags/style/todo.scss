@@ -1,0 +1,72 @@
+@import 'common.scss';
+
+.todo-window {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.todo-outer {
+  padding: 48px;
+}
+
+.todo-card {
+  @include elevation-3;
+  background: #{$osd_bg};
+
+  margin: 8px 24px;
+  padding: 16px;
+  border-radius: 12px;
+  min-width: 400px;
+  min-height: 400px;
+
+  .todo-title-entry {
+    font-size: 1.2em;
+    font-weight: bold;
+    margin-bottom: 8px;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 4px 0;
+  }
+
+  .todo-entry {
+    margin-bottom: 8px;
+  }
+
+  .todo-separator {
+    margin: 4px 0;
+    opacity: 0.3;
+  }
+
+  .todo-toggle-row {
+    padding: 8px 12px;
+    border-radius: 6px;
+    opacity: 0.7;
+
+    &.todo-toggle-selected {
+      background: #{$accent_color};
+      opacity: 1;
+    }
+  }
+
+  // no styles needed here for todo-card-confirm-delete ancestor
+}
+
+.create-card {
+  padding: 24px;
+  min-width: 250px;
+}
+
+.todo-card {
+  &.todo-card-confirm-delete {
+    border: 2px solid rgba(255, 80, 80, 0.8);
+    animation: pulse 0.5s ease-in-out;
+  }
+
+  &.sticky-card {
+    .sticky-text {
+      background: transparent;
+      font-size: 1em;
+      min-height: 150px;
+    }
+  }
+}
