@@ -20,6 +20,8 @@ alacritty/theme.toml
 
 !niri/**
 niri/theme.kdl
+niri/theme_dark.kdl
+niri/theme_light.kdl
 
 !hypr/**
 hypr/hyprland.conf
