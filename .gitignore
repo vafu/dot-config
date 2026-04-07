@@ -31,6 +31,8 @@ hypr/monitors.conf
 hypr/monitor_status.conf
 hypr/workspaces.conf
 
+!uwsm/env
+
 !scripts/**
 !nvim
 !zsh/**
