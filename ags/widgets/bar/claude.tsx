@@ -1,4 +1,4 @@
-import { Gtk } from 'ags/gtk4'
+import { Gdk, Gtk } from 'ags/gtk4'
 import { getClaudeService, ClaudeStatus } from 'services/claude'
 import { LevelIndicator } from 'widgets/circularstatus'
 import { MaterialIcon } from 'widgets/materialicon'
@@ -16,10 +16,10 @@ const CONTEXT_STAGES = [
 
 const STYLE = { style: 'line' as const, thickness: 3 }
 
-const DEFAULT_STATUS: ClaudeStatus = { state: 'no-session', taskComplete: false, requiresAttention: false, contextPct: 0, modelName: '', cwd: '', costUsd: 0 }
+const DEFAULT_STATUS: ClaudeStatus = { state: 'no-session', taskComplete: false, requiresAttention: false, contextPct: 0, modelName: '', cwd: '', costUsd: 0, sessionName: '', fiveHourUsagePct: 0, fiveHourResetsAt: 0, sevenDayUsagePct: 0, sevenDayResetsAt: 0 }
 
 const ClaudeWidget = (sessionId: string) => {
-  const { sessions$, elicitation$, respondToElicitation, iconForCwd } = getClaudeService()
+  const { sessions$, elicitation$, respondToElicitation, iconForSession } = getClaudeService()
 
   const status$ = sessions$.pipe(
     map(sessions => sessions.get(sessionId) ?? DEFAULT_STATUS),
@@ -30,7 +30,8 @@ const ClaudeWidget = (sessionId: string) => {
       a.contextPct === b.contextPct &&
       a.modelName === b.modelName &&
       a.cwd === b.cwd &&
-      a.costUsd === b.costUsd
+      a.costUsd === b.costUsd &&
+      a.sessionName === b.sessionName
     ),
     shareReplay(1),
   )
@@ -42,9 +43,9 @@ const ClaudeWidget = (sessionId: string) => {
 
   const state$ = status$.pipe(map(s => s.state), distinctUntilChanged())
   const projectIcon$ = status$.pipe(
-    map(s => s.cwd),
-    distinctUntilChanged(),
-    switchMap(cwd => iconForCwd(cwd)),
+    map(s => ({ cwd: s.cwd, sessionName: s.sessionName })),
+    distinctUntilChanged((a, b) => a.cwd === b.cwd && a.sessionName === b.sessionName),
+    switchMap(({ cwd, sessionName }) => iconForSession(cwd, sessionName)),
     shareReplay(1),
   )
   const contextPct$ = status$.pipe(map(s => s.contextPct), distinctUntilChanged())
@@ -185,9 +186,38 @@ const ClaudeWidget = (sessionId: string) => {
   return widget
 }
 
+// -- Usage fill: background gradient as progress bar --
+
+function usageColor(pct: number): string {
+  if (pct >= 90) return 'rgba(230,64,51,0.18)'    // red
+  if (pct >= 75) return 'rgba(230,153,25,0.18)'   // orange
+  if (pct >= 50) return 'rgba(217,204,38,0.15)'   // yellow
+  return 'rgba(102,191,102,0.15)'                  // green
+}
+
+const usageFillProvider = new Gtk.CssProvider()
+Gtk.StyleContext.add_provider_for_display(
+  Gdk.Display.get_default()!,
+  usageFillProvider,
+  Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
+)
+
+function updateUsageFill(pct: number) {
+  if (pct <= 0) {
+    usageFillProvider.load_from_string('.claude-usage-fill { background-image: none; }')
+    return
+  }
+  const color = usageColor(pct)
+  usageFillProvider.load_from_string(
+    `.claude-usage-fill { background-image: linear-gradient(to right, ${color} ${pct}%, transparent ${pct}%); }`
+  )
+}
+
+// -- ClaudeWidgets with usage fill background --
+
 export const ClaudeWidgets = (props: WidgetProps) => {
   const { sessions$ } = getClaudeService()
-  const cssClasses = props.cssClasses ?? []
+  const cssClasses = (props.cssClasses ?? []).concat(['claude-usage-fill'])
 
   const visible$ = sessions$.pipe(
     map(s => s.size > 0),
@@ -199,8 +229,22 @@ export const ClaudeWidgets = (props: WidgetProps) => {
     distinctUntilChanged(),
   )
 
+  const fiveHourPct$ = sessions$.pipe(
+    map(sessions => {
+      let best = 0, bestReset = 0
+      for (const s of sessions.values()) {
+        if (s.fiveHourResetsAt > bestReset) {
+          best = s.fiveHourUsagePct
+          bestReset = s.fiveHourResetsAt
+        }
+      }
+      return best
+    }),
+    distinctUntilChanged(),
+  )
+
   const container = (<box cssClasses={cssClasses} visible={bindAs(visible$, v => v, false)} />) as Gtk.Box
-  const widgets = new Map<string, Gtk.Widget>()
+  const sessionWidgets = new Map<string, Gtk.Widget>()
 
   subscribeTo(container, anyAttention$, (attention, box) => {
     if (attention) box.add_css_class('claude-attention')
@@ -208,21 +252,24 @@ export const ClaudeWidgets = (props: WidgetProps) => {
   })
 
   subscribeTo(container, sessions$, (sessions, box) => {
-    // Add widgets for new sessions
     for (const [sessionId] of sessions) {
-      if (!widgets.has(sessionId)) {
+      if (!sessionWidgets.has(sessionId)) {
         const w = ClaudeWidget(sessionId)
-        widgets.set(sessionId, w)
+        sessionWidgets.set(sessionId, w)
         box.append(w)
       }
     }
-    // Remove widgets for ended sessions
-    for (const [sessionId, w] of [...widgets]) {
+    for (const [sessionId, w] of [...sessionWidgets]) {
       if (!sessions.has(sessionId)) {
         box.remove(w)
-        widgets.delete(sessionId)
+        sessionWidgets.delete(sessionId)
       }
     }
+  })
+
+  subscribeTo(container, fiveHourPct$, (pct, box) => {
+    updateUsageFill(pct)
+    box.tooltipText = pct > 0 ? `5h usage: ${Math.round(pct)}%` : ''
   })
 
   return container
