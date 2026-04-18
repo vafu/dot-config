@@ -117,7 +117,11 @@ in
     ]))
     zk
     pkg-config
+    wf-recorder
+    codex
   ];
+
+  targets.genericLinux.enable = true;
 
   home.sessionVariables = {
     NIXOS_OZONE_WL = "1";

@@ -13,6 +13,11 @@ export interface ClaudeStatus {
   modelName: string
   cwd: string
   costUsd: number
+  sessionName: string
+  fiveHourUsagePct: number
+  fiveHourResetsAt: number
+  sevenDayUsagePct: number
+  sevenDayResetsAt: number
 }
 
 export interface ClaudeElicitation {
@@ -25,7 +30,7 @@ export interface ClaudeService {
   sessions$: Observable<Map<string, ClaudeStatus>>
   elicitation$: Observable<ClaudeElicitation | null>
   respondToElicitation: (sessionId: string, answer: string) => void
-  iconForCwd: (cwd: string) => Observable<string>
+  iconForSession: (cwd: string, sessionName: string) => Observable<string>
 }
 
 const BUS_NAME = 'com.anthropic.ClaudeCode'
@@ -51,6 +56,11 @@ function propsToStatus(props: Record<string, GLib.Variant>): Partial<ClaudeStatu
   if ('ModelName' in props) status.modelName = props['ModelName'].deepUnpack() as string
   if ('Cwd' in props) status.cwd = props['Cwd'].deepUnpack() as string
   if ('CostUsd' in props) status.costUsd = props['CostUsd'].deepUnpack() as number
+  if ('SessionName' in props) status.sessionName = props['SessionName'].deepUnpack() as string
+  if ('FiveHourUsagePct' in props) status.fiveHourUsagePct = props['FiveHourUsagePct'].deepUnpack() as number
+  if ('FiveHourResetsAt' in props) status.fiveHourResetsAt = props['FiveHourResetsAt'].deepUnpack() as number
+  if ('SevenDayUsagePct' in props) status.sevenDayUsagePct = props['SevenDayUsagePct'].deepUnpack() as number
+  if ('SevenDayResetsAt' in props) status.sevenDayResetsAt = props['SevenDayResetsAt'].deepUnpack() as number
   return status
 }
 
@@ -60,7 +70,7 @@ export function getClaudeService(): ClaudeService {
   const sessions$ = new BehaviorSubject<Map<string, ClaudeStatus>>(new Map())
   const elicitation$ = new BehaviorSubject<ClaudeElicitation | null>(null)
 
-  const DEFAULT: ClaudeStatus = { state: 'no-session', taskComplete: false, requiresAttention: false, contextPct: 0, modelName: '', cwd: '', costUsd: 0 }
+  const DEFAULT: ClaudeStatus = { state: 'no-session', taskComplete: false, requiresAttention: false, contextPct: 0, modelName: '', cwd: '', costUsd: 0, sessionName: '', fiveHourUsagePct: 0, fiveHourResetsAt: 0, sevenDayUsagePct: 0, sevenDayResetsAt: 0 }
 
   const updateSession = (sessionId: string, update: Partial<ClaudeStatus>) => {
     const map = new Map(sessions$.value)
@@ -178,17 +188,18 @@ export function getClaudeService(): ClaudeService {
     )
   }
 
-  // Icon picker: cache per cwd, watches .git/HEAD for branch changes
+  // Icon picker: cache per cwd+sessionName, watches .git/HEAD for branch changes
   const iconCache = new Map<string, BehaviorSubject<string>>()
-  const iconForCwd = (cwd: string): Observable<string> => {
+  const iconForSession = (cwd: string, sessionName: string): Observable<string> => {
     if (!cwd) return new BehaviorSubject('smart_toy')
-    const existing = iconCache.get(cwd)
+    const cacheKey = `${cwd}::${sessionName}`
+    const existing = iconCache.get(cacheKey)
     if (existing) return existing
     const subject = new BehaviorSubject<string>('smart_toy')
-    iconCache.set(cwd, subject)
+    iconCache.set(cacheKey, subject)
 
     const dirname = cwd.split('/').pop() ?? ''
-    const name = dirname.replace(/[-_]/g, ' ')
+    const projectName = dirname.replace(/[-_]/g, ' ')
 
     const refreshIcon = () => {
       execAsync(['git', '-C', cwd, 'branch', '--show-current'])
@@ -196,24 +207,26 @@ export function getClaudeService(): ClaudeService {
         .then(branch => {
           const br = branch.trim()
           const isMain = !br || br === 'main' || br === 'master'
-          console.log(`[Claude] iconForCwd: cwd=${cwd} branch=${br || '(none)'} isMain=${isMain}`)
+          console.log(`[Claude] iconForSession: cwd=${cwd} branch=${br || '(none)'} sessionName=${sessionName}`)
           const args = ['pick-icon', '--json', '-n', '1']
-          if (isMain) {
-            args.push('-s', name)
+          if (sessionName) {
+            args.push('-s', sessionName.replace(/[-_]/g, ' '))
+          } else if (isMain) {
+            args.push('-s', projectName)
           } else {
             args.push('-s', br.replace(/[/_-]/g, ' '))
           }
           for (const doc of ['CLAUDE.md', 'README.md']) {
             args.push('-f', `${cwd}/${doc}`)
           }
-          console.log(`[Claude] iconForCwd: running ${args.join(' ')}`)
+          console.log(`[Claude] iconForSession: running ${args.join(' ')}`)
           return execAsync(args)
         })
         .then(output => {
-          console.log(`[Claude] iconForCwd: output=${output}`)
+          console.log(`[Claude] iconForSession: output=${output}`)
           const results = JSON.parse(output)
           if (results.length > 0) {
-            console.log(`[Claude] iconForCwd: picked icon=${results[0].icon} score=${results[0].score} for ${cwd}`)
+            console.log(`[Claude] iconForSession: picked icon=${results[0].icon} score=${results[0].score} for ${cwd}`)
             subject.next(results[0].icon)
           }
         })
@@ -228,7 +241,7 @@ export function getClaudeService(): ClaudeService {
       const monitor = gitHead.monitor_file(Gio.FileMonitorFlags.NONE, null)
       monitor.connect('changed', (_m: any, _f: any, _o: any, event: Gio.FileMonitorEvent) => {
         if (event === Gio.FileMonitorEvent.CHANGES_DONE_HINT) {
-          console.log(`[Claude] iconForCwd: .git/HEAD changed for ${cwd}, refreshing`)
+          console.log(`[Claude] iconForSession: .git/HEAD changed for ${cwd}, refreshing`)
           refreshIcon()
         }
       })
@@ -237,6 +250,6 @@ export function getClaudeService(): ClaudeService {
     return subject
   }
 
-  service = { sessions$, elicitation$, respondToElicitation, iconForCwd }
+  service = { sessions$, elicitation$, respondToElicitation, iconForSession }
   return service
 }
