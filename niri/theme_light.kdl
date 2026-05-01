@@ -1,19 +1,21 @@
-layout { 
+layout {
     focus-ring {
         on
         width 1.5
-        active-color "#907aa9"
+        active-color "#545464"
     }
-
     shadow {
         on
         softness 8
-        spread 0
+        spread 1
         offset x=0 y=0
-        color "#797593"
-        inactive-color "#f4ede8"
+        color "#909398"
+        inactive-color "#E2E1DF"
     }
-
-    background-color "#dfdad9"
+    background-color "#CACAC7"
 }
 
+cursor {
+    xcursor-theme "BreezeX-RosePine-Linux"
+    xcursor-size 24
+}

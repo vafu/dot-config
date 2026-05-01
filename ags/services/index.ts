@@ -1,7 +1,5 @@
-import AstalNiri from 'gi://AstalNiri?version=0.1'
 import Brightness from './brightness'
 import { MonitorService, WindowService, WorkspaceService } from './wm/types'
-import AstalHyprland from 'gi://AstalHyprland?version=0.1'
 
 export interface Services {
   workspace: WorkspaceService
@@ -26,12 +24,14 @@ export default async function obtainWmService<S extends keyof Services>(
 }
 
 async function isHypr() {
-  const hypr = AstalHyprland.get_default()
+  const lib = await import('gi://AstalHyprland?version=0.1')
+  const hypr = lib.AstalHyprland.get_default()
   return hypr != null && hypr.monitors != null && hypr.monitors.length != 0
 }
 
 async function isNiri() {
-  const niri = AstalNiri.get_default()
+  const lib = await import('gi://AstalNiri?version=0.1')
+  const niri = lib.AstalNiri.get_default()
   return niri != null && niri.outputs != null && niri.outputs.length != 0
 }
 

@@ -1,17 +1,27 @@
 environment {
     ZK_NOTEBOOK_DIR "$HOME/Notes"
 }
-spawn-at-startup "uwsm" "finalize"
-spawn-sh-at-startup "runapp -i session-graphical.slice -- hypridle"
+// spawn-at-startup "uwsm" "finalize"
+// spawn-sh-at-startup "runapp -i session-graphical.slice -- hypridle"
+// spawn-sh-at-startup "runapp -- $HOME/.cargo/bin/supprssor"
+// spawn-sh-at-startup "runapp -- ags run"
+// spawn-sh-at-startup "runapp -- rsynapse-daemon"
+// spawn-sh-at-startup "runapp -- remarked"
+// spawn-sh-at-startup "runapp -- foot -s"
+// spawn-sh-at-startup "runapp -i background-graphical.slice -- udiskie"
+// spawn-sh-at-startup "runapp -i background-graphical.slice -- swww-daemon"
+// spawn-sh-at-startup "runapp -i background-graphical.slice -- claude-dbus"
 
-spawn-sh-at-startup "runapp -- $HOME/.cargo/bin/supprssor"
-spawn-sh-at-startup "runapp -- ags run"
-spawn-sh-at-startup "runapp -- rsynapse-daemon"
-spawn-sh-at-startup "runapp -- remarked"
-spawn-sh-at-startup "runapp -- foot -s"
-spawn-sh-at-startup "runapp -i background-graphical.slice -- udiskie"
-spawn-sh-at-startup "runapp -i background-graphical.slice -- swww-daemon"
-spawn-sh-at-startup "runapp -i background-graphical.slice -- claude-dbus"
+spawn-sh-at-startup "hypridle"
+spawn-sh-at-startup "$HOME/.cargo/bin/supprssor"
+spawn-sh-at-startup "ags run"
+spawn-sh-at-startup "rsynapse-daemon"
+spawn-sh-at-startup "remarked"
+spawn-sh-at-startup "foot -s"
+spawn-sh-at-startup "udiskie"
+spawn-sh-at-startup "swww-daemon"
+spawn-sh-at-startup "claude-dbus"
+
 
 input {
     keyboard {
@@ -30,7 +40,6 @@ input {
     focus-follows-mouse max-scroll-amount="100%"
 }
 
-include "cursor.kdl"
 include "theme.kdl"
 
 gestures {
@@ -186,7 +195,7 @@ binds {
 
     // Suggested binds for running programs: terminal, app launcher, screen locker.
     Mod+Return hotkey-overlay-title="Open a Terminal" { spawn-sh "ghostty +new-window"; }
-    Mod+D hotkey-overlay-title="Run an Application: rsynapse" { spawn-sh "rsynapse-ui"; }
+    Mod+D hotkey-overlay-title="Run an Application: rsynapse" { spawn-sh "~/.cargo/bin/rsynapse-ui"; }
     Mod+N hotkey-overlay-title="Run an Application: remarked" { spawn-sh "remarked-ui"; }
     Ctrl+Shift+L hotkey-overlay-title="Lock the Screen: swaylock" { spawn-sh "runapp -o hyprlock"; }
     Ctrl+Shift+U hotkey-overlay-title="Lock the Screen: swaylock" { spawn-sh "~/.config/scripts/suspend.sh"; }

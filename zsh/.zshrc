@@ -55,6 +55,7 @@ WORDCHARS=${WORDCHARS//[\/]}
 # Disable automatic widget re-binding on each precmd. This can be set when
 # zsh-users/zsh-autosuggestions is the last module in your ~/.zimrc.
 ZSH_AUTOSUGGEST_MANUAL_REBIND=1
+ZSH_AUTOSUGGEST_IGNORE_WIDGETS=(${ZSH_AUTOSUGGEST_IGNORE_WIDGETS[@]} zle-\*)
 
 # Customize the style that the suggestions are shown with.
 # See https://github.com/zsh-users/zsh-autosuggestions/blob/master/README.md#suggestion-highlight-style
@@ -121,8 +122,8 @@ function zle-keymap-select () {
 zle -N zle-keymap-select
 
 zle-line-init() {
-  zle -K viins 
-  echo -ne "\e[5 q" }
+  echo -ne "\e[5 q"
+}
 zle -N zle-line-init
 
 export KEYTIMEOUT=1
@@ -143,3 +144,5 @@ cd /tmp
 #THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
 export SDKMAN_DIR="$HOME/.sdkman"
 [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
+
+

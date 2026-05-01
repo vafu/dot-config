@@ -1,20 +1,18 @@
-layout { 
+layout {
     focus-ring {
         on
-        width 1.5
-        active-color "#c4a7e7"
+        width 1
+        active-color "#5c6066"
     }
-
     shadow {
         on
         softness 8
-        spread 1
+        spread 0
         offset x=0 y=0
-        color "#908caa"
-        inactive-color "#2a283e"
+        color "#717c7c"
+        inactive-color "#22262d"
     }
-
-    background-color "#44415a"
+    background-color  "#1f1f26"
 }
 
 window-rule {
@@ -22,3 +20,7 @@ window-rule {
     clip-to-geometry true
 }
 
+cursor {
+    xcursor-theme "BreezeX-RosePine-Linux"
+    xcursor-size 24
+}
