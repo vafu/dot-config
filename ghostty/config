@@ -30,6 +30,7 @@ window-padding-y = 4
 window-decoration = none
 
 shell-integration-features=true
+gtk-single-instance = true
 #
 # # Spacing around the equals sign does not matter.
 # # All of these are identical:
@@ -53,4 +54,4 @@ shell-integration-features=true
 
 quit-after-last-window-closed = false
 
-theme = dark:rose-pine-dark,light:rose-pine-light
+theme = dark:kanso-ink,light:kanso-pearl

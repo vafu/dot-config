@@ -1,5 +1,9 @@
 @import 'common.scss';
 
+$label-margin: 4px;
+$outline-width: $label-margin * 0.4;
+$outline-offset: $label-margin * 0.5;
+
 .bar {
   background-color: transparent;
   padding: 0px 0px 8px 0px;

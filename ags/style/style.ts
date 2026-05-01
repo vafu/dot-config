@@ -44,7 +44,7 @@ async function compileCss() {
   const scss_files = (await Promise.all(scss_files_promises)).join('\n')
 
   await writeFileAsync(sass_input, gtk_color_bindings + '\n' + scss_files)
-  await execAsync(`sass ${sass_input} ${sass}`)
+  await execAsync(`sassc ${sass_input} ${sass}`)
   const compiled = await readFileAsync(sass)
   await writeFileAsync(style, gtk_colors + '\n' + compiled)
 }

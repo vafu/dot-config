@@ -42,7 +42,7 @@
 
 @define-color bg_tint alpha(@bg, 0.6);
 
-@define-color shadow #0003;
+@define-color shadow #22262d8a;
 @define-color shadow_active #0003;
 
 /* accent palette */

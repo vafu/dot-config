@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(zoxide init *)",
+      "Bash(zsh *)"
+    ]
+  }
+}
