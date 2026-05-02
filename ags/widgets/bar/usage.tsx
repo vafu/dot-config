@@ -1,6 +1,6 @@
 import { Gtk } from 'ags/gtk4'
-import { getClaudeService } from 'services/claude'
-import { getClaudeStatsService, todayString } from 'services/claude-stats'
+import { getAgentService } from 'services/agent'
+import { getAgentStatsService, todayString } from 'services/agent-stats'
 import { LevelIndicator } from 'widgets/circularstatus'
 import { MaterialIcon } from 'widgets/materialicon'
 import { bindAs, subscribeTo } from 'rxbinding'
@@ -34,8 +34,8 @@ function formatTokens(n: number): string {
 }
 
 export const UsageWidget = (props: WidgetProps) => {
-  const { sessions$ } = getClaudeService()
-  const { stats$ } = getClaudeStatsService()
+  const { sessions$ } = getAgentService()
+  const { stats$ } = getAgentStatsService()
 
   // Account-wide rate limit from whichever session has the freshest data
   const rateLimit$ = sessions$.pipe(
@@ -88,18 +88,18 @@ export const UsageWidget = (props: WidgetProps) => {
   fractionBox.append(denominatorLabel)
 
   // Popover grid
-  const fiveHourDetailLabel  = new Gtk.Label({ xalign: 0, cssClasses: ['claude-info-value'] })
-  const fiveHourResetLabel   = new Gtk.Label({ xalign: 0, cssClasses: ['claude-info-value'] })
-  const sevenDayDetailLabel  = new Gtk.Label({ xalign: 0, cssClasses: ['claude-info-value'] })
-  const sevenDayResetLabel   = new Gtk.Label({ xalign: 0, cssClasses: ['claude-info-value'] })
-  const todayTokensDetail    = new Gtk.Label({ xalign: 0, cssClasses: ['claude-info-value'] })
-  const todayMessagesLabel   = new Gtk.Label({ xalign: 0, cssClasses: ['claude-info-value'] })
-  const todayToolCallsLabel  = new Gtk.Label({ xalign: 0, cssClasses: ['claude-info-value'] })
-  const todaySessionsLabel   = new Gtk.Label({ xalign: 0, cssClasses: ['claude-info-value'] })
+  const fiveHourDetailLabel  = new Gtk.Label({ xalign: 0, cssClasses: ['agent-info-value'] })
+  const fiveHourResetLabel   = new Gtk.Label({ xalign: 0, cssClasses: ['agent-info-value'] })
+  const sevenDayDetailLabel  = new Gtk.Label({ xalign: 0, cssClasses: ['agent-info-value'] })
+  const sevenDayResetLabel   = new Gtk.Label({ xalign: 0, cssClasses: ['agent-info-value'] })
+  const todayTokensDetail    = new Gtk.Label({ xalign: 0, cssClasses: ['agent-info-value'] })
+  const todayMessagesLabel   = new Gtk.Label({ xalign: 0, cssClasses: ['agent-info-value'] })
+  const todayToolCallsLabel  = new Gtk.Label({ xalign: 0, cssClasses: ['agent-info-value'] })
+  const todaySessionsLabel   = new Gtk.Label({ xalign: 0, cssClasses: ['agent-info-value'] })
 
-  const grid = new Gtk.Grid({ columnSpacing: 8, rowSpacing: 2, cssClasses: ['claude-info-grid'] })
+  const grid = new Gtk.Grid({ columnSpacing: 8, rowSpacing: 2, cssClasses: ['agent-info-grid'] })
   const addRow = (row: number, label: string, widget: Gtk.Widget) => {
-    const l = new Gtk.Label({ label, xalign: 1, cssClasses: ['claude-info-label', 'dim-label'] })
+    const l = new Gtk.Label({ label, xalign: 1, cssClasses: ['agent-info-label', 'dim-label'] })
     grid.attach(l, 0, row, 1, 1)
     grid.attach(widget, 1, row, 1, 1)
   }
@@ -127,12 +127,12 @@ export const UsageWidget = (props: WidgetProps) => {
 
   const widget = (
     <menubutton
-      cssClasses={['claude-widget', 'flat', 'panel-widget']}
+      cssClasses={['agent-widget', 'flat', 'panel-widget']}
       visible={bindAs(hasData$, v => v, false)}
       tooltipText={bindAs(rateLimit$, u => `5h: ${Math.round(u.fiveHourUsagePct)}% · 7d: ${Math.round(u.sevenDayUsagePct)}%`, '')}
       popover={popover}
     >
-      <box cssClasses={['claude-inner']} spacing={4}>
+      <box cssClasses={['agent-inner']} spacing={4}>
         <MaterialIcon icon="speed" tinted={false} />
         {fiveHourLevel}
         {fractionBox}

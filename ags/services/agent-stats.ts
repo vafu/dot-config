@@ -2,9 +2,9 @@ import Gio from 'gi://Gio?version=2.0'
 import GLib from 'gi://GLib?version=2.0'
 import { BehaviorSubject, Observable } from 'rxjs'
 
-const BUS_NAME = 'com.anthropic.ClaudeCode'
-const STATS_PATH = '/com/anthropic/ClaudeCode/stats'
-const STATS_IFACE = 'com.anthropic.ClaudeCode1.Stats'
+const BUS_NAME = 'io.github.AgentDBus'
+const STATS_PATH = '/io/github/AgentDBus/stats'
+const STATS_IFACE = 'io.github.AgentDBus1.Stats'
 const PROPS_IFACE = 'org.freedesktop.DBus.Properties'
 
 export interface DailyActivity {
@@ -28,7 +28,7 @@ export interface ModelUsage {
   webSearches: number
 }
 
-export interface ClaudeStatsData {
+export interface AgentStatsData {
   totalSessions: number
   totalMessages: number
   firstSessionDate: string
@@ -45,11 +45,11 @@ export interface ClaudeStatsData {
   dailyTokens: DailyTokens[]
 }
 
-export interface ClaudeStatsService {
-  stats$: Observable<ClaudeStatsData>
+export interface AgentStatsService {
+  stats$: Observable<AgentStatsData>
 }
 
-const DEFAULT: ClaudeStatsData = {
+const DEFAULT: AgentStatsData = {
   totalSessions: 0,
   totalMessages: 0,
   firstSessionDate: '',
@@ -66,8 +66,8 @@ const DEFAULT: ClaudeStatsData = {
   dailyTokens: [],
 }
 
-function propsToStats(props: Record<string, GLib.Variant>): Partial<ClaudeStatsData> {
-  const s: Partial<ClaudeStatsData> = {}
+function propsToStats(props: Record<string, GLib.Variant>): Partial<AgentStatsData> {
+  const s: Partial<AgentStatsData> = {}
   if ('TotalSessions' in props) s.totalSessions = props['TotalSessions'].deepUnpack() as number
   if ('TotalMessages' in props) s.totalMessages = props['TotalMessages'].deepUnpack() as number
   if ('FirstSessionDate' in props) s.firstSessionDate = props['FirstSessionDate'].deepUnpack() as string
@@ -95,14 +95,14 @@ function propsToStats(props: Record<string, GLib.Variant>): Partial<ClaudeStatsD
   return s
 }
 
-let service: ClaudeStatsService | null = null
+let service: AgentStatsService | null = null
 
-export function getClaudeStatsService(): ClaudeStatsService {
+export function getAgentStatsService(): AgentStatsService {
   if (service) return service
 
-  const stats$ = new BehaviorSubject<ClaudeStatsData>({ ...DEFAULT })
+  const stats$ = new BehaviorSubject<AgentStatsData>({ ...DEFAULT })
 
-  const update = (partial: Partial<ClaudeStatsData>) => {
+  const update = (partial: Partial<AgentStatsData>) => {
     stats$.next({ ...stats$.value, ...partial })
   }
 
@@ -138,7 +138,7 @@ export function getClaudeStatsService(): ClaudeStatsService {
         const [props] = result.deepUnpack() as [Record<string, GLib.Variant>]
         update(propsToStats(props))
       } catch (e) {
-        console.error('[ClaudeStats] GetAll error:', e)
+        console.error('[AgentStats] GetAll error:', e)
       }
     },
   )

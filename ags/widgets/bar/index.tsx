@@ -14,7 +14,7 @@ import {
 } from './indicators'
 import { BluetoothStatus } from './bt_status'
 import { WindowTitle } from './windowtitle'
-import { ClaudeWidgets } from './claude'
+import { AgentWidgets } from './agent'
 
 export default (gdkmonitor: Gdk.Monitor) => {
   return (
@@ -38,7 +38,7 @@ export default (gdkmonitor: Gdk.Monitor) => {
           {/**  
           <PomodoroWidget cssClasses={['barblock']} />
           **/}
-          <ClaudeWidgets cssClasses={['barblock']} />
+          <AgentWidgets cssClasses={['barblock']} />
         </box>
 
         {/** center **/}

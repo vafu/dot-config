@@ -1,5 +1,5 @@
 import { Gdk, Gtk } from 'ags/gtk4'
-import { getClaudeService, ClaudeStatus } from 'services/claude'
+import { getAgentService, AgentStatus } from 'services/agent'
 import { LevelIndicator } from 'widgets/circularstatus'
 import { MaterialIcon } from 'widgets/materialicon'
 import { bindAs, subscribeTo } from 'rxbinding'
@@ -16,21 +16,24 @@ const CONTEXT_STAGES = [
 
 const STYLE = { style: 'line' as const, thickness: 3 }
 
-const DEFAULT_STATUS: ClaudeStatus = { state: 'no-session', taskComplete: false, requiresAttention: false, contextPct: 0, modelName: '', cwd: '', costUsd: 0, sessionName: '', fiveHourUsagePct: 0, fiveHourResetsAt: 0, sevenDayUsagePct: 0, sevenDayResetsAt: 0 }
+const DEFAULT_STATUS: AgentStatus = { agentName: '', state: 'no-session', taskComplete: false, requiresAttention: false, contextPct: 0, modelName: '', cwd: '', costUsd: 0, pendingPrompt: '', pendingOptions: [], sessionName: '', fiveHourUsagePct: 0, fiveHourResetsAt: 0, sevenDayUsagePct: 0, sevenDayResetsAt: 0 }
 
-const ClaudeWidget = (sessionId: string) => {
-  const { sessions$, elicitation$, respondToElicitation, iconForSession } = getClaudeService()
+const AgentWidget = (sessionId: string) => {
+  const { sessions$, elicitation$, respondToElicitation, iconForSession } = getAgentService()
 
   const status$ = sessions$.pipe(
     map(sessions => sessions.get(sessionId) ?? DEFAULT_STATUS),
     distinctUntilChanged((a, b) =>
       a.state === b.state &&
+      a.agentName === b.agentName &&
       a.taskComplete === b.taskComplete &&
       a.requiresAttention === b.requiresAttention &&
       a.contextPct === b.contextPct &&
       a.modelName === b.modelName &&
       a.cwd === b.cwd &&
       a.costUsd === b.costUsd &&
+      a.pendingPrompt === b.pendingPrompt &&
+      a.pendingOptions.join('\0') === b.pendingOptions.join('\0') &&
       a.sessionName === b.sessionName
     ),
     shareReplay(1),
@@ -69,14 +72,14 @@ const ClaudeWidget = (sessionId: string) => {
   ) as Gtk.Widget
 
   // Info header
-  const modelLabel = new Gtk.Label({ xalign: 0, cssClasses: ['claude-info-value'] })
-  const cwdLabel = new Gtk.Label({ xalign: 0, ellipsize: 3 /* END */, maxWidthChars: 35, cssClasses: ['claude-info-value'] })
-  const costLabel = new Gtk.Label({ xalign: 0, cssClasses: ['claude-info-value'] })
-  const contextLabel = new Gtk.Label({ xalign: 0, cssClasses: ['claude-info-value'] })
+  const modelLabel = new Gtk.Label({ xalign: 0, cssClasses: ['agent-info-value'] })
+  const cwdLabel = new Gtk.Label({ xalign: 0, ellipsize: 3 /* END */, maxWidthChars: 35, cssClasses: ['agent-info-value'] })
+  const costLabel = new Gtk.Label({ xalign: 0, cssClasses: ['agent-info-value'] })
+  const contextLabel = new Gtk.Label({ xalign: 0, cssClasses: ['agent-info-value'] })
 
-  const infoGrid = new Gtk.Grid({ columnSpacing: 8, rowSpacing: 2, cssClasses: ['claude-info-grid'] })
+  const infoGrid = new Gtk.Grid({ columnSpacing: 8, rowSpacing: 2, cssClasses: ['agent-info-grid'] })
   const addRow = (row: number, label: string, widget: Gtk.Widget) => {
-    const l = new Gtk.Label({ label, xalign: 1, cssClasses: ['claude-info-label', 'dim-label'] })
+    const l = new Gtk.Label({ label, xalign: 1, cssClasses: ['agent-info-label', 'dim-label'] })
     infoGrid.attach(l, 0, row, 1, 1)
     infoGrid.attach(widget, 1, row, 1, 1)
   }
@@ -91,7 +94,7 @@ const ClaudeWidget = (sessionId: string) => {
     spacing: 4,
     visible: false,
   })
-  const separator = new Gtk.Separator({ cssClasses: ['claude-separator'] })
+  const separator = new Gtk.Separator({ cssClasses: ['agent-separator'] })
   const promptLabel = new Gtk.Label({
     wrap: true,
     maxWidthChars: 40,
@@ -123,11 +126,11 @@ const ClaudeWidget = (sessionId: string) => {
 
   const widget = (
     <menubutton
-      cssClasses={['claude-widget', 'flat', 'circular', 'panel-widget']}
-      tooltipText={bindAs(status$, s => `Claude · ${s.modelName || 'idle'} · ${Math.round(s.contextPct)}%`, '')}
+      cssClasses={['agent-widget', 'flat', 'circular', 'panel-widget']}
+      tooltipText={bindAs(status$, s => `${s.agentName || 'agent'} · ${s.modelName || 'idle'} · ${Math.round(s.contextPct)}%`, '')}
       popover={popover}
     >
-      <box cssClasses={['claude-inner']}>
+      <box cssClasses={['agent-inner']}>
         {icon}
         {level}
       </box>
@@ -169,7 +172,7 @@ const ClaudeWidget = (sessionId: string) => {
           <button
             label={option}
             onClicked={() => {
-              console.log(`[Claude] popup button clicked: session=${sessionId} option=${option}`)
+              console.log(`[Agent] popup button clicked: session=${sessionId} option=${option}`)
               popover.popdown()
               respondToElicitation(sessionId, option)
             }}
@@ -204,20 +207,20 @@ Gtk.StyleContext.add_provider_for_display(
 
 function updateUsageFill(pct: number) {
   if (pct <= 0) {
-    usageFillProvider.load_from_string('.claude-usage-fill { background-image: none; }')
+    usageFillProvider.load_from_string('.agent-usage-fill { background-image: none; }')
     return
   }
   const color = usageColor(pct)
   usageFillProvider.load_from_string(
-    `.claude-usage-fill { background-image: linear-gradient(to right, ${color} ${pct}%, transparent ${pct}%); }`
+    `.agent-usage-fill { background-image: linear-gradient(to right, ${color} ${pct}%, transparent ${pct}%); }`
   )
 }
 
-// -- ClaudeWidgets with usage fill background --
+// -- AgentWidgets with usage fill background --
 
-export const ClaudeWidgets = (props: WidgetProps) => {
-  const { sessions$ } = getClaudeService()
-  const cssClasses = (props.cssClasses ?? []).concat(['claude-usage-fill'])
+export const AgentWidgets = (props: WidgetProps) => {
+  const { sessions$ } = getAgentService()
+  const cssClasses = (props.cssClasses ?? []).concat(['agent-usage-fill'])
 
   const visible$ = sessions$.pipe(
     map(s => s.size > 0),
@@ -247,14 +250,14 @@ export const ClaudeWidgets = (props: WidgetProps) => {
   const sessionWidgets = new Map<string, Gtk.Widget>()
 
   subscribeTo(container, anyAttention$, (attention, box) => {
-    if (attention) box.add_css_class('claude-attention')
-    else box.remove_css_class('claude-attention')
+    if (attention) box.add_css_class('agent-attention')
+    else box.remove_css_class('agent-attention')
   })
 
   subscribeTo(container, sessions$, (sessions, box) => {
     for (const [sessionId] of sessions) {
       if (!sessionWidgets.has(sessionId)) {
-        const w = ClaudeWidget(sessionId)
+        const w = AgentWidget(sessionId)
         sessionWidgets.set(sessionId, w)
         box.append(w)
       }
