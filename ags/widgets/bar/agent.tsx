@@ -268,7 +268,15 @@ export const AgentWidgets = (props: WidgetProps) => {
 
   subscribeTo(container, fiveHourPct$, (pct, box) => {
     updateUsageFill(pct)
-    box.tooltipText = pct > 0 ? `5h usage: ${Math.round(pct)}%` : ''
+    const sessions = sessions$.value
+    let sevenDayPct = 0, bestReset = 0
+    for (const s of sessions.values()) {
+      if (s.fiveHourResetsAt > bestReset) {
+        sevenDayPct = s.sevenDayUsagePct
+        bestReset = s.fiveHourResetsAt
+      }
+    }
+    box.tooltipText = pct > 0 ? `5h: ${Math.round(pct)}% · 7d: ${Math.round(sevenDayPct)}%` : ''
   })
 
   return container
