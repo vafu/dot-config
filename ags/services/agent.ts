@@ -84,16 +84,7 @@ export function getAgentService(): AgentService {
     const next = { ...current, ...update }
     map.set(sessionId, next)
     sessions$.next(map)
-    if (next.requiresAttention && next.pendingPrompt) {
-      elicitation$.next({
-        sessionId,
-        prompt: next.pendingPrompt,
-        options: next.pendingOptions.length > 0 ? next.pendingOptions : ['Allow', 'Deny'],
-      })
-    }
-    if (update.requiresAttention === false && elicitation$.value?.sessionId === sessionId) {
-      elicitation$.next(null)
-    }
+    if (update.requiresAttention === false && elicitation$.value?.sessionId === sessionId) elicitation$.next(null)
   }
 
   const removeSession = (sessionId: string) => {

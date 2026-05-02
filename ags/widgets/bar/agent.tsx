@@ -19,7 +19,7 @@ const STYLE = { style: 'line' as const, thickness: 3 }
 const DEFAULT_STATUS: AgentStatus = { agentName: '', state: 'no-session', taskComplete: false, requiresAttention: false, contextPct: 0, modelName: '', cwd: '', costUsd: 0, pendingPrompt: '', pendingOptions: [], sessionName: '', fiveHourUsagePct: 0, fiveHourResetsAt: 0, sevenDayUsagePct: 0, sevenDayResetsAt: 0 }
 
 const AgentWidget = (sessionId: string) => {
-  const { sessions$, elicitation$, respondToElicitation, iconForSession } = getAgentService()
+  const { sessions$, respondToElicitation, iconForSession } = getAgentService()
 
   const status$ = sessions$.pipe(
     map(sessions => sessions.get(sessionId) ?? DEFAULT_STATUS),
@@ -37,11 +37,6 @@ const AgentWidget = (sessionId: string) => {
       a.sessionName === b.sessionName
     ),
     shareReplay(1),
-  )
-
-  const sessionElicitation$ = elicitation$.pipe(
-    map(e => e?.sessionId === sessionId ? e : null),
-    distinctUntilChanged(),
   )
 
   const state$ = status$.pipe(map(s => s.state), distinctUntilChanged())
@@ -155,7 +150,7 @@ const AgentWidget = (sessionId: string) => {
     contextLabel.label = `${Math.round(status.contextPct)}%`
   })
 
-  subscribeTo(widget, sessionElicitation$, (elicitation, w) => {
+  subscribeTo(widget, status$, status => {
     let child = buttonsBox.get_first_child()
     while (child) {
       const next = child.get_next_sibling()
@@ -163,11 +158,12 @@ const AgentWidget = (sessionId: string) => {
       child = next
     }
 
-    if (elicitation) {
-      promptLabel.label = elicitation.prompt
+    if (status.requiresAttention && status.pendingPrompt) {
+      promptLabel.label = status.pendingPrompt
       elicitationBox.visible = true
 
-      for (const option of elicitation.options) {
+      const options = status.pendingOptions.length > 0 ? status.pendingOptions : ['Allow', 'Deny']
+      for (const option of options) {
         const btn = (
           <button
             label={option}
