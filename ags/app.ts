@@ -8,6 +8,7 @@ import { binding } from 'rxbinding'
 import { diffs } from 'commons/rx'
 import { Rsynapse } from 'widgets/rsynapse'
 import { TodoPopup } from 'widgets/todo/input'
+import { AgentApprovalOverlay } from 'widgets/agent-approvals/overlay'
 import { handleRequest } from 'services/requests'
 import { prepareTheme } from 'style/theming'
 import obtainWmService from 'services'
@@ -37,6 +38,7 @@ app.start({
           OSD(binding(ms.activeMonitor, initialMonitor))
           Rsynapse(binding(ms.activeMonitor, initialMonitor))
           TodoPopup(binding(ms.activeMonitor, initialMonitor))
+          AgentApprovalOverlay(binding(ms.activeMonitor, initialMonitor))
         })
       })
     })
@@ -105,4 +107,3 @@ function dndOn() {
 function dndOff() {
   execAsync('./scripts/dnd.sh off').catch()
 }
-
