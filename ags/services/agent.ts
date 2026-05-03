@@ -93,6 +93,38 @@ export function getAgentService(): AgentService {
     sessions$.next(map)
   }
 
+  const bootstrapSessions = () => {
+    Gio.DBus.session.call(
+      BUS_NAME,
+      MANAGER_PATH,
+      MANAGER_IFACE,
+      'GetManagedObjects',
+      null,
+      new GLib.VariantType('(a{oa{sa{sv}}})'),
+      Gio.DBusCallFlags.NONE,
+      -1,
+      null,
+      (_conn: any, res: any) => {
+        try {
+          const result = Gio.DBus.session.call_finish(res)
+          const [objects] = result.deepUnpack() as [Record<string, Record<string, Record<string, GLib.Variant>>>]
+          const next = new Map(sessions$.value)
+          for (const [objectPath, interfaces] of Object.entries(objects)) {
+            const sessionId = sessionIdFromPath(objectPath)
+            const props = interfaces[SESSION_IFACE]
+            if (!sessionId || !props) continue
+            const current = next.get(sessionId) ?? { ...DEFAULT }
+            next.set(sessionId, { ...current, ...propsToStatus(props) })
+          }
+          sessions$.next(next)
+          console.log(`[Agent] bootstrapped ${next.size} sessions from ObjectManager`)
+        } catch (e) {
+          console.error('[Agent] GetManagedObjects failed:', e)
+        }
+      },
+    )
+  }
+
   // PropertiesChanged on session objects
   Gio.DBus.session.signal_subscribe(
     BUS_NAME,
@@ -167,6 +199,8 @@ export function getAgentService(): AgentService {
       elicitation$.next({ sessionId, prompt, options })
     },
   )
+
+  bootstrapSessions()
 
   // RespondToElicitation is now a method on the session object
   const respondToElicitation = (sessionId: string, answer: string) => {

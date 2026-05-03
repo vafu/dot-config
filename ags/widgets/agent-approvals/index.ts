@@ -4,14 +4,21 @@ import { requestsFor } from 'services/requests'
 type ApprovalRequest = { command: 'agent-approvals' }
 
 const active = new BehaviorSubject(false)
+const targetSession = new BehaviorSubject<string | null>(null)
+
+function setVisible(visible: boolean, sessionId: string | null = null) {
+  targetSession.next(sessionId)
+  active.next(visible)
+}
 
 const controls = {
   active,
-  show: () => active.next(true),
-  hide: () => active.next(false),
+  targetSession,
+  show: () => setVisible(true),
+  showFor: (sessionId: string) => setVisible(true, sessionId),
+  hide: () => setVisible(false),
   toggle: () => {
-    if (active.getValue()) active.next(false)
-    else active.next(true)
+    setVisible(!active.getValue())
   },
 }
 

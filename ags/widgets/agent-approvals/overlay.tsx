@@ -14,6 +14,10 @@ type PendingApproval = {
 }
 
 const prettyPath = (path: string) => path ? path.replace(/^\/home\/[^/]+/, '~') : 'unknown cwd'
+const approvalOptions = (status: AgentStatus) =>
+  status.pendingOptions.length > 0 ? status.pendingOptions : ['Allow', 'Deny']
+const approvalSignature = (sessionId: string, status: AgentStatus) =>
+  `${sessionId}:${status.pendingPrompt}:${approvalOptions(status).join('\0')}`
 
 function pendingApprovals(): PendingApproval[] {
   return [...getAgentService().sessions$.value.entries()]
@@ -87,13 +91,31 @@ export function AgentApprovalOverlay(monitor: Accessor<Gdk.Monitor>) {
     return requests[Math.min(pos, requests.length - 1)]
   }
 
-  const currentOptions = () => selectedRequest()?.status.pendingOptions ?? []
+  const scrollToTarget = () => {
+    const target = approvalsUi.targetSession.value
+    if (!target) return
+    const idx = requests.findIndex(r => r.sessionId === target)
+    if (idx < 0 || !cards[idx]) return
+    carousel.scroll_to(cards[idx], false)
+  }
+
+  const currentOptions = () => {
+    const request = selectedRequest()
+    return request ? approvalOptions(request.status) : []
+  }
 
   const answerSelected = () => {
     const request = selectedRequest()
     if (!request) return
-    const options = request.status.pendingOptions.length > 0 ? request.status.pendingOptions : ['Allow', 'Deny']
+    const options = approvalOptions(request.status)
     choose(request, options[Math.min(selectedOption, options.length - 1)])
+  }
+
+  const scrollBy = (delta: number) => {
+    const next = Math.max(0, Math.min(cards.length - 1, Math.round(carousel.get_position()) + delta))
+    carousel.scroll_to(cards[next], true)
+    selectedOption = 0
+    refreshSelection()
   }
 
   function rebuild() {
@@ -121,7 +143,7 @@ export function AgentApprovalOverlay(monitor: Accessor<Gdk.Monitor>) {
 
     for (const request of requests) {
       const status = request.status
-      const options = status.pendingOptions.length > 0 ? status.pendingOptions : ['Allow', 'Deny']
+      const options = approvalOptions(status)
       const projectIcon$ = iconForSession(status.cwd, status.sessionName)
       const optionBox = new Gtk.Box({
         orientation: Gtk.Orientation.VERTICAL,
@@ -168,6 +190,8 @@ export function AgentApprovalOverlay(monitor: Accessor<Gdk.Monitor>) {
       cards.push(card)
       carousel.append(card)
     }
+
+    scrollToTarget()
   }
 
   const body = new Gtk.Box({
@@ -193,13 +217,11 @@ export function AgentApprovalOverlay(monitor: Accessor<Gdk.Monitor>) {
       return true
     }
     if (keyval === Gdk.KEY_Left || keyval === Gdk.KEY_h) {
-      carousel.scroll_to(cards[Math.max(0, Math.round(carousel.get_position()) - 1)], true)
-      selectedOption = 0
+      scrollBy(-1)
       return true
     }
     if (keyval === Gdk.KEY_Right || keyval === Gdk.KEY_l) {
-      carousel.scroll_to(cards[Math.min(cards.length - 1, Math.round(carousel.get_position()) + 1)], true)
-      selectedOption = 0
+      scrollBy(1)
       return true
     }
     if (keyval === Gdk.KEY_Up || keyval === Gdk.KEY_k) {
@@ -216,7 +238,7 @@ export function AgentApprovalOverlay(monitor: Accessor<Gdk.Monitor>) {
       const idx = keyval - Gdk.KEY_1
       const request = selectedRequest()
       if (request) {
-        const requestOptions = request.status.pendingOptions.length > 0 ? request.status.pendingOptions : ['Allow', 'Deny']
+        const requestOptions = approvalOptions(request.status)
         if (idx < requestOptions.length) choose(request, requestOptions[idx])
       }
       return true
@@ -229,7 +251,7 @@ export function AgentApprovalOverlay(monitor: Accessor<Gdk.Monitor>) {
     .pipe(
       map(s => [...s.entries()]
         .filter(([, status]) => status.requiresAttention && status.pendingPrompt)
-        .map(([id, status]) => `${id}:${status.pendingPrompt}:${status.pendingOptions.join('\0')}`)
+        .map(([id, status]) => approvalSignature(id, status))
         .join('\n')),
       distinctUntilChanged(),
     )
@@ -243,6 +265,12 @@ export function AgentApprovalOverlay(monitor: Accessor<Gdk.Monitor>) {
       body.grab_focus()
     }
   })
+
+  approvalsUi.targetSession
+    .pipe(distinctUntilChanged())
+    .subscribe(() => {
+      if (approvalsUi.active.value) scrollToTarget()
+    })
 
   return (
     <window
