@@ -48,8 +48,7 @@ zmodule completion
 # zsh-users/zsh-syntax-highlighting must be sourced after completion
 # Fish-like history search (up arrow) for Zsh.
 # zsh-users/zsh-history-substring-search must be sourced after zsh-users/zsh-syntax-highlighting
+zmodule kiesman99/zim-zoxide
+# zmodule zsh-users/zsh-autosuggestions
 zmodule zsh-users/zsh-syntax-highlighting
 zmodule zsh-users/zsh-history-substring-search
-zmodule kiesman99/zim-zoxide
-zmodule zsh-users/zsh-autosuggestions
-

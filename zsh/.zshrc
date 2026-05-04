@@ -1,3 +1,10 @@
+if [[ -o interactive ]]; then
+  if (( ${+__ZSHRC_LOADED} || ${+functions[_zsh_autosuggest_start]} )); then
+    return
+  fi
+  typeset -g __ZSHRC_LOADED=1
+fi
+
 # Remove older command from the history if a duplicate is to be added.
 HISTFILE=$HOME/.zsh_history
 setopt HIST_IGNORE_ALL_DUPS
@@ -52,9 +59,6 @@ WORDCHARS=${WORDCHARS//[\/]}
 # zsh-autosuggestions
 #
 
-# Disable automatic widget re-binding on each precmd. This can be set when
-# zsh-users/zsh-autosuggestions is the last module in your ~/.zimrc.
-ZSH_AUTOSUGGEST_MANUAL_REBIND=1
 ZSH_AUTOSUGGEST_IGNORE_WIDGETS=(${ZSH_AUTOSUGGEST_IGNORE_WIDGETS[@]} zle-\*)
 
 # Customize the style that the suggestions are shown with.
@@ -137,12 +141,9 @@ source_if_exists() {
 source_if_exists "$ZDOTDIR/env.zsh"
 source_if_exists "$ZDOTDIR/aliases.zsh"
 source_if_exists "$ZDOTDIR/niri.zsh"
-source_if_exists "$HOME/.zshrc"
 
 cd /tmp
 
 #THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
 export SDKMAN_DIR="$HOME/.sdkman"
 [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
-
-
