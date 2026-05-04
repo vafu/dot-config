@@ -2,9 +2,6 @@
 #
 # This is not sourced during shell startup, and it's only used to configure the
 # zimfw plugin manager.
-#
-zmodule sindresorhus/pure --source async.zsh --source pure.zsh
-#
 # Modules
 #
 
@@ -27,6 +24,7 @@ zmodule utility
 zmodule duration-info
 # Exposes git repository status information to prompts, used by asciiship.
 zmodule git-info
+zmodule sindresorhus/pure --source async.zsh --source pure.zsh
 # A heavily reduced, ASCII-only version of the Spaceship and Starship prompts.
 # zmodule asciiship
 
@@ -49,6 +47,6 @@ zmodule completion
 # Fish-like history search (up arrow) for Zsh.
 # zsh-users/zsh-history-substring-search must be sourced after zsh-users/zsh-syntax-highlighting
 zmodule kiesman99/zim-zoxide
-# zmodule zsh-users/zsh-autosuggestions
+zmodule zsh-users/zsh-autosuggestions
 zmodule zsh-users/zsh-syntax-highlighting
 zmodule zsh-users/zsh-history-substring-search
