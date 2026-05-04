@@ -1,14 +1,14 @@
 @import 'common.scss';
 
-.claude-attention {
-  animation: claude-attention-pulse 1s ease-in-out infinite alternate;
+.agent-attention {
+  animation: agent-attention-pulse 1s ease-in-out infinite alternate;
 }
 
-.claude-widget {
+.agent-widget {
   border-radius: 12px;
   transition: background-color 300ms;
 
-  .claude-inner {
+  .agent-inner {
     padding: 0 4px;
   }
 
@@ -26,11 +26,11 @@
     opacity: 0.5;
   }
 
-  .claude-info-label {
+  .agent-info-label {
     font-size: 9pt;
   }
 
-  .claude-info-value {
+  .agent-info-value {
     font-size: 9pt;
   }
 
@@ -47,38 +47,38 @@
     }
   }
 
-  .claude-separator {
+  .agent-separator {
     margin: 4px 0;
   }
 
   &.thinking materialicon:first-child {
-    animation: claude-thinking-pulse 1.5s ease-in-out infinite;
+    animation: agent-thinking-pulse 1.5s ease-in-out infinite;
   }
 
   &.tool-use materialicon:first-child {
-    animation: claude-tool-scale 0.6s ease-in-out infinite;
+    animation: agent-tool-scale 0.6s ease-in-out infinite;
   }
 
   &.compacting materialicon:first-child {
-    animation: claude-compact-shrink 1.2s ease-in-out infinite;
+    animation: agent-compact-shrink 1.2s ease-in-out infinite;
   }
 
   &.attention materialicon:first-child {
-    animation: claude-attention-shake 0.4s ease-in-out infinite;
+    animation: agent-attention-shake 0.4s ease-in-out infinite;
   }
 }
 
-@keyframes claude-thinking-pulse {
+@keyframes agent-thinking-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
 }
 
-@keyframes claude-compact-shrink {
+@keyframes agent-compact-shrink {
   0% { transform: scale(1); }
   100% { transform: scale(0); }
 }
 
-@keyframes claude-attention-shake {
+@keyframes agent-attention-shake {
   0%, 100% { transform: translateX(0); }
   15% { transform: translateX(-3px); }
   30% { transform: translateX(3px); }
@@ -88,12 +88,12 @@
   90% { transform: translateX(1px); }
 }
 
-@keyframes claude-tool-scale {
+@keyframes agent-tool-scale {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(0.7); }
 }
 
-@keyframes claude-attention-pulse {
+@keyframes agent-attention-pulse {
   from { background-color: color-mix(in srgb, #{$sys_danger} 20%, #{$bg}); }
   to { background-color: color-mix(in srgb, #{$sys_danger} 50%, #{$bg}); }
 }

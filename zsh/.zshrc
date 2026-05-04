@@ -55,6 +55,12 @@ WORDCHARS=${WORDCHARS//[\/]}
 # If none is provided, the default '%n@%m: %~' is used.
 #zstyle ':zim:termtitle' format '%1~'
 
+codex() {
+  local agent_dbus_window_id
+  agent_dbus_window_id="$(niri msg --json focused-window 2>/dev/null | jq -r '.id // empty' 2>/dev/null)"
+  AGENT_DBUS_WINDOW_ID="$agent_dbus_window_id" command codex "$@"
+}
+
 #
 # zsh-autosuggestions
 #

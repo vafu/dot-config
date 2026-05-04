@@ -20,6 +20,8 @@ alacritty/theme.toml
 
 !niri/**
 niri/theme.kdl
+niri/theme_dark.kdl
+niri/theme_light.kdl
 
 !hypr/**
 hypr/hyprland.conf
@@ -28,6 +30,8 @@ hypr/arch.conf
 hypr/monitors.conf
 hypr/monitor_status.conf
 hypr/workspaces.conf
+
+!uwsm/env
 
 !scripts/**
 !nvim

@@ -1,0 +1,74 @@
+@import 'common.scss';
+
+.agent-approval-window {
+  background: rgba(0, 0, 0, 0.52);
+}
+
+.agent-approval-body {
+  background: transparent;
+}
+
+.agent-approval-body carousel {
+  background: transparent;
+  background-color: transparent;
+}
+
+.agent-approval-body carousel undershoot,
+.agent-approval-body carousel overshoot {
+  background: none;
+}
+
+.agent-approval-card {
+  @include elevation-3;
+  background: #{$osd_bg};
+  border-radius: 12px;
+  padding: 20px;
+  min-width: 640px;
+  max-width: 640px;
+  margin: 0 40px;
+  halign: center;
+  valign: center;
+}
+
+.agent-approval-header {
+  padding-bottom: 8px;
+}
+
+.agent-approval-project {
+  font-weight: 700;
+  font-size: 1.1em;
+}
+
+.agent-approval-agent,
+.agent-approval-model {
+  opacity: 0.72;
+}
+
+.agent-approval-prompt {
+  font-size: 1.05em;
+  line-height: 1.35;
+}
+
+.agent-approval-option {
+  padding: 10px 12px;
+  border-radius: 8px;
+}
+
+.agent-approval-option.selected,
+.agent-approval-option:focus {
+  background: #{$accent_color};
+}
+
+.agent-approval-key {
+  min-width: 24px;
+  font-weight: 700;
+  opacity: 0.8;
+}
+
+.agent-approval-empty-card {
+  padding: 28px;
+}
+
+.agent-approval-empty {
+  font-size: 1.1em;
+}

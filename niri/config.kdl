@@ -196,6 +196,7 @@ binds {
     // Suggested binds for running programs: terminal, app launcher, screen locker.
     Mod+Return hotkey-overlay-title="Open a Terminal" { spawn-sh "ghostty +new-window"; }
     Mod+D hotkey-overlay-title="Run an Application: rsynapse" { spawn-sh "~/.cargo/bin/rsynapse-ui"; }
+    Mod+A hotkey-overlay-title="Agent approvals" { spawn-sh "ags request agent-approvals"; }
     Mod+N hotkey-overlay-title="Run an Application: remarked" { spawn-sh "remarked-ui"; }
     Ctrl+Shift+L hotkey-overlay-title="Lock the Screen: swaylock" { spawn-sh "runapp -o hyprlock"; }
     Ctrl+Shift+U hotkey-overlay-title="Lock the Screen: swaylock" { spawn-sh "~/.config/scripts/suspend.sh"; }

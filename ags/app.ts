@@ -8,14 +8,18 @@ import { binding } from 'rxbinding'
 import { diffs } from 'commons/rx'
 import { Rsynapse } from 'widgets/rsynapse'
 import { TodoPopup } from 'widgets/todo/input'
+import { AgentApprovalOverlay } from 'widgets/agent-approvals/overlay'
+import approvalsUi from 'widgets/agent-approvals'
 import { handleRequest } from 'services/requests'
+import { windowIdForAgentSession } from 'services/agent-session-window'
 import { prepareTheme } from 'style/theming'
 import obtainWmService from 'services'
 import { bindCommands } from 'commands'
 import { MonitorService } from 'services/wm/types'
 import { getPomodoroService } from 'services/pomodoro'
+import { AgentStatus, getAgentService } from 'services/agent'
 import { execAsync } from 'ags/process'
-import { distinctUntilChanged, first, map, shareReplay } from 'rxjs'
+import { combineLatest, distinctUntilChanged, first, map, shareReplay } from 'rxjs'
 import { createRoot } from 'gnim'
 import GObject from 'ags/gobject'
 
@@ -29,6 +33,7 @@ app.start({
 
     obtainWmService('monitor').then(ms => {
       setupPomodoro()
+      setupAgentApprovalAutoOpen()
       setupForMonitor(ms, Bar)
 
       // Wait for first monitor emission to get initial value
@@ -37,11 +42,57 @@ app.start({
           OSD(binding(ms.activeMonitor, initialMonitor))
           Rsynapse(binding(ms.activeMonitor, initialMonitor))
           TodoPopup(binding(ms.activeMonitor, initialMonitor))
+          AgentApprovalOverlay(binding(ms.activeMonitor, initialMonitor))
         })
       })
     })
   },
 })
+
+type FocusedWindowInfo = {
+  id: string
+}
+
+type PendingAgentRequest = [string, AgentStatus]
+
+function setupAgentApprovalAutoOpen() {
+  obtainWmService('window').then(ws => {
+    const activeWindow = ws.active.pipe(
+      map(w => ({ id: w.id }) as FocusedWindowInfo),
+      distinctUntilChanged((a, b) => a.id === b.id),
+    )
+
+    let lastAutoOpenKey = ''
+    combineLatest([activeWindow, getAgentService().sessions$]).subscribe(([window, sessions]) => {
+      const match = pendingRequestForWindow(window, pendingRequests(sessions))
+      if (!match) return
+
+      const [sessionId, status] = match
+      const key = autoOpenKey(sessionId, status)
+      if (key === lastAutoOpenKey) return
+
+      lastAutoOpenKey = key
+      console.log(`[AgentAutoOpen] opening approvals for session=${sessionId} window=${window.id}`)
+      approvalsUi.showFor(sessionId)
+    })
+  }).catch(e => console.error('[Agent] approval auto-open setup failed:', e))
+}
+
+function pendingRequests(sessions: Map<string, AgentStatus>): PendingAgentRequest[] {
+  return [...sessions.entries()]
+    .filter(([, status]) => status.requiresAttention && status.pendingPrompt)
+}
+
+function pendingRequestForWindow(
+  window: FocusedWindowInfo,
+  pending: PendingAgentRequest[],
+): PendingAgentRequest | null {
+  return pending.find(([sessionId]) => windowIdForAgentSession(sessionId) === window.id) ?? null
+}
+
+function autoOpenKey(sessionId: string, status: AgentStatus) {
+  return `${sessionId}:${status.pendingPrompt}`
+}
 
 function setupForMonitor(
   ms: MonitorService,
@@ -105,4 +156,3 @@ function dndOn() {
 function dndOff() {
   execAsync('./scripts/dnd.sh off').catch()
 }
-
