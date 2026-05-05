@@ -16,6 +16,12 @@
     background-color: transparent;
   }
 
+  &.selected {
+    background-color: color-mix(in srgb, #{$ws_active} 14%, #{$bg});
+    outline: 1px solid color-mix(in srgb, #{$ws_active} 28%, transparent);
+    outline-offset: 0;
+  }
+
   &.task-complete {
     materialicon {
       color: #{$sys_warn};

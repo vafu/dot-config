@@ -1,9 +1,11 @@
 import { Gdk, Gtk } from 'ags/gtk4'
 import { getAgentService, AgentStatus } from 'services/agent'
+import { getLocusService } from 'services/locus'
+import obtainWmService from 'services'
 import { LevelIndicator } from 'widgets/circularstatus'
 import { MaterialIcon } from 'widgets/materialicon'
 import { bindAs, subscribeTo } from 'rxbinding'
-import { map, distinctUntilChanged, shareReplay, switchMap } from 'rxjs'
+import { BehaviorSubject, map, distinctUntilChanged, shareReplay, switchMap } from 'rxjs'
 import { WidgetProps } from 'widgets'
 
 const CONTEXT_STAGES = [
@@ -15,8 +17,12 @@ const CONTEXT_STAGES = [
 ]
 
 const STYLE = { style: 'line' as const, thickness: 3 }
+const AGENT_SESSION_NODE_PREFIX = 'agent-session:'
+const AGENT_SESSION_RELATION = 'agent-session'
 
 const DEFAULT_STATUS: AgentStatus = { agentName: '', state: 'no-session', taskComplete: false, requiresAttention: false, contextPct: 0, modelName: '', cwd: '', costUsd: 0, pendingPrompt: '', pendingOptions: [], sessionName: '', fiveHourUsagePct: 0, fiveHourResetsAt: 0, sevenDayUsagePct: 0, sevenDayResetsAt: 0 }
+const selectedSession$ = new BehaviorSubject('')
+let selectedSessionSetup = false
 
 const AgentWidget = (sessionId: string) => {
   const { sessions$, respondToElicitation, iconForSession } = getAgentService()
@@ -47,6 +53,10 @@ const AgentWidget = (sessionId: string) => {
     shareReplay(1),
   )
   const contextPct$ = status$.pipe(map(s => s.contextPct), distinctUntilChanged())
+  const selected$ = selectedSession$.pipe(
+    map(selected => selected === sessionId),
+    distinctUntilChanged(),
+  )
 
   const mainIcon$ = projectIcon$
 
@@ -150,6 +160,11 @@ const AgentWidget = (sessionId: string) => {
     contextLabel.label = `${Math.round(status.contextPct)}%`
   })
 
+  subscribeTo(widget, selected$, (selected, w) => {
+    if (selected) w.add_css_class('selected')
+    else w.remove_css_class('selected')
+  })
+
   subscribeTo(widget, status$, status => {
     let child = buttonsBox.get_first_child()
     while (child) {
@@ -216,6 +231,7 @@ function updateUsageFill(pct: number) {
 
 export const AgentWidgets = (props: WidgetProps) => {
   const { sessions$ } = getAgentService()
+  setupSelectedSessionTracking()
   const cssClasses = (props.cssClasses ?? []).concat(['agent-usage-fill'])
 
   const visible$ = sessions$.pipe(
@@ -280,4 +296,33 @@ export const AgentWidgets = (props: WidgetProps) => {
   })
 
   return container
+}
+
+function setupSelectedSessionTracking() {
+  if (selectedSessionSetup) return
+  selectedSessionSetup = true
+
+  obtainWmService('window').then(windowService => {
+    const locus = getLocusService()
+    let lookupSeq = 0
+
+    windowService.active.pipe(
+      map(window => window.id),
+      distinctUntilChanged(),
+    ).subscribe(windowId => {
+      const seq = ++lookupSeq
+      if (!windowId || windowId === '0x0') {
+        selectedSession$.next('')
+        return
+      }
+
+      locus.getTargets(`niri:window:${windowId}`, AGENT_SESSION_RELATION, targets => {
+        if (seq !== lookupSeq) return
+        const session = targets
+          .find(target => target.startsWith(AGENT_SESSION_NODE_PREFIX))
+          ?.slice(AGENT_SESSION_NODE_PREFIX.length) ?? ''
+        selectedSession$.next(session)
+      })
+    })
+  }).catch(e => console.error('[Agent] selected session tracking failed:', e))
 }
