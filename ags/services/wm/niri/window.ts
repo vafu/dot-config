@@ -84,7 +84,7 @@ export const clientToWindow = (c: AstalNiri.Window) =>
 
 const getFor = (wsId: number) =>
   fromConnectable(niri, 'workspaces').pipe(
-    map(all => all.find(w => w.idx == wsId)),
+    map(all => all.find(w => w.id == wsId)),
     switchMap(w => fromConnectable(w, 'windows')),
     map(a => a.map(clientToWindow)),
     distinctUntilChanged(),
@@ -95,4 +95,3 @@ export const windowService: WindowService = {
   active: activeWindow,
   getFor: getFor,
 }
-
