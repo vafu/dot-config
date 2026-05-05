@@ -56,16 +56,19 @@ WORDCHARS=${WORDCHARS//[\/]}
 #zstyle ':zim:termtitle' format '%1~'
 
 codex() {
-  local agent_dbus_window_id
-  agent_dbus_window_id="$(niri msg --json focused-window 2>/dev/null | jq -r '.id // empty' 2>/dev/null)"
+  local selected_window agent_dbus_window_id
+  selected_window="$(locusctl context get selected window --first 2>/dev/null)"
+  if [[ "$selected_window" == niri:window:* ]]; then
+    agent_dbus_window_id="${selected_window#niri:window:}"
+  fi
   AGENT_DBUS_WINDOW_ID="$agent_dbus_window_id" command codex "$@"
 }
 
-_locus_focused_niri_workspace_subject() {
-  local workspace_id
-  workspace_id="$(niri msg --json workspaces 2>/dev/null | jq -r '.[] | select(.is_focused) | .id // empty' 2>/dev/null)"
-  [[ -n "$workspace_id" ]] || return 1
-  print -r -- "niri:workspace:$workspace_id"
+_locus_selected_workspace_subject() {
+  local workspace_subject
+  workspace_subject="$(locusctl context get selected workspace --first 2>/dev/null)"
+  [[ "$workspace_subject" == niri:workspace:* ]] || return 1
+  print -r -- "$workspace_subject"
 }
 
 _locus_project_subject_for_pwd() {
@@ -80,11 +83,11 @@ _locus_chpwd_project_workspace() {
 
   local project_subject workspace_subject
   project_subject="$(_locus_project_subject_for_pwd)" || return 0
-  workspace_subject="$(_locus_focused_niri_workspace_subject)" || return 0
+  workspace_subject="$(_locus_selected_workspace_subject)" || return 0
 
   locusctl project ensure "$PWD" >/dev/null 2>&1 || return 0
-  locusctl context set active project "$project_subject" >/dev/null 2>&1 || true
-  locusctl link add "$workspace_subject" project "$project_subject" >/dev/null 2>&1 || true
+  locusctl link set "$workspace_subject" project "$project_subject" >/dev/null 2>&1 || true
+  locusctl context set selected project "$project_subject" >/dev/null 2>&1 || true
 }
 
 typeset -ga chpwd_functions

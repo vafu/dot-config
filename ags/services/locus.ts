@@ -12,6 +12,8 @@ export interface LocusProject {
 
 export interface LocusService {
   activeProject$: Observable<LocusProject | null>
+  selectedWorkspace$: Observable<string>
+  selectedWindow$: Observable<string>
   refreshActiveProject: () => void
   getTargets: (source: string, relation: string, callback: (targets: string[]) => void) => void
   getSources: (target: string, relation: string, callback: (sources: string[]) => void) => void
@@ -23,8 +25,10 @@ export interface LocusService {
 const BUS_NAME = 'io.github.Locus'
 const ROOT_PATH = '/io/github/Locus'
 const GRAPH_IFACE = 'io.github.Locus.Graph'
-const ACTIVE_CONTEXT = 'active'
+const SELECTED_CONTEXT = 'selected'
 const PROJECT_RELATION = 'project'
+const WORKSPACE_RELATION = 'workspace'
+const WINDOW_RELATION = 'window'
 
 let service: LocusService | null = null
 
@@ -75,6 +79,8 @@ export function getLocusService(): LocusService {
   if (service) return service
 
   const activeProject$ = new BehaviorSubject<LocusProject | null>(null)
+  const selectedWorkspace$ = new BehaviorSubject('')
+  const selectedWindow$ = new BehaviorSubject('')
 
   const getTargets = (source: string, relation: string, callback: (targets: string[]) => void) => {
     call(
@@ -170,7 +176,7 @@ export function getLocusService(): LocusService {
   }
 
   const refreshActiveProject = () => {
-    getContextTargets(ACTIVE_CONTEXT, PROJECT_RELATION, targets => {
+    getContextTargets(SELECTED_CONTEXT, PROJECT_RELATION, targets => {
       const project = targets[0] || ''
       if (!project) {
         activeProject$.next(null)
@@ -180,6 +186,18 @@ export function getLocusService(): LocusService {
       getProperties(project, properties => {
         activeProject$.next(toProject(project, properties))
       })
+    })
+  }
+
+  const refreshSelectedWorkspace = () => {
+    getContextTargets(SELECTED_CONTEXT, WORKSPACE_RELATION, targets => {
+      selectedWorkspace$.next(targets[0] || '')
+    })
+  }
+
+  const refreshSelectedWindow = () => {
+    getContextTargets(SELECTED_CONTEXT, WINDOW_RELATION, targets => {
+      selectedWindow$.next(targets[0] || '')
     })
   }
 
@@ -194,8 +212,21 @@ export function getLocusService(): LocusService {
       const unpacked = params.deepUnpack()
       if (signal === 'LinkAdded' || signal === 'LinkRemoved') {
         const [source, relation] = unpacked as [string, string, string]
-        if (source === 'context:active' && relation === PROJECT_RELATION) {
+        if (source === 'context:selected' && relation === PROJECT_RELATION) {
           refreshActiveProject()
+        } else if (source === 'context:selected' && relation === WORKSPACE_RELATION) {
+          refreshSelectedWorkspace()
+        } else if (source === 'context:selected' && relation === WINDOW_RELATION) {
+          refreshSelectedWindow()
+        }
+      } else if (signal === 'LinkSet') {
+        const [source, relation] = unpacked as [string, string, string[], string]
+        if (source === 'context:selected' && relation === PROJECT_RELATION) {
+          refreshActiveProject()
+        } else if (source === 'context:selected' && relation === WORKSPACE_RELATION) {
+          refreshSelectedWorkspace()
+        } else if (source === 'context:selected' && relation === WINDOW_RELATION) {
+          refreshSelectedWindow()
         }
       } else if (signal === 'PropertyChanged' || signal === 'PropertyRemoved') {
         const [subject] = unpacked as [string, string, string?]
@@ -207,9 +238,13 @@ export function getLocusService(): LocusService {
   )
 
   refreshActiveProject()
+  refreshSelectedWorkspace()
+  refreshSelectedWindow()
 
   service = {
     activeProject$,
+    selectedWorkspace$,
+    selectedWindow$,
     refreshActiveProject,
     getTargets,
     getSources,

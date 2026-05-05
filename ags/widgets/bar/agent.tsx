@@ -1,7 +1,6 @@
 import { Gdk, Gtk } from 'ags/gtk4'
 import { getAgentService, AgentStatus } from 'services/agent'
 import { getLocusService } from 'services/locus'
-import obtainWmService from 'services'
 import { LevelIndicator } from 'widgets/circularstatus'
 import { MaterialIcon } from 'widgets/materialicon'
 import { bindAs, subscribeTo } from 'rxbinding'
@@ -302,27 +301,22 @@ function setupSelectedSessionTracking() {
   if (selectedSessionSetup) return
   selectedSessionSetup = true
 
-  obtainWmService('window').then(windowService => {
-    const locus = getLocusService()
-    let lookupSeq = 0
+  const locus = getLocusService()
+  let lookupSeq = 0
 
-    windowService.active.pipe(
-      map(window => window.id),
-      distinctUntilChanged(),
-    ).subscribe(windowId => {
-      const seq = ++lookupSeq
-      if (!windowId || windowId === '0x0') {
-        selectedSession$.next('')
-        return
-      }
+  locus.selectedWindow$.pipe(distinctUntilChanged()).subscribe(window => {
+    const seq = ++lookupSeq
+    if (!window) {
+      selectedSession$.next('')
+      return
+    }
 
-      locus.getTargets(`niri:window:${windowId}`, AGENT_SESSION_RELATION, targets => {
-        if (seq !== lookupSeq) return
-        const session = targets
-          .find(target => target.startsWith(AGENT_SESSION_NODE_PREFIX))
-          ?.slice(AGENT_SESSION_NODE_PREFIX.length) ?? ''
-        selectedSession$.next(session)
-      })
+    locus.getTargets(window, AGENT_SESSION_RELATION, targets => {
+      if (seq !== lookupSeq) return
+      const session = targets
+        .find(target => target.startsWith(AGENT_SESSION_NODE_PREFIX))
+        ?.slice(AGENT_SESSION_NODE_PREFIX.length) ?? ''
+      selectedSession$.next(session)
     })
-  }).catch(e => console.error('[Agent] selected session tracking failed:', e))
+  })
 }
