@@ -21,6 +21,7 @@ spawn-sh-at-startup "foot -s"
 spawn-sh-at-startup "udiskie"
 spawn-sh-at-startup "swww-daemon"
 spawn-sh-at-startup "claude-dbus"
+spawn-sh-at-startup "locushookd"
 
 
 input {
@@ -98,10 +99,9 @@ output "Lenovo Group Limited L32p-30 U512DA0P"{
 }
 
 layout {
-    gaps 8
+    gaps 4
 
     struts {
-        top -8
     }
 
     // When to center a column when changing focus, options are:
