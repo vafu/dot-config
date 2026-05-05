@@ -61,6 +61,38 @@ codex() {
   AGENT_DBUS_WINDOW_ID="$agent_dbus_window_id" command codex "$@"
 }
 
+_locus_focused_niri_workspace_subject() {
+  local workspace_id
+  workspace_id="$(niri msg --json workspaces 2>/dev/null | jq -r '.[] | select(.is_focused) | .id // empty' 2>/dev/null)"
+  [[ -n "$workspace_id" ]] || return 1
+  print -r -- "niri:workspace:$workspace_id"
+}
+
+_locus_project_subject_for_pwd() {
+  local project_root="${HOME:A}/proj"
+  local pwd_path="${PWD:A}"
+  [[ "${pwd_path:h}" == "$project_root" ]] || return 1
+  print -r -- "project:$pwd_path"
+}
+
+_locus_chpwd_project_workspace() {
+  (( $+commands[locusctl] )) || return 0
+
+  local project_subject workspace_subject
+  project_subject="$(_locus_project_subject_for_pwd)" || return 0
+  workspace_subject="$(_locus_focused_niri_workspace_subject)" || return 0
+
+  locusctl project ensure "$PWD" >/dev/null 2>&1 || return 0
+  locusctl context set active project "$project_subject" >/dev/null 2>&1 || true
+  locusctl link add "$workspace_subject" project "$project_subject" >/dev/null 2>&1 || true
+}
+
+typeset -ga chpwd_functions
+chpwd_functions=("${(@)chpwd_functions:#_locus_chpwd_project_window}")
+chpwd_functions=("${(@)chpwd_functions:#_locus_chpwd_project_workspace}")
+chpwd_functions+=(_locus_chpwd_project_workspace)
+_locus_chpwd_project_workspace
+
 #
 # zsh-autosuggestions
 #

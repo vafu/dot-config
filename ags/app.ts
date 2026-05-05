@@ -11,13 +11,13 @@ import { TodoPopup } from 'widgets/todo/input'
 import { AgentApprovalOverlay } from 'widgets/agent-approvals/overlay'
 import approvalsUi from 'widgets/agent-approvals'
 import { handleRequest } from 'services/requests'
-import { windowIdForAgentSession } from 'services/agent-session-window'
 import { prepareTheme } from 'style/theming'
 import obtainWmService from 'services'
 import { bindCommands } from 'commands'
 import { MonitorService } from 'services/wm/types'
 import { getPomodoroService } from 'services/pomodoro'
 import { AgentStatus, getAgentService } from 'services/agent'
+import { getLocusService } from 'services/locus'
 import { execAsync } from 'ags/process'
 import { combineLatest, distinctUntilChanged, first, map, shareReplay } from 'rxjs'
 import { createRoot } from 'gnim'
@@ -34,6 +34,7 @@ app.start({
     obtainWmService('monitor').then(ms => {
       setupPomodoro()
       setupAgentApprovalAutoOpen()
+      setupLocusActiveProjectFromWorkspace()
       setupForMonitor(ms, Bar)
 
       // Wait for first monitor emission to get initial value
@@ -49,31 +50,82 @@ app.start({
   },
 })
 
-type FocusedWindowInfo = {
-  id: string
+type PendingAgentRequest = [string, AgentStatus]
+const AGENT_SESSION_NODE_PREFIX = 'agent-session:'
+const AGENT_SESSION_RELATION = 'agent-session'
+
+function setupLocusActiveProjectFromWorkspace() {
+  obtainWmService('workspace').then(ws => {
+    const locus = getLocusService()
+    let lastProject = ''
+
+    ws.activeWorkspace.pipe(
+      map(workspace => workspace.wsId),
+      distinctUntilChanged(),
+    ).subscribe(workspaceId => {
+      if (!workspaceId) return
+
+      const workspaceSubject = `niri:workspace:${workspaceId}`
+      locus.getTargets(workspaceSubject, 'project', targets => {
+        const project = targets.find(target => target.startsWith('project:')) ?? ''
+        if (!project) {
+          if (lastProject) {
+            lastProject = ''
+            console.log(`[Locus] clearing active project for workspace=${workspaceId}`)
+            locus.clearContextLink('active', 'project')
+          }
+          return
+        }
+        if (project === lastProject) return
+
+        lastProject = project
+        console.log(`[Locus] active project from workspace=${workspaceId}: ${project}`)
+        locus.setContextLink('active', 'project', project)
+      })
+    })
+  }).catch(e => console.error('[Locus] active project setup failed:', e))
 }
 
-type PendingAgentRequest = [string, AgentStatus]
-
 function setupAgentApprovalAutoOpen() {
-  obtainWmService('window').then(ws => {
-    const activeWindow = ws.active.pipe(
-      map(w => ({ id: w.id }) as FocusedWindowInfo),
-      distinctUntilChanged((a, b) => a.id === b.id),
+  obtainWmService('workspace').then(ws => {
+    const locus = getLocusService()
+    const activeWorkspace = ws.activeWorkspace.pipe(
+      map(workspace => workspace.wsId),
+      distinctUntilChanged(),
     )
 
     let lastAutoOpenKey = ''
-    combineLatest([activeWindow, getAgentService().sessions$]).subscribe(([window, sessions]) => {
-      const match = pendingRequestForWindow(window, pendingRequests(sessions))
-      if (!match) return
+    let lookupSeq = 0
+    combineLatest([activeWorkspace, getAgentService().sessions$]).subscribe(([workspaceId, sessions]) => {
+      const pending = pendingRequests(sessions)
+      if (!workspaceId || pending.length === 0) {
+        lookupSeq++
+        return
+      }
 
-      const [sessionId, status] = match
-      const key = autoOpenKey(sessionId, status)
-      if (key === lastAutoOpenKey) return
+      const seq = ++lookupSeq
+      const workspaceSubject = `niri:workspace:${workspaceId}`
+      locus.getTargets(workspaceSubject, 'project', projectTargets => {
+        if (seq !== lookupSeq) return
 
-      lastAutoOpenKey = key
-      console.log(`[AgentAutoOpen] opening approvals for session=${sessionId} window=${window.id}`)
-      approvalsUi.showFor(sessionId)
+        const project = projectTargets.find(target => target.startsWith('project:')) ?? ''
+        if (!project) return
+
+        locus.getTargets(project, AGENT_SESSION_RELATION, sessionTargets => {
+          if (seq !== lookupSeq) return
+
+          const match = pendingRequestForSessionSubjects(sessionTargets, pending)
+          if (!match) return
+
+          const [sessionId, status] = match
+          const key = autoOpenKey(sessionId, status)
+          if (key === lastAutoOpenKey) return
+
+          lastAutoOpenKey = key
+          console.log(`[AgentAutoOpen] opening approvals for session=${sessionId} workspace=${workspaceId} project=${project}`)
+          approvalsUi.showFor(sessionId)
+        })
+      })
     })
   }).catch(e => console.error('[Agent] approval auto-open setup failed:', e))
 }
@@ -83,11 +135,16 @@ function pendingRequests(sessions: Map<string, AgentStatus>): PendingAgentReques
     .filter(([, status]) => status.requiresAttention && status.pendingPrompt)
 }
 
-function pendingRequestForWindow(
-  window: FocusedWindowInfo,
+function pendingRequestForSessionSubjects(
+  targets: string[],
   pending: PendingAgentRequest[],
 ): PendingAgentRequest | null {
-  return pending.find(([sessionId]) => windowIdForAgentSession(sessionId) === window.id) ?? null
+  const linkedSessions = new Set(
+    targets
+      .filter(target => target.startsWith(AGENT_SESSION_NODE_PREFIX))
+      .map(target => target.slice(AGENT_SESSION_NODE_PREFIX.length)),
+  )
+  return pending.find(([sessionId]) => linkedSessions.has(sessionId)) ?? null
 }
 
 function autoOpenKey(sessionId: string, status: AgentStatus) {

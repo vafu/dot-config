@@ -15,6 +15,7 @@ import {
 import { BluetoothStatus } from './bt_status'
 import { WindowTitle } from './windowtitle'
 import { AgentWidgets } from './agent'
+import { LocusProjectWidget } from './locus'
 
 export default (gdkmonitor: Gdk.Monitor) => {
   return (
@@ -26,7 +27,7 @@ export default (gdkmonitor: Gdk.Monitor) => {
       exclusivity={Astal.Exclusivity.EXCLUSIVE}
       keymode={Astal.Keymode.NONE}
       anchor={
-        Astal.WindowAnchor.TOP |
+        Astal.WindowAnchor.BOTTOM |
         Astal.WindowAnchor.LEFT |
         Astal.WindowAnchor.RIGHT
       }
@@ -34,7 +35,7 @@ export default (gdkmonitor: Gdk.Monitor) => {
       <centerbox>
         {/** left **/}
         <box $type="start">
-          <SysStats cssClasses={['barblock']} />
+          <LocusProjectWidget cssClasses={['barblock']} />
           {/**  
           <PomodoroWidget cssClasses={['barblock']} />
           **/}
@@ -56,6 +57,7 @@ export default (gdkmonitor: Gdk.Monitor) => {
         {/** right **/}
         <box $type="end">
           <MPRISWidget cssClasses={['barblock']} />
+          <SysStats cssClasses={['barblock']} />
           <box cssClasses={['barblock']}>
             <Tray />
             <PowerProfilesIndicator />

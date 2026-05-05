@@ -28,6 +28,16 @@ $outline-offset: $label-margin * 0.5;
   margin: 0 4px;
 }
 
+.locus-project-widget {
+  materialicon {
+    margin-right: 2px;
+  }
+
+  label {
+    font-weight: 700;
+  }
+}
+
 .bt-count {
   font-size: 8pt;
   margin-left: 18px;
