@@ -66,7 +66,7 @@ codex() {
 
 _locus_selected_workspace_subject() {
   local workspace_subject
-  workspace_subject="$(locusctl context get selected workspace --first 2>/dev/null)"
+  workspace_subject="$(locusctl resolve context:selected workspace 2>/dev/null)"
   [[ "$workspace_subject" == niri:workspace:* ]] || return 1
   print -r -- "$workspace_subject"
 }

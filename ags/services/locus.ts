@@ -18,6 +18,8 @@ export interface LocusService {
   getTargets: (source: string, relation: string, callback: (targets: string[]) => void) => void
   getSources: (target: string, relation: string, callback: (sources: string[]) => void) => void
   getProperties: (subject: string, callback: (properties: Record<string, string>) => void) => void
+  resolve: (source: string, kind: string, callback: (subject: string) => void) => void
+  subscribeResolve: (source: string, kind: string, callback: (subject: string) => void) => void
   setContextLink: (context: string, relation: string, target: string) => void
   clearContextLink: (context: string, relation: string) => void
 }
@@ -131,7 +133,7 @@ export function getLocusService(): LocusService {
       ROOT_PATH,
       GRAPH_IFACE,
       'SetLink',
-      new GLib.Variant('(sssb)', [`context:${context}`, relation, target, false]),
+      new GLib.Variant('(sss)', [`context:${context}`, relation, target]),
       null,
       Gio.DBusCallFlags.NONE,
       -1,
@@ -181,36 +183,56 @@ export function getLocusService(): LocusService {
     )
   }
 
-  const refreshActiveProject = () => {
-    const workspace = selectedWorkspace$.value
-    if (!workspace) {
+  const resolve = (source: string, kind: string, callback: (subject: string) => void) => {
+    call(
+      'Resolve',
+      new GLib.Variant('(ss)', [source, kind]),
+      '(s)',
+      ([subject]) => subject as string,
+      callback,
+      '',
+    )
+  }
+
+  const subscribeResolve = (source: string, kind: string, callback: (subject: string) => void) => {
+    call(
+      'SubscribeResolve',
+      new GLib.Variant('(ss)', [source, kind]),
+      '(s)',
+      ([subject]) => subject as string,
+      subject => {
+        console.log(`[Locus] SubscribeResolve initial ${source} kind=${kind} target=${subject || '<none>'}`)
+        callback(subject)
+      },
+      '',
+    )
+  }
+
+  const setActiveProject = (project: string) => {
+    if (!project) {
       activeProject$.next(null)
       return
     }
 
-    getTargets(workspace, PROJECT_RELATION, targets => {
-      const project = targets[0] || ''
-      if (!project) {
-        activeProject$.next(null)
-        return
-      }
-
-      getProperties(project, properties => {
-        activeProject$.next(toProject(project, properties))
-      })
+    getProperties(project, properties => {
+      activeProject$.next(toProject(project, properties))
     })
   }
 
+  const refreshActiveProject = () => {
+    resolve(SELECTED_SUBJECT, 'project', setActiveProject)
+  }
+
   const refreshSelectedWorkspace = () => {
-    getContextTargets(SELECTED_CONTEXT, WORKSPACE_RELATION, targets => {
-      selectedWorkspace$.next(targets[0] || '')
-      refreshActiveProject()
-    })
+    resolve(SELECTED_SUBJECT, 'workspace', workspace => selectedWorkspace$.next(workspace))
   }
 
   const refreshSelectedWindow = () => {
     getContextTargets(SELECTED_CONTEXT, WINDOW_RELATION, targets => {
-      selectedWindow$.next(targets[0] || '')
+      const window = targets[0] || ''
+      if (window === selectedWindow$.value) return
+      console.log(`[Locus] selected window=${window || '<none>'}`)
+      selectedWindow$.next(window)
     })
   }
 
@@ -224,22 +246,27 @@ export function getLocusService(): LocusService {
     (_conn: any, _sender: any, _path: any, _iface: any, signal: string, params: any) => {
       const unpacked = params.deepUnpack()
       if (signal === 'LinkAdded' || signal === 'LinkRemoved') {
-        const [source, relation] = unpacked as [string, string, string]
-        if (source === selectedWorkspace$.value && relation === PROJECT_RELATION) {
-          refreshActiveProject()
-        } else if (source === SELECTED_SUBJECT && relation === WORKSPACE_RELATION) {
-          refreshSelectedWorkspace()
-        } else if (source === SELECTED_SUBJECT && relation === WINDOW_RELATION) {
+        const [source, relation, target] = unpacked as [string, string, string]
+        if (
+          signal === 'LinkRemoved'
+          && source === SELECTED_SUBJECT
+          && relation === WINDOW_RELATION
+          && target === selectedWindow$.value
+        ) {
           refreshSelectedWindow()
         }
       } else if (signal === 'LinkSet') {
         const [source, relation] = unpacked as [string, string, string[], string]
-        if (source === selectedWorkspace$.value && relation === PROJECT_RELATION) {
-          refreshActiveProject()
-        } else if (source === SELECTED_SUBJECT && relation === WORKSPACE_RELATION) {
-          refreshSelectedWorkspace()
-        } else if (source === SELECTED_SUBJECT && relation === WINDOW_RELATION) {
+        if (source === SELECTED_SUBJECT && relation === WINDOW_RELATION) {
           refreshSelectedWindow()
+        }
+      } else if (signal === 'ResolveChanged') {
+        const [source, kind, target] = unpacked as [string, string, string]
+        console.log(`[Locus] ResolveChanged ${source} kind=${kind} target=${target || '<none>'}`)
+        if (source === SELECTED_SUBJECT && kind === 'workspace') {
+          selectedWorkspace$.next(target)
+        } else if (source === SELECTED_SUBJECT && kind === 'project') {
+          setActiveProject(target)
         }
       } else if (signal === 'PropertyChanged' || signal === 'PropertyRemoved') {
         const [subject] = unpacked as [string, string, string?]
@@ -250,8 +277,8 @@ export function getLocusService(): LocusService {
     },
   )
 
-  refreshActiveProject()
-  refreshSelectedWorkspace()
+  subscribeResolve(SELECTED_SUBJECT, 'workspace', workspace => selectedWorkspace$.next(workspace))
+  subscribeResolve(SELECTED_SUBJECT, 'project', setActiveProject)
   refreshSelectedWindow()
 
   service = {
@@ -262,6 +289,8 @@ export function getLocusService(): LocusService {
     getTargets,
     getSources,
     getProperties,
+    resolve,
+    subscribeResolve,
     setContextLink,
     clearContextLink,
   }

@@ -47,10 +47,5 @@ if [[ -z "$icon" ]]; then
   exit 1
 fi
 
-durable=()
-if [[ "${LOCUS_ICON_DURABLE:-1}" != "0" ]]; then
-  durable=(--durable)
-fi
-
-locusctl prop set "$project" icon "$icon" "${durable[@]}"
+locusctl prop set "$project" icon "$icon"
 echo "locus-project-icon-hook: set $project icon=$icon" >&2
