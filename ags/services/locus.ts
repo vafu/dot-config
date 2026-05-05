@@ -29,6 +29,7 @@ const SELECTED_CONTEXT = 'selected'
 const PROJECT_RELATION = 'project'
 const WORKSPACE_RELATION = 'workspace'
 const WINDOW_RELATION = 'window'
+const SELECTED_SUBJECT = `context:${SELECTED_CONTEXT}`
 
 let service: LocusService | null = null
 
@@ -62,14 +63,19 @@ function call<T>(
 }
 
 function firstProjectName(project: string, properties: Record<string, string>) {
-  return properties.name || properties.path?.split('/').filter(Boolean).pop() || project
+  return properties.displayName
+    || properties['display-name']
+    || properties.title
+    || properties.name
+    || properties.path?.split('/').filter(Boolean).pop()
+    || project
 }
 
 function toProject(subject: string, properties: Record<string, string>): LocusProject {
   return {
     subject,
     name: firstProjectName(subject, properties),
-    icon: properties.icon || 'folder_code',
+    icon: properties.icon || properties['icon-name'] || properties.symbolicIcon || 'folder_code',
     path: properties.path || '',
     properties,
   }
@@ -110,8 +116,8 @@ export function getLocusService(): LocusService {
     callback: (targets: string[]) => void,
   ) => {
     call(
-      'GetContextTargets',
-      new GLib.Variant('(ss)', [context, relation]),
+      'GetTargets',
+      new GLib.Variant('(ss)', [`context:${context}`, relation]),
       '(as)',
       ([targets]) => targets as string[],
       callback,
@@ -124,8 +130,8 @@ export function getLocusService(): LocusService {
       BUS_NAME,
       ROOT_PATH,
       GRAPH_IFACE,
-      'SetContextLink',
-      new GLib.Variant('(sssb)', [context, relation, target, false]),
+      'SetLink',
+      new GLib.Variant('(sssb)', [`context:${context}`, relation, target, false]),
       null,
       Gio.DBusCallFlags.NONE,
       -1,
@@ -134,7 +140,7 @@ export function getLocusService(): LocusService {
         try {
           Gio.DBus.session.call_finish(res)
         } catch (e) {
-          console.error('[Locus] SetContextLink failed:', e)
+          console.error('[Locus] SetLink failed:', e)
         }
       },
     )
@@ -176,7 +182,13 @@ export function getLocusService(): LocusService {
   }
 
   const refreshActiveProject = () => {
-    getContextTargets(SELECTED_CONTEXT, PROJECT_RELATION, targets => {
+    const workspace = selectedWorkspace$.value
+    if (!workspace) {
+      activeProject$.next(null)
+      return
+    }
+
+    getTargets(workspace, PROJECT_RELATION, targets => {
       const project = targets[0] || ''
       if (!project) {
         activeProject$.next(null)
@@ -192,6 +204,7 @@ export function getLocusService(): LocusService {
   const refreshSelectedWorkspace = () => {
     getContextTargets(SELECTED_CONTEXT, WORKSPACE_RELATION, targets => {
       selectedWorkspace$.next(targets[0] || '')
+      refreshActiveProject()
     })
   }
 
@@ -212,20 +225,20 @@ export function getLocusService(): LocusService {
       const unpacked = params.deepUnpack()
       if (signal === 'LinkAdded' || signal === 'LinkRemoved') {
         const [source, relation] = unpacked as [string, string, string]
-        if (source === 'context:selected' && relation === PROJECT_RELATION) {
+        if (source === selectedWorkspace$.value && relation === PROJECT_RELATION) {
           refreshActiveProject()
-        } else if (source === 'context:selected' && relation === WORKSPACE_RELATION) {
+        } else if (source === SELECTED_SUBJECT && relation === WORKSPACE_RELATION) {
           refreshSelectedWorkspace()
-        } else if (source === 'context:selected' && relation === WINDOW_RELATION) {
+        } else if (source === SELECTED_SUBJECT && relation === WINDOW_RELATION) {
           refreshSelectedWindow()
         }
       } else if (signal === 'LinkSet') {
         const [source, relation] = unpacked as [string, string, string[], string]
-        if (source === 'context:selected' && relation === PROJECT_RELATION) {
+        if (source === selectedWorkspace$.value && relation === PROJECT_RELATION) {
           refreshActiveProject()
-        } else if (source === 'context:selected' && relation === WORKSPACE_RELATION) {
+        } else if (source === SELECTED_SUBJECT && relation === WORKSPACE_RELATION) {
           refreshSelectedWorkspace()
-        } else if (source === 'context:selected' && relation === WINDOW_RELATION) {
+        } else if (source === SELECTED_SUBJECT && relation === WINDOW_RELATION) {
           refreshSelectedWindow()
         }
       } else if (signal === 'PropertyChanged' || signal === 'PropertyRemoved') {

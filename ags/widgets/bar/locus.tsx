@@ -22,7 +22,13 @@ export const LocusProjectWidget = (props: WidgetProps) => {
     distinctUntilChanged(),
   )
   const tooltip$ = activeProject$.pipe(
-    map(project => project?.path || project?.subject || ''),
+    map(project => {
+      if (!project) return ''
+      const metadata = Object.entries(project.properties)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([key, value]) => `${key}: ${value}`)
+      return [project.subject, ...metadata].join('\n')
+    }),
     distinctUntilChanged(),
   )
 

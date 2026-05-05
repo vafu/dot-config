@@ -85,9 +85,10 @@ _locus_chpwd_project_workspace() {
   project_subject="$(_locus_project_subject_for_pwd)" || return 0
   workspace_subject="$(_locus_selected_workspace_subject)" || return 0
 
-  locusctl project ensure "$PWD" >/dev/null 2>&1 || return 0
+  locusctl prop set "$project_subject" kind project >/dev/null 2>&1 || return 0
+  locusctl prop set "$project_subject" path "$PWD" >/dev/null 2>&1 || true
+  locusctl prop set "$project_subject" name "${PWD:t}" >/dev/null 2>&1 || true
   locusctl link set "$workspace_subject" project "$project_subject" >/dev/null 2>&1 || true
-  locusctl context set selected project "$project_subject" >/dev/null 2>&1 || true
 }
 
 typeset -ga chpwd_functions
