@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+start_watcher() {
+  exec locusctl watch property-changed \
+    --filter 'subject.startsWith("project:") && (key == "kind" || key == "path" || key == "name")' \
+    --missing-property icon \
+    --exec "$0"
+}
+
+project="${1:-}"
+if [[ -z "$project" ]]; then
+  IFS= read -r project || true
+fi
+
+if [[ -z "$project" ]]; then
+  start_watcher
+fi
+
+name="$(locusctl prop get "$project" name || true)"
+path="$(locusctl prop get "$project" path || true)"
+
+if [[ -z "$name" && -n "$path" ]]; then
+  name="${path##*/}"
+fi
+if [[ -z "$name" ]]; then
+  name="${project#project:}"
+  name="${name##*/}"
+fi
+
+if [[ -z "$name" ]]; then
+  echo "locus-project-icon-hook: could not derive project name for $project" >&2
+  exit 2
+fi
+
+picker="${LOCUS_ICON_PICKER:-pick-icon}"
+if ! command -v "$picker" >/dev/null 2>&1; then
+  echo "locus-project-icon-hook: picker not found: $picker" >&2
+  exit 127
+fi
+
+output="$("$picker" -n 1 -s "$name")"
+icon="$(printf '%s\n' "$output" | awk 'NF { print $1; exit }')"
+
+if [[ -z "$icon" ]]; then
+  echo "locus-project-icon-hook: $picker returned no icon for $project ($name)" >&2
+  exit 1
+fi
+
+durable=()
+if [[ "${LOCUS_ICON_DURABLE:-1}" != "0" ]]; then
+  durable=(--durable)
+fi
+
+locusctl prop set "$project" icon "$icon" "${durable[@]}"
+echo "locus-project-icon-hook: set $project icon=$icon" >&2

@@ -1,0 +1,13 @@
+[Unit]
+Description=Locus autorun scripts
+After=graphical-session.target
+
+[Service]
+Type=simple
+Environment=PATH=/home/v47/.cargo/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/bin/sh -lc 'set -eu; for script in "$HOME"/.config/scripts/autorun/*; do [ -f "$script" ] || continue; [ -x "$script" ] || continue; "$script" & done; wait'
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target

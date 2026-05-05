@@ -34,6 +34,11 @@ hypr/workspaces.conf
 !uwsm/env
 
 !scripts/**
+!systemd/
+!systemd/user/
+!systemd/user/locus-autorun.service
+!systemd/user/default.target.wants/
+!systemd/user/default.target.wants/locus-autorun.service
 !nvim
 !zsh/**
 zsh/.zcompdump*
