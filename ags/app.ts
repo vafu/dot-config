@@ -19,7 +19,7 @@ import { getPomodoroService } from 'services/pomodoro'
 import { AgentStatus, getAgentService } from 'services/agent'
 import { getLocusService } from 'services/locus'
 import { execAsync } from 'ags/process'
-import { combineLatest, distinctUntilChanged, first, map, shareReplay } from 'rxjs'
+import { combineLatest, distinctUntilChanged, first, map, of, shareReplay, switchMap } from 'rxjs'
 import { createRoot } from 'gnim'
 import GObject from 'ags/gobject'
 
@@ -56,30 +56,47 @@ const AGENT_SESSION_RELATION = 'agent-session'
 function setupAgentApprovalAutoOpen() {
   const locus = getLocusService()
   let lastAutoOpenKey = ''
-  let lookupSeq = 0
 
-  combineLatest([
-    locus.selectedWorkspace$.pipe(distinctUntilChanged()),
-    getAgentService().sessions$,
-  ]).subscribe(([workspace, sessions]) => {
-    const pending = pendingRequests(sessions)
-    if (!workspace || pending.length === 0) {
-      lookupSeq++
-      return
-    }
+  const workspaceSessions$ = locus.selectedWorkspace$.pipe(
+    distinctUntilChanged(),
+    switchMap(workspace => {
+      if (!workspace) return of({ workspace, sessionIds: [] as string[] })
+      return locus.sources$(workspace, 'workspace').pipe(
+        switchMap(windows => {
+          const windowSubjects = [...new Set(windows.filter(subject => subject.startsWith('window:')))]
+          if (windowSubjects.length === 0) return of([] as string[])
+          return combineLatest(windowSubjects.map(window => locus.targets$(window, AGENT_SESSION_RELATION))).pipe(
+            map(targets => targets.flat()),
+          )
+        }),
+        map(targets => ({
+          workspace,
+          sessionIds: sessionIdsFromTargets(targets),
+        })),
+      )
+    }),
+  )
 
-    const seq = ++lookupSeq
-    findPendingRequestForWorkspace(locus, workspace, pending, match => {
-      if (seq !== lookupSeq || !match) return
+  combineLatest([workspaceSessions$, getAgentService().sessions$]).pipe(
+    map(([workspaceSessions, sessions]) => ({
+      workspace: workspaceSessions.workspace,
+      match: pendingRequestForSessionIds(workspaceSessions.sessionIds, pendingRequests(sessions)),
+    })),
+    distinctUntilChanged((left, right) =>
+      left.workspace === right.workspace
+      && left.match?.[0] === right.match?.[0]
+      && left.match?.[1].pendingPrompt === right.match?.[1].pendingPrompt,
+    ),
+  ).subscribe(({ workspace, match }) => {
+    if (!workspace || !match) return
 
-      const [sessionId, status] = match
-      const key = autoOpenKey(sessionId, status)
-      if (key === lastAutoOpenKey) return
+    const [sessionId, status] = match
+    const key = autoOpenKey(sessionId, status)
+    if (key === lastAutoOpenKey) return
 
-      lastAutoOpenKey = key
-      console.log(`[AgentAutoOpen] opening approvals for session=${sessionId} workspace=${workspace}`)
-      approvalsUi.showFor(sessionId)
-    })
+    lastAutoOpenKey = key
+    console.log(`[AgentAutoOpen] opening approvals for session=${sessionId} workspace=${workspace}`)
+    approvalsUi.showFor(sessionId)
   })
 }
 
@@ -88,47 +105,17 @@ function pendingRequests(sessions: Map<string, AgentStatus>): PendingAgentReques
     .filter(([, status]) => status.requiresAttention && status.pendingPrompt)
 }
 
-function pendingRequestForSessionSubjects(
-  targets: string[],
-  pending: PendingAgentRequest[],
-): PendingAgentRequest | null {
-  const linkedSessions = new Set(
+function sessionIdsFromTargets(targets: string[]): string[] {
+  return [...new Set(
     targets
       .filter(target => target.startsWith(AGENT_SESSION_NODE_PREFIX))
       .map(target => target.slice(AGENT_SESSION_NODE_PREFIX.length)),
-  )
+  )]
+}
+
+function pendingRequestForSessionIds(sessionIds: string[], pending: PendingAgentRequest[]): PendingAgentRequest | null {
+  const linkedSessions = new Set(sessionIds)
   return pending.find(([sessionId]) => linkedSessions.has(sessionId)) ?? null
-}
-
-function findPendingRequestForWorkspace(
-  locus: ReturnType<typeof getLocusService>,
-  workspace: string,
-  pending: PendingAgentRequest[],
-  callback: (match: PendingAgentRequest | null) => void,
-) {
-  locus.getTargets(workspace, 'window', windows => {
-    findPendingRequestForWindows(locus, windows, pending, callback)
-  })
-}
-
-function findPendingRequestForWindows(
-  locus: ReturnType<typeof getLocusService>,
-  windowSubjects: string[],
-  pending: PendingAgentRequest[],
-  callback: (match: PendingAgentRequest | null) => void,
-) {
-  const windows = [...new Set(windowSubjects.filter(subject => subject.startsWith('window:')))]
-  if (windows.length === 0) return callback(null)
-
-  const targets: string[] = []
-  let remaining = windows.length
-  for (const window of windows) {
-    locus.getTargets(window, AGENT_SESSION_RELATION, windowTargets => {
-      targets.push(...windowTargets)
-      remaining--
-      if (remaining === 0) callback(pendingRequestForSessionSubjects(targets, pending))
-    })
-  }
 }
 
 function autoOpenKey(sessionId: string, status: AgentStatus) {

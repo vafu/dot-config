@@ -278,9 +278,6 @@ export const WorkspaceStrip = (
   // Main subscription: sync widgets and layout on any change
   combineLatest([ws.tabs, ws.viewportOffset]).subscribe(
     ([tabs, viewportOffset]) => {
-      // Ignore empty tab arrays (happens during niri column swaps)
-      if (tabs.length === 0) return
-
       syncColumnWidgets(tabs)
       updateLayout(tabs, viewportOffset)
     },
@@ -341,4 +338,3 @@ const TintedIcon = (
 
   return overlay
 }
-
