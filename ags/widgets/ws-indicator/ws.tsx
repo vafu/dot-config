@@ -1,12 +1,11 @@
 import Gtk from 'gi://Gtk?version=4.0'
 import { Observable, Subscription } from 'rxjs'
 import { Gdk } from 'ags/gtk4'
-import obtainWmService from 'services'
 import Gio from 'gi://Gio?version=2.0'
 import GObject from 'gi://GObject?version=2.0'
-import { Workspace } from 'services/wm/types'
+import { getLocusService, LocusWorkspace } from 'services/locus'
 
-const workspaceService = await obtainWmService('workspace')
+const locus = getLocusService()
 
 export function WSIndicator(props: { monitor: Gdk.Monitor }) {
   const items = new Gio.ListStore({})
@@ -20,7 +19,7 @@ export function WSIndicator(props: { monitor: Gdk.Monitor }) {
   })
 
   factory.connect('bind', (_, listItem: Gtk.ListItem) => {
-    const ws = listItem.get_item() as Workspace
+    const ws = listItem.get_item() as LocusWorkspace
     const dot = listItem.get_child() as WSDot
 
     dot.bindTo(ws)
@@ -42,7 +41,7 @@ export function WSIndicator(props: { monitor: Gdk.Monitor }) {
 
   listView.add_css_class('workspaces')
 
-  workspaceService.workspacesOn(props.monitor).subscribe(i => {
+  locus.workspacesOnMonitor$(props.monitor).subscribe(i => {
     items.remove_all()
     i.forEach(w => items.append(w))
   })
@@ -63,7 +62,7 @@ class WSDot extends Gtk.Label {
     this.set_valign(Gtk.Align.CENTER)
   }
 
-  bindTo(ws: Workspace) {
+  bindTo(ws: LocusWorkspace) {
     this.set_text(ws.wsId.toString())
     this.setClassWatcher(ws.active, 'focused')
     this.setClassWatcher(ws.occupied, 'occupied')

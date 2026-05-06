@@ -1,17 +1,19 @@
 import { range } from 'commons'
 import { binding } from 'rxbinding'
-import { combineLatest, map, of, startWith, switchMap } from 'rxjs'
+import { combineLatest, map, startWith } from 'rxjs'
 import { Gdk, Gtk } from 'ags/gtk4'
-import obtainWmService from 'services'
+import { getLocusService } from 'services/locus'
 
-const workspaceService = await obtainWmService('workspace')
+const locus = getLocusService()
 
 const workspaces = (props: { monitor: Gdk.Monitor }) =>
   range(5).map(idx => {
-    const ws = workspaceService.getWorkspace(idx)
+    const ws = locus.workspace$(idx)
     // TODO when  monitor has never been selected yet -- we don't get correct 'active' status
-    const active = workspaceService.activeWorkspaceFor(props.monitor).pipe(
-      switchMap(w => combineLatest(of(w), workspaceService.activeWorkspace)),
+    const active = combineLatest([
+      locus.activeWorkspaceForMonitor$(props.monitor),
+      locus.activeWorkspace$,
+    ]).pipe(
       map(([active, focused]) => {
         if (ws == focused && ws == active) {
           return 'focused'
@@ -24,7 +26,7 @@ const workspaces = (props: { monitor: Gdk.Monitor }) =>
       startWith(''),
     )
 
-    const offmonitor = workspaceService.workspacesOn(props.monitor).pipe(
+    const offmonitor = locus.workspacesOnMonitor$(props.monitor).pipe(
       map(wsa => {
         // TODO: bug when workspace being removed its monitor is null, this pipe crashes
         if (!wsa.includes(ws)) {

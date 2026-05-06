@@ -45,7 +45,7 @@ $outline-offset: $label-margin * 0.5;
 }
 
 .column-item {
-  margin: 2px;
+  margin: 1px;
   border-radius: 6px;
   background-color: color-mix(in srgb, #{$ws_occupied} 15%, transparent);
   transition: background-color 150ms;
@@ -157,18 +157,6 @@ $outline-offset: $label-margin * 0.5;
   }
 
   transition: 100ms;
-}
-
-.tab-carousel {
-  color: #{$ws_empty};
-
-  >carouseltab {
-    font-weight: bolder;
-  }
-
-  .selected {
-    color: #{$fg};
-  }
 }
 
 .ws-carousel {

@@ -159,6 +159,7 @@ export type LinkSetSignal = { type: 'link-set'; source: NodeId; relation: Relati
 export type PropertyChangedSignal = { type: 'property-changed'; subject: NodeId; key: PropertyKey; value: string };
 export type PropertyRemovedSignal = { type: 'property-removed'; subject: NodeId; key: PropertyKey };
 export type ResolveChangedSignal = { type: 'resolve-changed'; source: NodeId; path: Relation[]; target: OptionalNodeId };
+export type WatchPropertiesUpdatedSignal = { type: 'watch-properties-updated'; changed: Record<string, string>; removed: string[] };
 
 const BUS_NAME = 'io.github.Locus';
 const ROOT_PATH = '/io/github/Locus';
@@ -203,10 +204,29 @@ export class LocusWatch {
     return none(await this.client.watchProperty(this.objectPath, 'Target') as string);
   }
 
+  async properties(): Promise<Record<string, string>> {
+    return await this.client.watchProperty(this.objectPath, 'Properties') as Record<string, string>;
+  }
+
+  async property(key: string): Promise<string> {
+    return (await this.properties())[key] ?? '';
+  }
+
   onTargetChanged(handler: (target: OptionalNodeId) => void): Unsubscribe {
     return this.client.onWatchPropertiesChanged(this.objectPath, changed => {
       if (!Object.prototype.hasOwnProperty.call(changed, 'Target')) return;
       handler(none(String(unpackVariant(changed.Target) ?? '')));
+    });
+  }
+
+  onPropertiesUpdated(handler: (signal: WatchPropertiesUpdatedSignal) => void): Unsubscribe {
+    return this.client.onWatchPropertiesUpdated(this.objectPath, handler);
+  }
+
+  onPropertyUpdated(key: string, handler: (value: string) => void): Unsubscribe {
+    return this.onPropertiesUpdated(signal => {
+      if (Object.prototype.hasOwnProperty.call(signal.changed, key)) handler(signal.changed[key] ?? '');
+      else if (signal.removed.includes(key)) handler('');
     });
   }
 
@@ -333,7 +353,7 @@ export class LocusDbusClient {
     });
   }
 
-  watchProperty(objectPath: string, property: 'Source' | 'Path' | 'Target'): Promise<string | string[]> {
+  watchProperty(objectPath: string, property: 'Source' | 'Path' | 'Target' | 'Properties'): Promise<string | string[] | Record<string, string>> {
     return this.callOn(objectPath, PROPERTIES_IFACE, 'Get', new GLib.Variant('(ss)', [WATCH_IFACE, property]), '(v)', ([value]) => unpackVariant(value));
   }
 
@@ -341,6 +361,13 @@ export class LocusDbusClient {
     return this.subscribeSignal(PROPERTIES_IFACE, 'PropertiesChanged', objectPath, WATCH_IFACE, params => {
       const [iface, changed] = params.deepUnpack() as [string, Record<string, any>, string[]];
       if (iface === WATCH_IFACE) handler(changed);
+    });
+  }
+
+  onWatchPropertiesUpdated(objectPath: string, handler: (signal: WatchPropertiesUpdatedSignal) => void): Unsubscribe {
+    return this.subscribeSignal(WATCH_IFACE, 'PropertiesUpdated', objectPath, null, params => {
+      const [changed, removed] = params.deepUnpack() as [Record<string, string>, string[]];
+      handler({ type: 'watch-properties-updated', changed, removed });
     });
   }
 

@@ -2,12 +2,12 @@ import App from 'ags/gtk4/app'
 import { Astal, Gdk } from 'ags/gtk4'
 import { Hidden, OnScreenProgress } from './OSD'
 import { binding, fromConnectable, asObservable } from 'rxbinding'
-import obtainWmService from 'services'
+import Brightness from 'services/brightness'
 import AstalWp from 'gi://AstalWp?version=0.1'
 import { catchError, combineLatest, delay, map, merge, NEVER, of, switchMap } from 'rxjs'
 import { Accessor } from 'gnim'
 import { logNext } from 'commons/rx'
-const service = await obtainWmService('brightness')
+const service = Brightness.get_default()
 const brightness = fromConnectable(service, 'screen').pipe(
   map(b => ({
     type: 'level' as const,
@@ -68,7 +68,6 @@ export default function OSD(monitor: Accessor<Gdk.Monitor>) {
     </window>
   )
 }
-
 
 
 

@@ -1,13 +1,10 @@
 import Pango from 'gi://Pango?version=1.0'
 import { binding } from 'rxbinding'
 import { Gtk } from 'ags/gtk4'
-import obtainWmService from 'services'
-import { switchMap } from 'rxjs'
+import { getLocusService } from 'services/locus'
 import { WidgetProps } from 'widgets'
 
-const active = (await obtainWmService('window')).active
-const cls = active.pipe(switchMap(a => a.cls))
-const title = active.pipe(switchMap(a => a.title))
+const title = getLocusService().selectedWindowTitle$
 
 export const WindowTitle = (props: WidgetProps) => (
   <label

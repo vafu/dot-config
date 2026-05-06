@@ -1,18 +1,15 @@
 import Gio from 'gi://Gio?version=2.0'
 import { Gdk, Gtk } from 'ags/gtk4'
 import Adw from 'gi://Adw?version=1'
-import { bindAs, binding } from 'rxbinding'
-import { BehaviorSubject, Observable, Subscription } from 'rxjs'
-import obtainWmService from 'services'
-import { Workspace } from 'services/wm/types'
+import { Subscription } from 'rxjs'
+import { getLocusService } from 'services/locus'
 import { WidgetProps } from 'widgets'
-import { Accessor, createRoot } from 'gnim'
 import { WorkspaceStrip } from './workspace_strip'
 
-const workspaceService = await obtainWmService('workspace')
+const locus = getLocusService()
 
 export const WSMatrix = (props: { monitor: Gdk.Monitor } & WidgetProps) => {
-  const workspaces = workspaceService.workspacesOn(props.monitor)
+  const workspaces = locus.workspacesOnMonitor$(props.monitor)
 
   const carousel = new Adw.Carousel({
     orientation: Gtk.Orientation.VERTICAL,
@@ -33,12 +30,12 @@ export const WSMatrix = (props: { monitor: Gdk.Monitor } & WidgetProps) => {
     }
 
     workspaces.forEach(ws => {
-      const strip = WorkspaceStrip(ws)
+      const strip = WorkspaceStrip(ws, { monitor: props.monitor })
       strip['wsId'] = ws.wsId
       carousel.append(strip)
     })
 
-    sub = workspaceService.activeWorkspaceFor(props.monitor).subscribe(ws => {
+    sub = locus.activeWorkspaceForMonitor$(props.monitor).subscribe(ws => {
       for (let i = 0; i < carousel.get_n_pages(); i++) {
         const wsstrip = carousel.get_nth_page(i) as Gtk.Overlay
         if (wsstrip['wsId'] == ws.wsId) {
@@ -55,4 +52,3 @@ export const WSMatrix = (props: { monitor: Gdk.Monitor } & WidgetProps) => {
     {carousel}
   </overlay>
 }
-

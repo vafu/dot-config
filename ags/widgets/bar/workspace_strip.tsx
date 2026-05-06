@@ -1,9 +1,9 @@
 import Gio from 'gi://Gio?version=2.0'
-import { Gtk } from 'ags/gtk4'
+import { Gdk, Gtk } from 'ags/gtk4'
 import Adw from 'gi://Adw?version=1'
 import { bindAs, binding } from 'rxbinding'
 import { BehaviorSubject, combineLatest, Subscription } from 'rxjs'
-import { Workspace, Tab } from 'services/wm/types'
+import { LocusWorkspace, LocusTab } from 'services/locus'
 import { Accessor, createRoot } from 'gnim'
 
 /**
@@ -11,8 +11,9 @@ import { Accessor, createRoot } from 'gnim'
  * Shows a fixed range of workspace (e.g., 3 monitor widths) with columns positioned absolutely
  */
 export const WorkspaceStrip = (
-  ws: Workspace,
+  ws: LocusWorkspace,
   options: {
+    monitor?: Gdk.Monitor
     widgetWidth?: number
     widgetHeight?: number
     scale?: number // How many monitor widths to show in the widget
@@ -21,6 +22,9 @@ export const WorkspaceStrip = (
   const widgetWidth = options.widgetWidth ?? 200
   const widgetHeight = options.widgetHeight ?? 24
   const scale = options.scale ?? 3 // Show 3 monitor widths worth of space in the widget
+  const monitorGeometry = options.monitor?.get_geometry()
+  const screenWidth = Math.max(1, monitorGeometry?.width ?? 1)
+  const screenHeight = Math.max(1, monitorGeometry?.height ?? 1)
 
   const pixelsPerMonitorWidth = widgetWidth / scale // e.g., 100px per monitor width
   const viewportWidthInWidget = pixelsPerMonitorWidth // Viewport is 1 monitor width
@@ -90,37 +94,47 @@ export const WorkspaceStrip = (
    */
   class ColumnWidget {
     widget: Gtk.Overlay
+    image: Gtk.Image
     targetPosition: number = 0
+    targetY: number = 0
     currentPosition: number = 0
+    currentY: number = 0
     
     private iconSubject = new BehaviorSubject('')
     private tintSubject = new BehaviorSubject(false)
     private iconSub: Subscription | null = null
     private activeSub: Subscription | null = null
     private widthSub: Subscription | null = null
-    private boundTab: Tab | null = null
+    private boundTab: LocusTab | null = null
 
     constructor() {
-      this.widget = this.createWidget()
+      const created = this.createWidget()
+      this.widget = created.widget
+      this.image = created.image
     }
 
-    private createWidget(): Gtk.Overlay {
+    private createWidget(): { widget: Gtk.Overlay; image: Gtk.Image } {
       const iconWidget = TintedIcon({
         tinted: binding(this.tintSubject, false),
         fileOrIcon: this.iconSubject,
       })
-      iconWidget.set_vexpand(true)
-      iconWidget.set_hexpand(false)
-      iconWidget.add_css_class('column-item')
+      iconWidget.widget.set_vexpand(true)
+      iconWidget.widget.set_hexpand(true)
+      iconWidget.widget.add_css_class('column-item')
       
       return iconWidget
+    }
+
+    setTileSize(width: number, height: number) {
+      this.widget.set_size_request(width, height)
+      this.image.set_pixel_size(Math.max(7, Math.min(14, height - 2, width - 2)))
     }
 
     /**
      * Bind this widget to a tab's observables
      * Automatically handles rebinding if tab changes
      */
-    bindToTab(tab: Tab) {
+    bindToTab(tab: LocusTab) {
       if (this.boundTab === tab) return
       
       this.unbind()
@@ -153,6 +167,7 @@ export const WorkspaceStrip = (
   // Store column widgets by tab index
   const columns: ColumnWidget[] = []
   let animationFrameId: number | null = null
+  let viewportOffset = 0
 
   /**
    * Smooth animation for column positions
@@ -165,14 +180,17 @@ export const WorkspaceStrip = (
 
       columns.forEach(column => {
         const diff = column.targetPosition - column.currentPosition
+        const yDiff = column.targetY - column.currentY
 
-        if (Math.abs(diff) < 0.5) {
+        if (Math.abs(diff) < 0.5 && Math.abs(yDiff) < 0.5) {
           column.currentPosition = column.targetPosition
-          fixed.move(column.widget, Math.round(column.targetPosition), 0)
+          column.currentY = column.targetY
+          fixed.move(column.widget, Math.round(column.targetPosition), Math.round(column.targetY))
         } else {
           // Smooth easing: move 20% of remaining distance each frame
           column.currentPosition += diff * 0.2
-          fixed.move(column.widget, Math.round(column.currentPosition), 0)
+          column.currentY += yDiff * 0.2
+          fixed.move(column.widget, Math.round(column.currentPosition), Math.round(column.currentY))
           stillAnimating = true
         }
       })
@@ -193,7 +211,7 @@ export const WorkspaceStrip = (
    * - Remove widgets for removed tabs
    * - Rebind widgets when tabs change at an index
    */
-  const syncColumnWidgets = (tabs: Tab[]) => {
+  const syncColumnWidgets = (tabs: LocusTab[]) => {
     // Add new columns if needed
     while (columns.length < tabs.length) {
       const column = new ColumnWidget()
@@ -217,24 +235,26 @@ export const WorkspaceStrip = (
   /**
    * Update positions and visibility of all column widgets
    */
-  const updateLayout = (tabs: Tab[], viewportOffset: number) => {
-    const widgetStartOffset = viewportOffset - scale / 2
-    const widgetEndOffset = viewportOffset + scale / 2
+  const updateLayout = (tabs: LocusTab[], selectedTab: LocusTab) => {
+    const selectedLeft = selectedTab.xValue
+    const selectedRight = selectedTab.xValue + selectedTab.widthValue
+    if (selectedRight > viewportOffset + screenWidth) {
+      viewportOffset = selectedRight - screenWidth
+    } else if (selectedLeft < viewportOffset) {
+      viewportOffset = selectedLeft
+    }
+
+    const normalizedViewportOffset = viewportOffset / screenWidth
+    const widgetStartOffset = normalizedViewportOffset - scale / 2
+    const widgetEndOffset = normalizedViewportOffset + scale / 2
 
     let hasContentLeft = false
     let hasContentRight = false
-    let cumulativePos = 0
-
     tabs.forEach((tab, idx) => {
       const column = columns[idx]
-      const tabStartPos = cumulativePos
-
-      // Get current width synchronously
-      let currentWidth = 0
-      tab.width.subscribe(w => (currentWidth = w)).unsubscribe()
-
+      const tabStartPos = tab.xValue / screenWidth
+      const currentWidth = tab.widthValue / screenWidth
       const tabEndPos = tabStartPos + currentWidth
-      cumulativePos = tabEndPos
 
       // Check visibility
       const isVisible = tabEndPos > widgetStartOffset && tabStartPos < widgetEndOffset
@@ -246,26 +266,30 @@ export const WorkspaceStrip = (
       // Calculate pixel position and size
       const tabPixelX = (tabStartPos - widgetStartOffset) * pixelsPerMonitorWidth
       const tabPixelWidth = currentWidth * pixelsPerMonitorWidth
+      const tabPixelY = (tab.yValue / screenHeight) * widgetHeight
+      const tabPixelHeight = (tab.heightValue / screenHeight) * widgetHeight
 
       // Update target position
       column.targetPosition = tabPixelX
+      column.targetY = tabPixelY
 
       // Set size and visibility
-      column.widget.set_size_request(
+      column.setTileSize(
         Math.max(16, Math.round(tabPixelWidth)),
-        widgetHeight,
+        Math.max(8, Math.round(tabPixelHeight)),
       )
       column.widget.set_visible(isVisible)
 
       // Initialize current position for new widgets
       if (column.currentPosition === 0 && column.targetPosition !== 0) {
         column.currentPosition = column.targetPosition
+        column.currentY = column.targetY
       }
     })
 
     // Update viewport overlay position
     viewport.set_margin_start(
-      Math.round((viewportOffset - widgetStartOffset) * pixelsPerMonitorWidth),
+      Math.round((normalizedViewportOffset - widgetStartOffset) * pixelsPerMonitorWidth),
     )
 
     // Update edge indicators
@@ -276,10 +300,10 @@ export const WorkspaceStrip = (
   }
 
   // Main subscription: sync widgets and layout on any change
-  combineLatest([ws.tabs, ws.viewportOffset]).subscribe(
-    ([tabs, viewportOffset]) => {
+  combineLatest([ws.tabs, ws.selectedTab]).subscribe(
+    ([tabs, selectedTab]) => {
       syncColumnWidgets(tabs)
-      updateLayout(tabs, viewportOffset)
+      updateLayout(tabs, selectedTab)
     },
   )
 
@@ -336,5 +360,5 @@ const TintedIcon = (
   overlay.add_overlay(revealer)
   overlay.set_child(image)
 
-  return overlay
+  return { widget: overlay, image }
 }

@@ -12,9 +12,7 @@ import { AgentApprovalOverlay } from 'widgets/agent-approvals/overlay'
 import approvalsUi from 'widgets/agent-approvals'
 import { handleRequest } from 'services/requests'
 import { prepareTheme } from 'style/theming'
-import obtainWmService from 'services'
 import { bindCommands } from 'commands'
-import { MonitorService } from 'services/wm/types'
 import { getPomodoroService } from 'services/pomodoro'
 import { AgentStatus, getAgentService } from 'services/agent'
 import { getLocusService } from 'services/locus'
@@ -31,19 +29,17 @@ app.start({
     prepareTheme()
     bindCommands()
 
-    obtainWmService('monitor').then(ms => {
-      setupPomodoro()
-      setupAgentApprovalAutoOpen()
-      setupForMonitor(ms, Bar)
+    const locus = getLocusService()
+    setupPomodoro()
+    setupAgentApprovalAutoOpen()
+    setupForMonitor(locus.monitors$, Bar)
 
-      // Wait for first monitor emission to get initial value
-      ms.activeMonitor.pipe(first()).subscribe(initialMonitor => {
-        createRoot(() => {
-          OSD(binding(ms.activeMonitor, initialMonitor))
-          Rsynapse(binding(ms.activeMonitor, initialMonitor))
-          TodoPopup(binding(ms.activeMonitor, initialMonitor))
-          AgentApprovalOverlay(binding(ms.activeMonitor, initialMonitor))
-        })
+    locus.activeMonitor$.pipe(first()).subscribe(initialMonitor => {
+      createRoot(() => {
+        OSD(binding(locus.activeMonitor$, initialMonitor))
+        Rsynapse(binding(locus.activeMonitor$, initialMonitor))
+        TodoPopup(binding(locus.activeMonitor$, initialMonitor))
+        AgentApprovalOverlay(binding(locus.activeMonitor$, initialMonitor))
       })
     })
   },
@@ -123,19 +119,19 @@ function autoOpenKey(sessionId: string, status: AgentStatus) {
 }
 
 function setupForMonitor(
-  ms: MonitorService,
+  monitors: import('rxjs').Observable<Gdk.Monitor[]>,
   widgetFactory: (m: Gdk.Monitor) => GObject.Object,
 ) {
   const mmap = new Map<Gdk.Monitor, Gtk.Window>()
-  ms.monitors.pipe(diffs()).subscribe(monitors => {
-    monitors.removed.forEach(removed => {
+  monitors.pipe(diffs()).subscribe(diff => {
+    diff.removed.forEach(removed => {
       const w = mmap.get(removed)
       if (w) {
         w.destroy()
         mmap.delete(removed)
       }
     })
-    monitors.added.forEach(m => {
+    diff.added.forEach(m => {
       createRoot(() => {
         mmap.set(m, widgetFactory(m) as Gtk.Window)
       })
