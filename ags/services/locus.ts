@@ -1,6 +1,13 @@
 import Gio from 'gi://Gio?version=2.0'
 import GLib from 'gi://GLib?version=2.0'
 import { BehaviorSubject, Observable } from 'rxjs'
+import {
+  LocusSchemaClient,
+  locusSchema,
+  type LocusDbusClient,
+  type NamedPath,
+  type Relation,
+} from './locus.generated'
 
 export interface LocusProject {
   subject: string
@@ -18,8 +25,8 @@ export interface LocusService {
   getTargets: (source: string, relation: string, callback: (targets: string[]) => void) => void
   getSources: (target: string, relation: string, callback: (sources: string[]) => void) => void
   getProperties: (subject: string, callback: (properties: Record<string, string>) => void) => void
-  resolve: (source: string, kind: string, callback: (subject: string) => void) => void
-  subscribeResolve: (source: string, kind: string, callback: (subject: string) => void) => void
+  resolve: (source: string, path: string[], callback: (subject: string) => void) => void
+  subscribeResolve: (source: string, path: string[], callback: (subject: string) => void) => void
   setContextLink: (context: string, relation: string, target: string) => void
   clearContextLink: (context: string, relation: string) => void
 }
@@ -28,10 +35,14 @@ const BUS_NAME = 'io.github.Locus'
 const ROOT_PATH = '/io/github/Locus'
 const GRAPH_IFACE = 'io.github.Locus.Graph'
 const SELECTED_CONTEXT = 'selected'
-const PROJECT_RELATION = 'project'
-const WORKSPACE_RELATION = 'workspace'
-const WINDOW_RELATION = 'window'
+const PROJECT_RELATION: Relation = 'project'
+const WORKSPACE_RELATION: Relation = 'workspace'
+const WINDOW_RELATION: Relation = 'window'
 const SELECTED_SUBJECT = `context:${SELECTED_CONTEXT}`
+const SELECTED_WORKSPACE_PATH_NAME: NamedPath = 'selected-workspace'
+const SELECTED_PROJECT_PATH_NAME: NamedPath = 'selected-project'
+const SELECTED_WORKSPACE_PATH = [...locusSchema.paths[SELECTED_WORKSPACE_PATH_NAME].path]
+const SELECTED_PROJECT_PATH = [...locusSchema.paths[SELECTED_PROJECT_PATH_NAME].path]
 
 let service: LocusService | null = null
 
@@ -64,6 +75,71 @@ function call<T>(
   )
 }
 
+function callPromise<T>(
+  method: string,
+  params: GLib.Variant | null,
+  resultType: string | null,
+  unpack: (result: any) => T,
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    Gio.DBus.session.call(
+      BUS_NAME,
+      ROOT_PATH,
+      GRAPH_IFACE,
+      method,
+      params,
+      resultType ? new GLib.VariantType(resultType) : null,
+      Gio.DBusCallFlags.NONE,
+      -1,
+      null,
+      (_conn: any, res: any) => {
+        try {
+          const result = Gio.DBus.session.call_finish(res)
+          resolve(unpack(result.deepUnpack()))
+        } catch (e) {
+          console.error(`[Locus] ${method} failed:`, e)
+          reject(e)
+        }
+      },
+    )
+  })
+}
+
+function createDbusClient(): LocusDbusClient {
+  return {
+    setLink(source, relation, target) {
+      return callPromise('SetLink', new GLib.Variant('(sss)', [source, relation, target]), null, () => undefined)
+    },
+    removeLink(source, relation, target) {
+      return callPromise('RemoveLink', new GLib.Variant('(sss)', [source, relation, target]), null, () => undefined)
+    },
+    getTargets(source, relation) {
+      return callPromise('GetTargets', new GLib.Variant('(ss)', [source, relation]), '(as)', ([targets]) => targets as string[])
+    },
+    getSources(target, relation) {
+      return callPromise('GetSources', new GLib.Variant('(ss)', [target, relation]), '(as)', ([sources]) => sources as string[])
+    },
+    setProperty(subject, key, value) {
+      return callPromise('SetProperty', new GLib.Variant('(sss)', [subject, key, value]), null, () => undefined)
+    },
+    getProperty(subject, key) {
+      return callPromise('GetProperty', new GLib.Variant('(ss)', [subject, key]), '(s)', ([value]) => value as string)
+    },
+    getProperties(subject) {
+      return callPromise('GetProperties', new GLib.Variant('(s)', [subject]), '(a{ss})', ([properties]) => properties as Record<string, string>)
+    },
+    resolve(source, path) {
+      return callPromise('Resolve', new GLib.Variant('(sas)', [source, path]), '(s)', ([subject]) => subject as string)
+    },
+    resolveAll(source, path) {
+      return callPromise('ResolveAll', new GLib.Variant('(sas)', [source, path]), '(as)', ([subjects]) => subjects as string[])
+    },
+    subscribeResolve(source, path) {
+      return callPromise('SubscribeResolve', new GLib.Variant('(sas)', [source, path]), '(s)', ([subject]) => subject as string)
+    },
+  }
+}
+
 function firstProjectName(project: string, properties: Record<string, string>) {
   return properties.displayName
     || properties['display-name']
@@ -83,12 +159,17 @@ function toProject(subject: string, properties: Record<string, string>): LocusPr
   }
 }
 
+function samePath(left: string[], right: string[]) {
+  return left.length === right.length && left.every((part, index) => part === right[index])
+}
+
 export function getLocusService(): LocusService {
   if (service) return service
 
   const activeProject$ = new BehaviorSubject<LocusProject | null>(null)
   const selectedWorkspace$ = new BehaviorSubject('')
   const selectedWindow$ = new BehaviorSubject('')
+  const schemaClient = new LocusSchemaClient(createDbusClient())
 
   const getTargets = (source: string, relation: string, callback: (targets: string[]) => void) => {
     call(
@@ -183,10 +264,14 @@ export function getLocusService(): LocusService {
     )
   }
 
-  const resolve = (source: string, kind: string, callback: (subject: string) => void) => {
+  const resolve = (
+    source: string,
+    path: string[],
+    callback: (subject: string) => void,
+  ) => {
     call(
       'Resolve',
-      new GLib.Variant('(ss)', [source, kind]),
+      new GLib.Variant('(sas)', [source, path]),
       '(s)',
       ([subject]) => subject as string,
       callback,
@@ -194,14 +279,18 @@ export function getLocusService(): LocusService {
     )
   }
 
-  const subscribeResolve = (source: string, kind: string, callback: (subject: string) => void) => {
+  const subscribeResolve = (
+    source: string,
+    path: string[],
+    callback: (subject: string) => void,
+  ) => {
     call(
       'SubscribeResolve',
-      new GLib.Variant('(ss)', [source, kind]),
+      new GLib.Variant('(sas)', [source, path]),
       '(s)',
       ([subject]) => subject as string,
       subject => {
-        console.log(`[Locus] SubscribeResolve initial ${source} kind=${kind} target=${subject || '<none>'}`)
+        console.log(`[Locus] SubscribeResolve initial ${source} path=${path.join('>') || '<self>'} target=${subject || '<none>'}`)
         callback(subject)
       },
       '',
@@ -220,11 +309,15 @@ export function getLocusService(): LocusService {
   }
 
   const refreshActiveProject = () => {
-    resolve(SELECTED_SUBJECT, 'project', setActiveProject)
+    schemaClient.selectedProject()
+      .then(project => setActiveProject(project ?? ''))
+      .catch(() => setActiveProject(''))
   }
 
   const refreshSelectedWorkspace = () => {
-    resolve(SELECTED_SUBJECT, 'workspace', workspace => selectedWorkspace$.next(workspace))
+    schemaClient.selectedWorkspace()
+      .then(workspace => selectedWorkspace$.next(workspace ?? ''))
+      .catch(() => selectedWorkspace$.next(''))
   }
 
   const refreshSelectedWindow = () => {
@@ -261,11 +354,11 @@ export function getLocusService(): LocusService {
           refreshSelectedWindow()
         }
       } else if (signal === 'ResolveChanged') {
-        const [source, kind, target] = unpacked as [string, string, string]
-        console.log(`[Locus] ResolveChanged ${source} kind=${kind} target=${target || '<none>'}`)
-        if (source === SELECTED_SUBJECT && kind === 'workspace') {
+        const [source, path, target] = unpacked as [string, string[], string]
+        console.log(`[Locus] ResolveChanged ${source} path=${path.join('>') || '<self>'} target=${target || '<none>'}`)
+        if (source === SELECTED_SUBJECT && samePath(path, SELECTED_WORKSPACE_PATH)) {
           selectedWorkspace$.next(target)
-        } else if (source === SELECTED_SUBJECT && kind === 'project') {
+        } else if (source === SELECTED_SUBJECT && samePath(path, SELECTED_PROJECT_PATH)) {
           setActiveProject(target)
         }
       } else if (signal === 'PropertyChanged' || signal === 'PropertyRemoved') {
@@ -277,8 +370,18 @@ export function getLocusService(): LocusService {
     },
   )
 
-  subscribeResolve(SELECTED_SUBJECT, 'workspace', workspace => selectedWorkspace$.next(workspace))
-  subscribeResolve(SELECTED_SUBJECT, 'project', setActiveProject)
+  schemaClient.subscribeSelectedWorkspace()
+    .then(workspace => {
+      console.log(`[Locus] SubscribeResolve initial ${SELECTED_SUBJECT} path=${SELECTED_WORKSPACE_PATH.join('>')} target=${workspace || '<none>'}`)
+      selectedWorkspace$.next(workspace ?? '')
+    })
+    .catch(() => selectedWorkspace$.next(''))
+  schemaClient.subscribeSelectedProject()
+    .then(project => {
+      console.log(`[Locus] SubscribeResolve initial ${SELECTED_SUBJECT} path=${SELECTED_PROJECT_PATH.join('>')} target=${project || '<none>'}`)
+      setActiveProject(project ?? '')
+    })
+    .catch(() => setActiveProject(''))
   refreshSelectedWindow()
 
   service = {
