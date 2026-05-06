@@ -2,7 +2,6 @@ import app from 'ags/gtk4/app'
 import GObject from 'gi://GObject?version=2.0'
 import Gdk from 'gi://Gdk?version=4.0'
 import AstalApps from 'gi://AstalApps?version=0.1'
-import GLib from 'gi://GLib?version=2.0'
 import { BehaviorSubject, Observable, catchError, combineLatest, distinctUntilChanged, filter, map, of, scan, shareReplay, startWith, switchMap } from 'rxjs'
 import {
   LocusDbusClient,
@@ -39,6 +38,8 @@ export interface LocusService {
   activeProject$: Observable<LocusProject | null>
   selectedWorkspace$: Observable<string>
   selectedWindow$: Observable<string>
+  selectedAgentSession$: Observable<string>
+  selectedAgentSessionId$: Observable<string>
   selectedOutput$: Observable<string>
   selectedWindowTitle$: Observable<string>
   selectedWindowAppId$: Observable<string>
@@ -59,6 +60,7 @@ export interface LocusService {
   property$: (subject: string, key: string) => Observable<string>
   numberProperty$: (subject: string, key: string, fallback?: number) => Observable<number>
   booleanProperty$: (subject: string, key: string) => Observable<boolean>
+  windowIcon$: (window: string) => Observable<string>
   sources$: (target: string, relation: string) => Observable<string[]>
   targets$: (source: string, relation: string) => Observable<string[]>
   workspace$: (id: number) => LocusWorkspace
@@ -75,10 +77,6 @@ let service: LocusService | null = null
 const apps = AstalApps.Apps.new()
 const iconNameCache = new Map<string, string>()
 const workspaces = new Map<number, LocusWorkspace>()
-
-const APP_TITLE_ICON_OVERRIDES = [
-  { prefix: '- Nvim', icon: `${GLib.get_user_config_dir()}/ags/assets/icons/Neovim.svg` },
-]
 
 const DEFAULT_MONITOR_WIDTH = 1920
 const COLUMN_GAP_PX = 12
@@ -315,10 +313,7 @@ export class LocusWorkspace extends GObject.Object {
               tab: {
                 workspace: this,
                 title: of(''),
-                icon: locus.property$(tile.window, 'app-id').pipe(
-                  map(getIconForAppId),
-                  distinctUntilChanged(),
-                ),
+                icon: locus.windowIcon$(tile.window),
                 width: of(widthValue),
                 height: of(heightValue),
                 xValue,
@@ -635,6 +630,26 @@ export function getLocusService(): LocusService {
       shareReplay(1),
     )
 
+  const standardWindowIcon$ = (window: string) =>
+    property$(window, 'app-id').pipe(
+      map(getIconForAppId),
+      distinctUntilChanged(),
+    )
+
+  const windowIcon$ = (window: string) =>
+    targets$(window, 'app-instance').pipe(
+      switchMap(targets => {
+        const appInstance = targets[0]
+        if (!appInstance) return standardWindowIcon$(window)
+
+        return property$(appInstance, 'icon').pipe(
+          switchMap(icon => icon ? of(icon) : standardWindowIcon$(window)),
+        )
+      }),
+      distinctUntilChanged(),
+      shareReplay(1),
+    )
+
   const workspace$ = (id: number) => {
     if (!workspaces.has(id)) workspaces.set(id, new LocusWorkspace(id, service!))
     return workspaces.get(id)!
@@ -642,14 +657,19 @@ export function getLocusService(): LocusService {
 
   const selectedWorkspace$ = path$('selected-workspace')
   const selectedWindow$ = path$('selected-window')
+  const selectedAgentSession$ = path$('selected-agent-session')
+  const selectedAgentSessionId$ = selectedAgentSession$.pipe(
+    map(subject => subject.startsWith('agent-session:')
+      ? subject.slice('agent-session:'.length)
+      : ''),
+    distinctUntilChanged(),
+    shareReplay(1),
+  )
   const selectedOutput$ = path$('selected-output')
   const selectedWindowTitle$ = pathProperty$('selected-window', 'title').pipe(shareReplay(1))
   const selectedWindowAppId$ = pathProperty$('selected-window', 'app-id').pipe(shareReplay(1))
-  const selectedWindowIcon$ = selectedWindowTitle$.pipe(
-    switchMap(title => {
-      const override = APP_TITLE_ICON_OVERRIDES.find(o => title.includes(o.prefix))
-      return override ? of(override.icon) : selectedWindowAppId$.pipe(map(getIconForAppId))
-    }),
+  const selectedWindowIcon$ = selectedWindow$.pipe(
+    switchMap(window => windowIcon$(window)),
     distinctUntilChanged(),
     shareReplay(1),
   )
@@ -691,6 +711,8 @@ export function getLocusService(): LocusService {
     activeProject$,
     selectedWorkspace$,
     selectedWindow$,
+    selectedAgentSession$,
+    selectedAgentSessionId$,
     selectedOutput$,
     selectedWindowTitle$,
     selectedWindowAppId$,
@@ -746,6 +768,7 @@ export function getLocusService(): LocusService {
     property$,
     numberProperty$,
     booleanProperty$,
+    windowIcon$,
     sources$,
     targets$,
     workspace$,

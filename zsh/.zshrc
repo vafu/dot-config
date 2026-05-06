@@ -64,6 +64,47 @@ codex() {
   AGENT_DBUS_WINDOW_ID="$agent_dbus_window_id" command codex "$@"
 }
 
+_locus_safe_node_part() {
+  print -r -- "$1" | tr -c '[:alnum:]_' '_'
+}
+
+_locus_wrap_app() {
+  local app_name="$1"
+  local app_icon="$2"
+  shift 2
+  if [[ "$1" == "--" ]]; then
+    shift
+  fi
+
+  local selected_window app_part app_node linked=0 command_status=0
+  selected_window="$(locusctl context get selected window --first 2>/dev/null)"
+  app_part="$(_locus_safe_node_part "$app_name")"
+  app_node="app-instance:${app_part}/${$}-${RANDOM}"
+
+  if [[ "$selected_window" == window:* && -n "$1" && -n "$app_part" ]]; then
+    locusctl prop set "$app_node" kind app-instance >/dev/null 2>&1 \
+      && locusctl prop set "$app_node" name "$app_name" >/dev/null 2>&1 \
+      && locusctl prop set "$app_node" icon "$app_icon" >/dev/null 2>&1 \
+      && locusctl link set "$selected_window" app-instance "$app_node" >/dev/null 2>&1 \
+      && linked=1
+  fi
+
+  {
+    "$@"
+  } always {
+    command_status=$?
+    if (( linked )); then
+      locusctl link remove "$selected_window" app-instance "$app_node" >/dev/null 2>&1 || true
+    fi
+  }
+
+  return $command_status
+}
+
+nvim() {
+  _locus_wrap_app neovim "$HOME/.config/ags/assets/icons/Neovim.svg" -- /usr/bin/nvim "$@"
+}
+
 _locus_selected_workspace_subject() {
   local workspace_subject
   workspace_subject="$(locusctl resolve context:selected window workspace 2>/dev/null)"

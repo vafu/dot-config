@@ -4,7 +4,7 @@ import { getLocusService } from 'services/locus'
 import { LevelIndicator } from 'widgets/circularstatus'
 import { MaterialIcon } from 'widgets/materialicon'
 import { bindAs, subscribeTo } from 'rxbinding'
-import { BehaviorSubject, map, distinctUntilChanged, shareReplay, switchMap } from 'rxjs'
+import { map, distinctUntilChanged, shareReplay, switchMap } from 'rxjs'
 import { WidgetProps } from 'widgets'
 
 const CONTEXT_STAGES = [
@@ -16,12 +16,8 @@ const CONTEXT_STAGES = [
 ]
 
 const STYLE = { style: 'line' as const, thickness: 3 }
-const AGENT_SESSION_NODE_PREFIX = 'agent-session:'
-const SELECTED_AGENT_SESSION_PATH = ['window', 'agent-session']
 
 const DEFAULT_STATUS: AgentStatus = { agentName: '', state: 'no-session', taskComplete: false, requiresAttention: false, contextPct: 0, modelName: '', cwd: '', costUsd: 0, pendingPrompt: '', pendingOptions: [], pendingCount: 0, pendingRequestIds: [], pendingPrompts: [], pendingOptionsList: [], sessionName: '', fiveHourUsagePct: 0, fiveHourResetsAt: 0, sevenDayUsagePct: 0, sevenDayResetsAt: 0 }
-const selectedSession$ = new BehaviorSubject('')
-let selectedSessionSetup = false
 
 type PendingRequest = {
   requestId: string
@@ -78,7 +74,7 @@ const AgentWidget = (sessionId: string) => {
     shareReplay(1),
   )
   const contextPct$ = status$.pipe(map(s => s.contextPct), distinctUntilChanged())
-  const selected$ = selectedSession$.pipe(
+  const selected$ = getLocusService().selectedAgentSessionId$.pipe(
     map(selected => selected === sessionId),
     distinctUntilChanged(),
   )
@@ -269,7 +265,6 @@ function updateUsageFill(pct: number) {
 
 export const AgentWidgets = (props: WidgetProps) => {
   const { sessions$ } = getAgentService()
-  setupSelectedSessionTracking()
   const cssClasses = (props.cssClasses ?? []).concat(['agent-usage-fill'])
 
   const visible$ = sessions$.pipe(
@@ -334,18 +329,4 @@ export const AgentWidgets = (props: WidgetProps) => {
   })
 
   return container
-}
-
-function setupSelectedSessionTracking() {
-  if (selectedSessionSetup) return
-  selectedSessionSetup = true
-
-  const locus = getLocusService()
-  const setSelectedSession = (target: string) => {
-    const session = target.startsWith(AGENT_SESSION_NODE_PREFIX)
-      ? target.slice(AGENT_SESSION_NODE_PREFIX.length)
-      : ''
-    selectedSession$.next(session)
-  }
-  locus.resolve$('context:selected', SELECTED_AGENT_SESSION_PATH).subscribe(setSelectedSession)
 }

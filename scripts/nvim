@@ -1,0 +1,2 @@
+#!/bin/sh
+exec locus-wrap-app neovim "$HOME/.config/ags/assets/icons/Neovim.svg" -- /usr/bin/nvim "$@"

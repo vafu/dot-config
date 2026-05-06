@@ -6,6 +6,7 @@ import GLib from 'gi://GLib?version=2.0';
 
 export type NodeKind =
   | "agent-session"
+  | "app-instance"
   | "context"
   | "output"
   | "project"
@@ -15,6 +16,7 @@ export type NodeKind =
 
 export type Relation =
   | "agent-session"
+  | "app-instance"
   | "output"
   | "project"
   | "selected-workspace"
@@ -45,6 +47,12 @@ export const locusSchema = {
       properties: {
         "cwd": { required: false },
         "model": { required: false },
+      },
+    },
+    "app-instance": {
+      properties: {
+        "icon": { required: false },
+        "name": { required: false },
       },
     },
     "context": {
@@ -86,6 +94,11 @@ export const locusSchema = {
     "agent-session": {
       from: { type: "kind", kind: "window" },
       to: { type: "kind", kind: "agent-session" },
+      cardinality: "one-to-one",
+    },
+    "app-instance": {
+      from: { type: "kind", kind: "window" },
+      to: { type: "kind", kind: "app-instance" },
       cardinality: "one-to-one",
     },
     "output": {
@@ -140,6 +153,7 @@ export const locusSchema = {
 
 export type PropertyKeyByKind = {
   "agent-session": "cwd" | "model";
+  "app-instance": "icon" | "name";
   "context": never;
   "output": "connector" | "source";
   "project": "icon" | "name" | "path";
