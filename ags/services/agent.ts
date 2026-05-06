@@ -16,10 +16,12 @@ export interface AgentStatus {
   costUsd: number
   pendingPrompt: string
   pendingOptions: string[]
+  pendingOptionDescriptions: string[]
   pendingCount: number
   pendingRequestIds: string[]
   pendingPrompts: string[]
   pendingOptionsList: string[][]
+  pendingOptionDescriptionsList: string[][]
   sessionName: string
   fiveHourUsagePct: number
   fiveHourResetsAt: number
@@ -32,6 +34,7 @@ export interface AgentElicitation {
   requestId?: string
   prompt: string
   options: string[]
+  optionDescriptions: string[]
 }
 
 export interface AgentService {
@@ -67,10 +70,12 @@ function propsToStatus(props: Record<string, GLib.Variant>): Partial<AgentStatus
   if ('CostUsd' in props) status.costUsd = props['CostUsd'].deepUnpack() as number
   if ('PendingPrompt' in props) status.pendingPrompt = props['PendingPrompt'].deepUnpack() as string
   if ('PendingOptions' in props) status.pendingOptions = props['PendingOptions'].deepUnpack() as string[]
+  if ('PendingOptionDescriptions' in props) status.pendingOptionDescriptions = props['PendingOptionDescriptions'].deepUnpack() as string[]
   if ('PendingCount' in props) status.pendingCount = props['PendingCount'].deepUnpack() as number
   if ('PendingRequestIds' in props) status.pendingRequestIds = props['PendingRequestIds'].deepUnpack() as string[]
   if ('PendingPrompts' in props) status.pendingPrompts = props['PendingPrompts'].deepUnpack() as string[]
   if ('PendingOptionsList' in props) status.pendingOptionsList = props['PendingOptionsList'].deepUnpack() as string[][]
+  if ('PendingOptionDescriptionsList' in props) status.pendingOptionDescriptionsList = props['PendingOptionDescriptionsList'].deepUnpack() as string[][]
   if ('SessionName' in props) status.sessionName = props['SessionName'].deepUnpack() as string
   if ('FiveHourUsagePct' in props) status.fiveHourUsagePct = props['FiveHourUsagePct'].deepUnpack() as number
   if ('FiveHourResetsAt' in props) status.fiveHourResetsAt = props['FiveHourResetsAt'].deepUnpack() as number
@@ -85,7 +90,7 @@ export function getAgentService(): AgentService {
   const sessions$ = new BehaviorSubject<Map<string, AgentStatus>>(new Map())
   const elicitation$ = new BehaviorSubject<AgentElicitation | null>(null)
 
-  const DEFAULT: AgentStatus = { agentName: '', state: 'no-session', taskComplete: false, requiresAttention: false, contextPct: 0, modelName: '', cwd: '', costUsd: 0, pendingPrompt: '', pendingOptions: [], pendingCount: 0, pendingRequestIds: [], pendingPrompts: [], pendingOptionsList: [], sessionName: '', fiveHourUsagePct: 0, fiveHourResetsAt: 0, sevenDayUsagePct: 0, sevenDayResetsAt: 0 }
+  const DEFAULT: AgentStatus = { agentName: '', state: 'no-session', taskComplete: false, requiresAttention: false, contextPct: 0, modelName: '', cwd: '', costUsd: 0, pendingPrompt: '', pendingOptions: [], pendingOptionDescriptions: [], pendingCount: 0, pendingRequestIds: [], pendingPrompts: [], pendingOptionsList: [], pendingOptionDescriptionsList: [], sessionName: '', fiveHourUsagePct: 0, fiveHourResetsAt: 0, sevenDayUsagePct: 0, sevenDayResetsAt: 0 }
 
   const updateSession = (sessionId: string, update: Partial<AgentStatus>) => {
     const map = new Map(sessions$.value)
@@ -196,6 +201,38 @@ export function getAgentService(): AgentService {
   Gio.DBus.session.signal_subscribe(
     BUS_NAME,
     SESSION_IFACE,
+    'ElicitationRequestedWithIdAndDetails',
+    null, // any path
+    null,
+    Gio.DBusSignalFlags.NONE,
+    (_conn: any, _sender: any, path: string, _iface: any, _signal: any, params: any) => {
+      const sessionId = sessionIdFromPath(path)
+      if (!sessionId) return
+      const [requestId, prompt, options, optionDescriptions] = params.deepUnpack() as [string, string, string[], string[]]
+      console.log(`[Agent] ElicitationRequestedWithIdAndDetails: session=${sessionId} request=${requestId} prompt=${prompt}`)
+      elicitation$.next({ sessionId, requestId, prompt, options, optionDescriptions })
+    },
+  )
+
+  Gio.DBus.session.signal_subscribe(
+    BUS_NAME,
+    SESSION_IFACE,
+    'ElicitationRequestedWithDetails',
+    null, // any path
+    null,
+    Gio.DBusSignalFlags.NONE,
+    (_conn: any, _sender: any, path: string, _iface: any, _signal: any, params: any) => {
+      const sessionId = sessionIdFromPath(path)
+      if (!sessionId) return
+      const [prompt, options, optionDescriptions] = params.deepUnpack() as [string, string[], string[]]
+      console.log(`[Agent] ElicitationRequestedWithDetails: session=${sessionId} prompt=${prompt}`)
+      elicitation$.next({ sessionId, prompt, options, optionDescriptions })
+    },
+  )
+
+  Gio.DBus.session.signal_subscribe(
+    BUS_NAME,
+    SESSION_IFACE,
     'ElicitationRequestedWithId',
     null, // any path
     null,
@@ -205,7 +242,7 @@ export function getAgentService(): AgentService {
       if (!sessionId) return
       const [requestId, prompt, options] = params.deepUnpack() as [string, string, string[]]
       console.log(`[Agent] ElicitationRequestedWithId: session=${sessionId} request=${requestId} prompt=${prompt}`)
-      elicitation$.next({ sessionId, requestId, prompt, options })
+      elicitation$.next({ sessionId, requestId, prompt, options, optionDescriptions: [] })
     },
   )
 
@@ -221,7 +258,7 @@ export function getAgentService(): AgentService {
       if (!sessionId) return
       const [prompt, options] = params.deepUnpack() as [string, string[]]
       console.log(`[Agent] ElicitationRequested: session=${sessionId} prompt=${prompt}`)
-      elicitation$.next({ sessionId, prompt, options })
+      elicitation$.next({ sessionId, prompt, options, optionDescriptions: [] })
     },
   )
 

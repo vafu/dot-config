@@ -43,6 +43,10 @@ if [ -n "$app_part" ] && [ "${selected_window#window:}" != "$selected_window" ];
     && linked=1
 fi
 
-"$@"
+if [ "$linked" = 1 ]; then
+  LOCUS_APP_INSTANCE="$app_node" AGENT_DBUS_WINDOW_ID="${selected_window#window:}" "$@"
+else
+  "$@"
+fi
 status=$?
 exit "$status"

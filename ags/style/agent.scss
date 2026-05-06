@@ -57,6 +57,11 @@
     margin: 4px 0;
   }
 
+  .agent-popup-option-detail {
+    font-size: 8pt;
+    opacity: 0.72;
+  }
+
   &.thinking materialicon:first-child {
     animation: agent-thinking-pulse 0.5s ease-in-out infinite;
   }

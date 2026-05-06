@@ -17,12 +17,13 @@ const CONTEXT_STAGES = [
 
 const STYLE = { style: 'line' as const, thickness: 3 }
 
-const DEFAULT_STATUS: AgentStatus = { agentName: '', state: 'no-session', taskComplete: false, requiresAttention: false, contextPct: 0, modelName: '', cwd: '', costUsd: 0, pendingPrompt: '', pendingOptions: [], pendingCount: 0, pendingRequestIds: [], pendingPrompts: [], pendingOptionsList: [], sessionName: '', fiveHourUsagePct: 0, fiveHourResetsAt: 0, sevenDayUsagePct: 0, sevenDayResetsAt: 0 }
+const DEFAULT_STATUS: AgentStatus = { agentName: '', state: 'no-session', taskComplete: false, requiresAttention: false, contextPct: 0, modelName: '', cwd: '', costUsd: 0, pendingPrompt: '', pendingOptions: [], pendingOptionDescriptions: [], pendingCount: 0, pendingRequestIds: [], pendingPrompts: [], pendingOptionsList: [], pendingOptionDescriptionsList: [], sessionName: '', fiveHourUsagePct: 0, fiveHourResetsAt: 0, sevenDayUsagePct: 0, sevenDayResetsAt: 0 }
 
 type PendingRequest = {
   requestId: string
   prompt: string
   options: string[]
+  optionDescriptions: string[]
 }
 
 function pendingRequests(status: AgentStatus): PendingRequest[] {
@@ -33,16 +34,17 @@ function pendingRequests(status: AgentStatus): PendingRequest[] {
       requestId,
       prompt: status.pendingPrompts[idx] ?? status.pendingPrompt,
       options: status.pendingOptionsList[idx] ?? status.pendingOptions,
+      optionDescriptions: status.pendingOptionDescriptionsList[idx] ?? status.pendingOptionDescriptions,
     })).filter(request => request.prompt)
   }
 
   if (!status.pendingPrompt) return []
-  return [{ requestId: '', prompt: status.pendingPrompt, options: status.pendingOptions }]
+  return [{ requestId: '', prompt: status.pendingPrompt, options: status.pendingOptions, optionDescriptions: status.pendingOptionDescriptions }]
 }
 
 function pendingSignature(status: AgentStatus): string {
   return pendingRequests(status)
-    .map(request => `${request.requestId}:${request.prompt}:${request.options.join('\0')}`)
+    .map(request => `${request.requestId}:${request.prompt}:${request.options.join('\0')}:${request.optionDescriptions.join('\0')}`)
     .join('\n')
 }
 
@@ -211,16 +213,32 @@ const AgentWidget = (sessionId: string) => {
         }
 
         const options = request.options.length > 0 ? request.options : ['Allow', 'Deny']
-        for (const option of options) {
+        const optionDescriptions = request.optionDescriptions.length > 0
+          ? request.optionDescriptions
+          : options.map(() => '')
+        for (const [idx, option] of options.entries()) {
+          const description = optionDescriptions[idx] ?? ''
+          const content = new Gtk.Box({ orientation: Gtk.Orientation.VERTICAL, spacing: 2 })
+          content.append(new Gtk.Label({ label: option, xalign: 0 }))
+          if (description) {
+            content.append(new Gtk.Label({
+              label: description,
+              wrap: true,
+              maxWidthChars: 40,
+              xalign: 0,
+              cssClasses: ['agent-popup-option-detail'],
+            }))
+          }
           const btn = (
             <button
-              label={option}
               onClicked={() => {
                 console.log(`[Agent] popup button clicked: session=${sessionId} request=${request.requestId || '(oldest)'} option=${option}`)
                 popover.popdown()
                 respondToElicitation(sessionId, option, request.requestId)
               }}
-            />
+            >
+              {content}
+            </button>
           ) as Gtk.Button
           buttonsBox.append(btn)
         }

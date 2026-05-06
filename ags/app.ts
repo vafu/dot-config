@@ -47,7 +47,6 @@ app.start({
 
 type PendingAgentRequest = [string, AgentStatus]
 const AGENT_SESSION_NODE_PREFIX = 'agent-session:'
-const AGENT_SESSION_RELATION = 'agent-session'
 
 function setupAgentApprovalAutoOpen() {
   const locus = getLocusService()
@@ -61,7 +60,7 @@ function setupAgentApprovalAutoOpen() {
         switchMap(windows => {
           const windowSubjects = [...new Set(windows.filter(subject => subject.startsWith('window:')))]
           if (windowSubjects.length === 0) return of([] as string[])
-          return combineLatest(windowSubjects.map(window => locus.targets$(window, AGENT_SESSION_RELATION))).pipe(
+          return combineLatest(windowSubjects.map(window => locus.pathAll$('window-agent-session', window))).pipe(
             map(targets => targets.flat()),
           )
         }),

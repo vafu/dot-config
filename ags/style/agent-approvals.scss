@@ -54,6 +54,11 @@
   border-radius: 8px;
 }
 
+.agent-approval-option-detail {
+  font-size: 0.9em;
+  opacity: 0.72;
+}
+
 .agent-approval-option.selected,
 .agent-approval-option:focus {
   background: #{$accent_color};

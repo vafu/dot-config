@@ -30,6 +30,7 @@ export type NamedPath =
   | "selected-project"
   | "selected-window"
   | "selected-workspace"
+  | "window-agent-session"
 ;
 
 export type NodeId = string;
@@ -92,7 +93,7 @@ export const locusSchema = {
   },
   relations: {
     "agent-session": {
-      from: { type: "kind", kind: "window" },
+      from: { type: "kind", kind: "app-instance" },
       to: { type: "kind", kind: "agent-session" },
       cardinality: "one-to-one",
     },
@@ -130,23 +131,33 @@ export const locusSchema = {
   paths: {
     "selected-agent-session": {
       from: "context:selected",
-      path: ["window", "agent-session"],
+      path: ["window", "app-instance", "agent-session"],
+      many: false,
     },
     "selected-output": {
       from: "context:selected",
       path: ["selected-workspace", "output"],
+      many: false,
     },
     "selected-project": {
       from: "context:selected",
       path: ["selected-workspace", "project"],
+      many: false,
     },
     "selected-window": {
       from: "context:selected",
       path: ["window"],
+      many: false,
     },
     "selected-workspace": {
       from: "context:selected",
       path: ["selected-workspace"],
+      many: false,
+    },
+    "window-agent-session": {
+      from: "window",
+      path: ["app-instance", "agent-session"],
+      many: false,
     },
   },
 } as const;
@@ -194,9 +205,9 @@ export function samePath(left: readonly string[], right: readonly string[]): boo
   return left.length === right.length && left.every((part, index) => part === right[index]);
 }
 
-export function path(name: NamedPath): { from: NodeId; path: Relation[] } {
+export function path(name: NamedPath): { from: NodeId; path: Relation[]; many: boolean } {
   const spec = locusSchema.paths[name];
-  return { from: spec.from, path: [...spec.path] };
+  return { from: spec.from, path: [...spec.path], many: spec.many };
 }
 
 function nowMs(): number {
@@ -296,23 +307,23 @@ export class LocusDbusClient {
     return this.callGraph('ResolveAll', new GLib.Variant('(sas)', [source, relations]), '(as)', ([targets]) => targets as NodeId[]);
   }
 
-  resolvePath(name: NamedPath): Promise<OptionalNodeId> {
+  resolvePath(name: NamedPath, source?: NodeId): Promise<OptionalNodeId> {
     const spec = path(name);
-    return this.resolve(spec.from, spec.path);
+    return this.resolve(source ?? spec.from, spec.path);
   }
 
-  resolveAllPath(name: NamedPath): Promise<NodeId[]> {
+  resolveAllPath(name: NamedPath, source?: NodeId): Promise<NodeId[]> {
     const spec = path(name);
-    return this.resolveAll(spec.from, spec.path);
+    return this.resolveAll(source ?? spec.from, spec.path);
   }
 
   async subscribeResolve(source: NodeId, relations: Relation[]): Promise<OptionalNodeId> {
     return none(await this.callGraph('SubscribeResolve', new GLib.Variant('(sas)', [source, relations]), '(s)', ([target]) => target as string));
   }
 
-  subscribePath(name: NamedPath): Promise<OptionalNodeId> {
+  subscribePath(name: NamedPath, source?: NodeId): Promise<OptionalNodeId> {
     const spec = path(name);
-    return this.subscribeResolve(spec.from, spec.path);
+    return this.subscribeResolve(source ?? spec.from, spec.path);
   }
 
   async watchNode(source: NodeId, relations: Relation[]): Promise<LocusWatch> {
@@ -320,9 +331,9 @@ export class LocusDbusClient {
     return new LocusWatch(this, objectPath);
   }
 
-  watchPath(name: NamedPath): Promise<LocusWatch> {
+  watchPath(name: NamedPath, source?: NodeId): Promise<LocusWatch> {
     const spec = path(name);
-    return this.watchNode(spec.from, spec.path);
+    return this.watchNode(source ?? spec.from, spec.path);
   }
 
   onLinkAdded(handler: (signal: LinkAddedSignal) => void): Unsubscribe {

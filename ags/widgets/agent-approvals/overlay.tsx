@@ -14,13 +14,18 @@ type PendingApproval = {
   status: AgentStatus
   prompt: string
   options: string[]
+  optionDescriptions: string[]
 }
 
 const prettyPath = (path: string) => path ? path.replace(/^\/home\/[^/]+/, '~') : 'unknown cwd'
 const approvalOptions = (request: PendingApproval) =>
   request.options.length > 0 ? request.options : ['Allow', 'Deny']
+const approvalOptionDescriptions = (request: PendingApproval) =>
+  request.optionDescriptions.length > 0
+    ? request.optionDescriptions
+    : approvalOptions(request).map(() => '')
 const approvalSignature = (request: PendingApproval) =>
-  `${request.sessionId}:${request.requestId}:${request.prompt}:${approvalOptions(request).join('\0')}`
+  `${request.sessionId}:${request.requestId}:${request.prompt}:${approvalOptions(request).join('\0')}:${approvalOptionDescriptions(request).join('\0')}`
 
 function requestsForSession(sessionId: string, status: AgentStatus): PendingApproval[] {
   if (!status.requiresAttention) return []
@@ -32,6 +37,7 @@ function requestsForSession(sessionId: string, status: AgentStatus): PendingAppr
       status,
       prompt: status.pendingPrompts[idx] ?? status.pendingPrompt,
       options: status.pendingOptionsList[idx] ?? status.pendingOptions,
+      optionDescriptions: status.pendingOptionDescriptionsList[idx] ?? status.pendingOptionDescriptions,
     })).filter(request => request.prompt)
   }
 
@@ -42,6 +48,7 @@ function requestsForSession(sessionId: string, status: AgentStatus): PendingAppr
     status,
     prompt: status.pendingPrompt,
     options: status.pendingOptions,
+    optionDescriptions: status.pendingOptionDescriptions,
   }]
 }
 
@@ -52,6 +59,7 @@ function pendingApprovals(): PendingApproval[] {
 
 function makeOptionButton(
   label: string,
+  description: string,
   idx: number,
   selected: () => number,
   select: (idx: number) => void,
@@ -63,7 +71,18 @@ function makeOptionButton(
   })
   const row = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL, spacing: 10 })
   row.append(new Gtk.Label({ label: `${idx + 1}`, cssClasses: ['agent-approval-key'] }))
-  row.append(new Gtk.Label({ label, xalign: 0, hexpand: true, wrap: true }))
+  const text = new Gtk.Box({ orientation: Gtk.Orientation.VERTICAL, spacing: 2, hexpand: true })
+  text.append(new Gtk.Label({ label, xalign: 0, hexpand: true, wrap: true }))
+  if (description) {
+    text.append(new Gtk.Label({
+      label: description,
+      xalign: 0,
+      hexpand: true,
+      wrap: true,
+      cssClasses: ['agent-approval-option-detail'],
+    }))
+  }
+  row.append(text)
   button.set_child(row)
   button.connect('clicked', () => {
     select(idx)
@@ -169,6 +188,7 @@ export function AgentApprovalOverlay(monitor: Accessor<Gdk.Monitor>) {
     for (const request of requests) {
       const status = request.status
       const options = approvalOptions(request)
+      const optionDescriptions = approvalOptionDescriptions(request)
       const projectIcon$ = iconForSession(status.cwd, status.sessionName)
       const optionBox = new Gtk.Box({
         orientation: Gtk.Orientation.VERTICAL,
@@ -179,6 +199,7 @@ export function AgentApprovalOverlay(monitor: Accessor<Gdk.Monitor>) {
       options.forEach((option, idx) => {
         const button = makeOptionButton(
           option,
+          optionDescriptions[idx] ?? '',
           idx,
           () => selectedOption,
           i => {

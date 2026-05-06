@@ -56,12 +56,9 @@ WORDCHARS=${WORDCHARS//[\/]}
 #zstyle ':zim:termtitle' format '%1~'
 
 codex() {
-  local selected_window agent_dbus_window_id
-  selected_window="$(locusctl context get selected window --first 2>/dev/null)"
-  if [[ "$selected_window" == window:* ]]; then
-    agent_dbus_window_id="${selected_window#window:}"
-  fi
-  AGENT_DBUS_WINDOW_ID="$agent_dbus_window_id" command codex "$@"
+  local codex_bin
+  codex_bin="$(whence -p codex)"
+  _locus_wrap_app codex utilities-terminal -- "$codex_bin" "$@"
 }
 
 _locus_safe_node_part() {
@@ -90,7 +87,11 @@ _locus_wrap_app() {
   fi
 
   {
-    "$@"
+    if (( linked )); then
+      LOCUS_APP_INSTANCE="$app_node" AGENT_DBUS_WINDOW_ID="${selected_window#window:}" "$@"
+    else
+      "$@"
+    fi
   } always {
     command_status=$?
     if (( linked )); then

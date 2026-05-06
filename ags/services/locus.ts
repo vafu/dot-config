@@ -54,6 +54,7 @@ export interface LocusService {
   resolve: (source: string, path: string[], callback: (subject: string) => void) => void
   watch$: (source: string, path: string[]) => Observable<LocusWatch>
   path$: (name: NamedPath) => Observable<string>
+  pathAll$: (name: NamedPath, source?: string) => Observable<string[]>
   resolve$: (source: string, path: string[]) => Observable<string>
   pathProperty$: (name: NamedPath, key: string) => Observable<string>
   resolvedProperty$: (source: string, path: string[], key: string) => Observable<string>
@@ -371,6 +372,7 @@ export function getLocusService(): LocusService {
 
   const client = new LocusDbusClient({ traceLatency: TRACE_DBUS_LATENCY })
   const pathCache = new Map<string, Observable<string>>()
+  const pathAllCache = new Map<string, Observable<string[]>>()
   const watchCache = new Map<string, Observable<LocusWatch>>()
   const resolveCache = new Map<string, Observable<string>>()
   const resolvedPropertyCache = new Map<string, Observable<string>>()
@@ -384,6 +386,46 @@ export function getLocusService(): LocusService {
     const spec = schemaPath(name)
     const observable = resolve$(spec.from, spec.path)
     pathCache.set(name, observable)
+    return observable
+  }
+
+  const pathAll$ = (name: NamedPath, source?: string) => {
+    const spec = schemaPath(name)
+    const actualSource = source ?? spec.from
+    const cacheKey = `${name}\0${actualSource}`
+    const cached = pathAllCache.get(cacheKey)
+    if (cached) return cached
+
+    const observable = new Observable<string[]>(subscriber => {
+      const relations = new Set<string>(spec.path)
+      const refresh = () => {
+        client.resolveAllPath(name, actualSource)
+          .then(targets => subscriber.next(targets))
+          .catch(error => {
+            callbackError(`ResolveAllPath(${name})`, error)
+            subscriber.next([])
+          })
+      }
+
+      refresh()
+      const unsubscribeAdded = client.onLinkAdded(signal => {
+        if (relations.has(signal.relation)) refresh()
+      })
+      const unsubscribeRemoved = client.onLinkRemoved(signal => {
+        if (relations.has(signal.relation)) refresh()
+      })
+      const unsubscribeSet = client.onLinkSet(signal => {
+        if (relations.has(signal.relation)) refresh()
+      })
+
+      return () => {
+        unsubscribeAdded()
+        unsubscribeRemoved()
+        unsubscribeSet()
+      }
+    }).pipe(distinctUntilChanged(sameArray), shareReplay(1))
+
+    pathAllCache.set(cacheKey, observable)
     return observable
   }
 
@@ -762,6 +804,7 @@ export function getLocusService(): LocusService {
     },
     watch$,
     path$,
+    pathAll$,
     resolve$,
     pathProperty$,
     resolvedProperty$,
