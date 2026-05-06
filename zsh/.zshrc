@@ -58,16 +58,16 @@ WORDCHARS=${WORDCHARS//[\/]}
 codex() {
   local selected_window agent_dbus_window_id
   selected_window="$(locusctl context get selected window --first 2>/dev/null)"
-  if [[ "$selected_window" == niri:window:* ]]; then
-    agent_dbus_window_id="${selected_window#niri:window:}"
+  if [[ "$selected_window" == window:* ]]; then
+    agent_dbus_window_id="${selected_window#window:}"
   fi
   AGENT_DBUS_WINDOW_ID="$agent_dbus_window_id" command codex "$@"
 }
 
 _locus_selected_workspace_subject() {
   local workspace_subject
-  workspace_subject="$(locusctl resolve context:selected workspace 2>/dev/null)"
-  [[ "$workspace_subject" == niri:workspace:* ]] || return 1
+  workspace_subject="$(locusctl resolve context:selected window workspace 2>/dev/null)"
+  [[ "$workspace_subject" == workspace:* ]] || return 1
   print -r -- "$workspace_subject"
 }
 

@@ -1,6 +1,8 @@
 import Brightness from './brightness'
 import { MonitorService, WindowService, WorkspaceService } from './wm/types'
 
+const WM_BACKEND = 'locus' as 'niri' | 'locus'
+
 export interface Services {
   workspace: WorkspaceService
   window: WindowService
@@ -41,8 +43,13 @@ async function getMonitorService() {
   //   return hyprMonitorService
   // }
   // if (await isNiri()) {
-  const { niriMonitorService } = await import('./wm/niri/monitors')
-  return niriMonitorService
+  if (WM_BACKEND === 'locus') {
+    const { locusMonitorService } = await import('./wm/locus/monitors')
+    return locusMonitorService
+  } else {
+    const { niriMonitorService } = await import('./wm/niri/monitors')
+    return niriMonitorService
+  }
   // }
   throw Error('Unsupported WM!')
 }
@@ -53,8 +60,13 @@ async function getWorkspaceService() {
   //   return hyprMonitorService
   // }
   // if (await isNiri()) {
-  const { workspaceService } = await import('./wm/niri/workspace')
-  return workspaceService
+  if (WM_BACKEND === 'locus') {
+    const { locusWorkspaceService } = await import('./wm/locus/workspace')
+    return locusWorkspaceService
+  } else {
+    const { workspaceService } = await import('./wm/niri/workspace')
+    return workspaceService
+  }
   // }
   throw Error('Unsupported WM!')
 }
@@ -65,8 +77,13 @@ async function getWindowService() {
   //   return hyprMonitorService
   // }
   // if (await isNiri()) {
-  const { windowService } = await import('./wm/niri/window')
-  return windowService
+  if (WM_BACKEND === 'locus') {
+    const { locusWindowService } = await import('./wm/locus/window')
+    return locusWindowService
+  } else {
+    const { windowService } = await import('./wm/niri/window')
+    return windowService
+  }
   // }
   throw Error('Unsupported WM!')
 }

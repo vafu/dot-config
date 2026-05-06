@@ -10,19 +10,44 @@ import { map, distinctUntilChanged } from 'rxjs'
 
 type PendingApproval = {
   sessionId: string
+  requestId: string
   status: AgentStatus
+  prompt: string
+  options: string[]
 }
 
 const prettyPath = (path: string) => path ? path.replace(/^\/home\/[^/]+/, '~') : 'unknown cwd'
-const approvalOptions = (status: AgentStatus) =>
-  status.pendingOptions.length > 0 ? status.pendingOptions : ['Allow', 'Deny']
-const approvalSignature = (sessionId: string, status: AgentStatus) =>
-  `${sessionId}:${status.pendingPrompt}:${approvalOptions(status).join('\0')}`
+const approvalOptions = (request: PendingApproval) =>
+  request.options.length > 0 ? request.options : ['Allow', 'Deny']
+const approvalSignature = (request: PendingApproval) =>
+  `${request.sessionId}:${request.requestId}:${request.prompt}:${approvalOptions(request).join('\0')}`
+
+function requestsForSession(sessionId: string, status: AgentStatus): PendingApproval[] {
+  if (!status.requiresAttention) return []
+
+  if (status.pendingRequestIds.length > 0) {
+    return status.pendingRequestIds.map((requestId, idx) => ({
+      sessionId,
+      requestId,
+      status,
+      prompt: status.pendingPrompts[idx] ?? status.pendingPrompt,
+      options: status.pendingOptionsList[idx] ?? status.pendingOptions,
+    })).filter(request => request.prompt)
+  }
+
+  if (!status.pendingPrompt) return []
+  return [{
+    sessionId,
+    requestId: '',
+    status,
+    prompt: status.pendingPrompt,
+    options: status.pendingOptions,
+  }]
+}
 
 function pendingApprovals(): PendingApproval[] {
   return [...getAgentService().sessions$.value.entries()]
-    .filter(([, status]) => status.requiresAttention && status.pendingPrompt)
-    .map(([sessionId, status]) => ({ sessionId, status }))
+    .flatMap(([sessionId, status]) => requestsForSession(sessionId, status))
 }
 
 function makeOptionButton(
@@ -77,8 +102,8 @@ export function AgentApprovalOverlay(monitor: Accessor<Gdk.Monitor>) {
   }
 
   const choose = (request: PendingApproval, answer: string) => {
-    respondToElicitation(request.sessionId, answer)
-    requests = requests.filter(r => r.sessionId !== request.sessionId)
+    respondToElicitation(request.sessionId, answer, request.requestId)
+    requests = requests.filter(r => r.sessionId !== request.sessionId || r.requestId !== request.requestId)
     if (requests.length === 0) {
       approvalsUi.hide()
     } else {
@@ -101,13 +126,13 @@ export function AgentApprovalOverlay(monitor: Accessor<Gdk.Monitor>) {
 
   const currentOptions = () => {
     const request = selectedRequest()
-    return request ? approvalOptions(request.status) : []
+    return request ? approvalOptions(request) : []
   }
 
   const answerSelected = () => {
     const request = selectedRequest()
     if (!request) return
-    const options = approvalOptions(request.status)
+    const options = approvalOptions(request)
     choose(request, options[Math.min(selectedOption, options.length - 1)])
   }
 
@@ -143,7 +168,7 @@ export function AgentApprovalOverlay(monitor: Accessor<Gdk.Monitor>) {
 
     for (const request of requests) {
       const status = request.status
-      const options = approvalOptions(status)
+      const options = approvalOptions(request)
       const projectIcon$ = iconForSession(status.cwd, status.sessionName)
       const optionBox = new Gtk.Box({
         orientation: Gtk.Orientation.VERTICAL,
@@ -182,7 +207,7 @@ export function AgentApprovalOverlay(monitor: Accessor<Gdk.Monitor>) {
             </box>
             <label label={status.modelName || ''} cssClasses={['agent-approval-model']} />
           </box>
-          <label label={status.pendingPrompt} xalign={0} wrap maxWidthChars={58} cssClasses={['agent-approval-prompt']} />
+          <label label={request.prompt} xalign={0} wrap maxWidthChars={58} cssClasses={['agent-approval-prompt']} />
           {optionBox}
         </box>
       ) as Gtk.Widget
@@ -238,7 +263,7 @@ export function AgentApprovalOverlay(monitor: Accessor<Gdk.Monitor>) {
       const idx = keyval - Gdk.KEY_1
       const request = selectedRequest()
       if (request) {
-        const requestOptions = approvalOptions(request.status)
+        const requestOptions = approvalOptions(request)
         if (idx < requestOptions.length) choose(request, requestOptions[idx])
       }
       return true
@@ -250,8 +275,8 @@ export function AgentApprovalOverlay(monitor: Accessor<Gdk.Monitor>) {
   sessions$
     .pipe(
       map(s => [...s.entries()]
-        .filter(([, status]) => status.requiresAttention && status.pendingPrompt)
-        .map(([id, status]) => approvalSignature(id, status))
+        .flatMap(([id, status]) => requestsForSession(id, status))
+        .map(request => approvalSignature(request))
         .join('\n')),
       distinctUntilChanged(),
     )

@@ -117,7 +117,7 @@ function findPendingRequestForWindows(
   pending: PendingAgentRequest[],
   callback: (match: PendingAgentRequest | null) => void,
 ) {
-  const windows = [...new Set(windowSubjects.filter(subject => subject.startsWith('niri:window:')))]
+  const windows = [...new Set(windowSubjects.filter(subject => subject.startsWith('window:')))]
   if (windows.length === 0) return callback(null)
 
   const targets: string[] = []

@@ -16,6 +16,10 @@ export interface AgentStatus {
   costUsd: number
   pendingPrompt: string
   pendingOptions: string[]
+  pendingCount: number
+  pendingRequestIds: string[]
+  pendingPrompts: string[]
+  pendingOptionsList: string[][]
   sessionName: string
   fiveHourUsagePct: number
   fiveHourResetsAt: number
@@ -25,6 +29,7 @@ export interface AgentStatus {
 
 export interface AgentElicitation {
   sessionId: string
+  requestId?: string
   prompt: string
   options: string[]
 }
@@ -32,7 +37,7 @@ export interface AgentElicitation {
 export interface AgentService {
   sessions$: Observable<Map<string, AgentStatus>>
   elicitation$: Observable<AgentElicitation | null>
-  respondToElicitation: (sessionId: string, answer: string) => void
+  respondToElicitation: (sessionId: string, answer: string, requestId?: string) => void
   iconForSession: (cwd: string, sessionName: string) => Observable<string>
 }
 
@@ -62,6 +67,10 @@ function propsToStatus(props: Record<string, GLib.Variant>): Partial<AgentStatus
   if ('CostUsd' in props) status.costUsd = props['CostUsd'].deepUnpack() as number
   if ('PendingPrompt' in props) status.pendingPrompt = props['PendingPrompt'].deepUnpack() as string
   if ('PendingOptions' in props) status.pendingOptions = props['PendingOptions'].deepUnpack() as string[]
+  if ('PendingCount' in props) status.pendingCount = props['PendingCount'].deepUnpack() as number
+  if ('PendingRequestIds' in props) status.pendingRequestIds = props['PendingRequestIds'].deepUnpack() as string[]
+  if ('PendingPrompts' in props) status.pendingPrompts = props['PendingPrompts'].deepUnpack() as string[]
+  if ('PendingOptionsList' in props) status.pendingOptionsList = props['PendingOptionsList'].deepUnpack() as string[][]
   if ('SessionName' in props) status.sessionName = props['SessionName'].deepUnpack() as string
   if ('FiveHourUsagePct' in props) status.fiveHourUsagePct = props['FiveHourUsagePct'].deepUnpack() as number
   if ('FiveHourResetsAt' in props) status.fiveHourResetsAt = props['FiveHourResetsAt'].deepUnpack() as number
@@ -76,7 +85,7 @@ export function getAgentService(): AgentService {
   const sessions$ = new BehaviorSubject<Map<string, AgentStatus>>(new Map())
   const elicitation$ = new BehaviorSubject<AgentElicitation | null>(null)
 
-  const DEFAULT: AgentStatus = { agentName: '', state: 'no-session', taskComplete: false, requiresAttention: false, contextPct: 0, modelName: '', cwd: '', costUsd: 0, pendingPrompt: '', pendingOptions: [], sessionName: '', fiveHourUsagePct: 0, fiveHourResetsAt: 0, sevenDayUsagePct: 0, sevenDayResetsAt: 0 }
+  const DEFAULT: AgentStatus = { agentName: '', state: 'no-session', taskComplete: false, requiresAttention: false, contextPct: 0, modelName: '', cwd: '', costUsd: 0, pendingPrompt: '', pendingOptions: [], pendingCount: 0, pendingRequestIds: [], pendingPrompts: [], pendingOptionsList: [], sessionName: '', fiveHourUsagePct: 0, fiveHourResetsAt: 0, sevenDayUsagePct: 0, sevenDayResetsAt: 0 }
 
   const updateSession = (sessionId: string, update: Partial<AgentStatus>) => {
     const map = new Map(sessions$.value)
@@ -187,6 +196,22 @@ export function getAgentService(): AgentService {
   Gio.DBus.session.signal_subscribe(
     BUS_NAME,
     SESSION_IFACE,
+    'ElicitationRequestedWithId',
+    null, // any path
+    null,
+    Gio.DBusSignalFlags.NONE,
+    (_conn: any, _sender: any, path: string, _iface: any, _signal: any, params: any) => {
+      const sessionId = sessionIdFromPath(path)
+      if (!sessionId) return
+      const [requestId, prompt, options] = params.deepUnpack() as [string, string, string[]]
+      console.log(`[Agent] ElicitationRequestedWithId: session=${sessionId} request=${requestId} prompt=${prompt}`)
+      elicitation$.next({ sessionId, requestId, prompt, options })
+    },
+  )
+
+  Gio.DBus.session.signal_subscribe(
+    BUS_NAME,
+    SESSION_IFACE,
     'ElicitationRequested',
     null, // any path
     null,
@@ -203,16 +228,18 @@ export function getAgentService(): AgentService {
   bootstrapSessions()
 
   // RespondToElicitation is now a method on the session object
-  const respondToElicitation = (sessionId: string, answer: string) => {
+  const respondToElicitation = (sessionId: string, answer: string, requestId = '') => {
     const safePath = SESSION_PREFIX + sessionId.split('/').map(s => s.replace(/[^a-zA-Z0-9_]/g, '_')).join('/')
-    console.log(`[Agent] respondToElicitation: session=${sessionId} answer=${answer}`)
+    const method = requestId ? 'RespondToElicitationById' : 'RespondToElicitation'
+    const body = requestId ? new GLib.Variant('(ss)', [requestId, answer]) : new GLib.Variant('(s)', [answer])
+    console.log(`[Agent] respondToElicitation: session=${sessionId} request=${requestId || '(oldest)'} answer=${answer}`)
     elicitation$.next(null)
     Gio.DBus.session.call(
       BUS_NAME,
       safePath,
       SESSION_IFACE,
-      'RespondToElicitation',
-      new GLib.Variant('(s)', [answer]),
+      method,
+      body,
       null,
       Gio.DBusCallFlags.NONE,
       -1,

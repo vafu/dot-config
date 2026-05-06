@@ -1,11 +1,11 @@
-import Gio from 'gi://Gio?version=2.0'
-import GLib from 'gi://GLib?version=2.0'
-import { BehaviorSubject, Observable } from 'rxjs'
+import { BehaviorSubject, Observable, distinctUntilChanged, shareReplay } from 'rxjs'
 import {
-  LocusSchemaClient,
-  locusSchema,
-  type LocusDbusClient,
+  LocusDbusClient,
+  path as schemaPath,
   type NamedPath,
+  type NodeId,
+  type OptionalNodeId,
+  type PropertyKey,
   type Relation,
 } from './locus.generated'
 
@@ -24,120 +24,28 @@ export interface LocusService {
   refreshActiveProject: () => void
   getTargets: (source: string, relation: string, callback: (targets: string[]) => void) => void
   getSources: (target: string, relation: string, callback: (sources: string[]) => void) => void
+  getProperty: (subject: string, key: string, callback: (value: string) => void) => void
   getProperties: (subject: string, callback: (properties: Record<string, string>) => void) => void
   resolve: (source: string, path: string[], callback: (subject: string) => void) => void
-  subscribeResolve: (source: string, path: string[], callback: (subject: string) => void) => void
+  path$: (name: NamedPath) => Observable<string>
+  resolve$: (source: string, path: string[]) => Observable<string>
+  property$: (subject: string, key: string) => Observable<string>
+  sources$: (target: string, relation: string) => Observable<string[]>
+  targets$: (source: string, relation: string) => Observable<string[]>
   setContextLink: (context: string, relation: string, target: string) => void
   clearContextLink: (context: string, relation: string) => void
 }
 
-const BUS_NAME = 'io.github.Locus'
-const ROOT_PATH = '/io/github/Locus'
-const GRAPH_IFACE = 'io.github.Locus.Graph'
-const SELECTED_CONTEXT = 'selected'
-const PROJECT_RELATION: Relation = 'project'
-const WORKSPACE_RELATION: Relation = 'workspace'
-const WINDOW_RELATION: Relation = 'window'
-const SELECTED_SUBJECT = `context:${SELECTED_CONTEXT}`
-const SELECTED_WORKSPACE_PATH_NAME: NamedPath = 'selected-workspace'
-const SELECTED_PROJECT_PATH_NAME: NamedPath = 'selected-project'
-const SELECTED_WORKSPACE_PATH = [...locusSchema.paths[SELECTED_WORKSPACE_PATH_NAME].path]
-const SELECTED_PROJECT_PATH = [...locusSchema.paths[SELECTED_PROJECT_PATH_NAME].path]
+const TRACE_DBUS_LATENCY = true
 
 let service: LocusService | null = null
 
-function call<T>(
-  method: string,
-  params: GLib.Variant | null,
-  resultType: string,
-  unpack: (result: any) => T,
-  callback: (value: T) => void,
-  fallback: T,
-) {
-  Gio.DBus.session.call(
-    BUS_NAME,
-    ROOT_PATH,
-    GRAPH_IFACE,
-    method,
-    params,
-    new GLib.VariantType(resultType),
-    Gio.DBusCallFlags.NONE,
-    -1,
-    null,
-    (_conn: any, res: any) => {
-      try {
-        callback(unpack(Gio.DBus.session.call_finish(res).deepUnpack()))
-      } catch (e) {
-        console.error(`[Locus] ${method} failed:`, e)
-        callback(fallback)
-      }
-    },
-  )
+function contextSubject(context: string) {
+  return `context:${context}`
 }
 
-function callPromise<T>(
-  method: string,
-  params: GLib.Variant | null,
-  resultType: string | null,
-  unpack: (result: any) => T,
-): Promise<T> {
-  return new Promise((resolve, reject) => {
-    Gio.DBus.session.call(
-      BUS_NAME,
-      ROOT_PATH,
-      GRAPH_IFACE,
-      method,
-      params,
-      resultType ? new GLib.VariantType(resultType) : null,
-      Gio.DBusCallFlags.NONE,
-      -1,
-      null,
-      (_conn: any, res: any) => {
-        try {
-          const result = Gio.DBus.session.call_finish(res)
-          resolve(unpack(result.deepUnpack()))
-        } catch (e) {
-          console.error(`[Locus] ${method} failed:`, e)
-          reject(e)
-        }
-      },
-    )
-  })
-}
-
-function createDbusClient(): LocusDbusClient {
-  return {
-    setLink(source, relation, target) {
-      return callPromise('SetLink', new GLib.Variant('(sss)', [source, relation, target]), null, () => undefined)
-    },
-    removeLink(source, relation, target) {
-      return callPromise('RemoveLink', new GLib.Variant('(sss)', [source, relation, target]), null, () => undefined)
-    },
-    getTargets(source, relation) {
-      return callPromise('GetTargets', new GLib.Variant('(ss)', [source, relation]), '(as)', ([targets]) => targets as string[])
-    },
-    getSources(target, relation) {
-      return callPromise('GetSources', new GLib.Variant('(ss)', [target, relation]), '(as)', ([sources]) => sources as string[])
-    },
-    setProperty(subject, key, value) {
-      return callPromise('SetProperty', new GLib.Variant('(sss)', [subject, key, value]), null, () => undefined)
-    },
-    getProperty(subject, key) {
-      return callPromise('GetProperty', new GLib.Variant('(ss)', [subject, key]), '(s)', ([value]) => value as string)
-    },
-    getProperties(subject) {
-      return callPromise('GetProperties', new GLib.Variant('(s)', [subject]), '(a{ss})', ([properties]) => properties as Record<string, string>)
-    },
-    resolve(source, path) {
-      return callPromise('Resolve', new GLib.Variant('(sas)', [source, path]), '(s)', ([subject]) => subject as string)
-    },
-    resolveAll(source, path) {
-      return callPromise('ResolveAll', new GLib.Variant('(sas)', [source, path]), '(as)', ([subjects]) => subjects as string[])
-    },
-    subscribeResolve(source, path) {
-      return callPromise('SubscribeResolve', new GLib.Variant('(sas)', [source, path]), '(s)', ([subject]) => subject as string)
-    },
-  }
+function present(value: OptionalNodeId) {
+  return value ?? ''
 }
 
 function firstProjectName(project: string, properties: Record<string, string>) {
@@ -159,243 +67,266 @@ function toProject(subject: string, properties: Record<string, string>): LocusPr
   }
 }
 
-function samePath(left: string[], right: string[]) {
-  return left.length === right.length && left.every((part, index) => part === right[index])
+function callbackError(scope: string, error: unknown) {
+  console.error(`[Locus] ${scope} failed:`, error)
 }
 
 export function getLocusService(): LocusService {
   if (service) return service
 
+  const client = new LocusDbusClient({ traceLatency: TRACE_DBUS_LATENCY })
+  const pathCache = new Map<string, Observable<string>>()
+  const resolveCache = new Map<string, Observable<string>>()
+  const propertyCache = new Map<string, Observable<string>>()
+  const sourcesCache = new Map<string, Observable<string[]>>()
+  const targetsCache = new Map<string, Observable<string[]>>()
+
+  const path$ = (name: NamedPath) => {
+    const cached = pathCache.get(name)
+    if (cached) return cached
+    const spec = schemaPath(name)
+    const observable = resolve$(spec.from, spec.path)
+    pathCache.set(name, observable)
+    return observable
+  }
+
+  const resolve$ = (source: string, path: string[]) => {
+    const key = `${source}\0${path.join('\0')}`
+    const cached = resolveCache.get(key)
+    if (cached) return cached
+
+    const observable = new Observable<string>(subscriber => {
+      let closed = false
+      let unsubscribeTarget: (() => void) | null = null
+      let watch: { close: () => Promise<void>; onTargetChanged: (handler: (target: OptionalNodeId) => void) => () => void; target: () => Promise<OptionalNodeId> } | null = null
+
+      client.watchNode(source, path as Relation[])
+        .then(created => {
+          if (closed) {
+            created.close().catch(error => callbackError('Watch.Close', error))
+            return
+          }
+          watch = created
+          unsubscribeTarget = created.onTargetChanged(target => subscriber.next(present(target)))
+          return created.target()
+        })
+        .then(target => {
+          if (!closed && target !== undefined) subscriber.next(present(target))
+        })
+        .catch(error => {
+          callbackError('WatchNode', error)
+          subscriber.next('')
+        })
+
+      return () => {
+        closed = true
+        unsubscribeTarget?.()
+        watch?.close().catch(error => callbackError('Watch.Close', error))
+        resolveCache.delete(key)
+      }
+    }).pipe(distinctUntilChanged(), shareReplay({ bufferSize: 1, refCount: true }))
+
+    resolveCache.set(key, observable)
+    return observable
+  }
+
+  const property$ = (subject: string, key: string) => {
+    const cacheKey = `${subject}\0${key}`
+    const cached = propertyCache.get(cacheKey)
+    if (cached) return cached
+
+    const observable = new Observable<string>(subscriber => {
+      if (!subject) {
+        subscriber.next('')
+        return undefined
+      }
+
+      client.property(subject, key as PropertyKey)
+        .then(value => subscriber.next(present(value)))
+        .catch(error => {
+          callbackError('GetProperty', error)
+          subscriber.next('')
+        })
+
+      const unsubscribeChanged = client.onPropertyChanged(signal => {
+        if (signal.subject === subject && signal.key === key) subscriber.next(signal.value)
+      })
+      const unsubscribeRemoved = client.onPropertyRemoved(signal => {
+        if (signal.subject === subject && signal.key === key) subscriber.next('')
+      })
+
+      return () => {
+        unsubscribeChanged()
+        unsubscribeRemoved()
+        propertyCache.delete(cacheKey)
+      }
+    }).pipe(distinctUntilChanged(), shareReplay({ bufferSize: 1, refCount: true }))
+
+    propertyCache.set(cacheKey, observable)
+    return observable
+  }
+
+  const sources$ = (target: string, relation: string) => {
+    const cacheKey = `${target}\0${relation}`
+    const cached = sourcesCache.get(cacheKey)
+    if (cached) return cached
+
+    const observable = new Observable<string[]>(subscriber => {
+      const refresh = () => {
+        client.sources(target, relation as Relation)
+          .then(sources => subscriber.next(sources))
+          .catch(error => {
+            callbackError('GetSources', error)
+            subscriber.next([])
+          })
+      }
+
+      refresh()
+      const unsubscribeAdded = client.onLinkAdded(signal => {
+        if (signal.relation === relation && signal.target === target) refresh()
+      })
+      const unsubscribeRemoved = client.onLinkRemoved(signal => {
+        if (signal.relation === relation && signal.target === target) refresh()
+      })
+      const unsubscribeSet = client.onLinkSet(signal => {
+        if (signal.relation === relation && (signal.target === target || signal.oldTargets.includes(target))) refresh()
+      })
+
+      return () => {
+        unsubscribeAdded()
+        unsubscribeRemoved()
+        unsubscribeSet()
+        sourcesCache.delete(cacheKey)
+      }
+    }).pipe(shareReplay({ bufferSize: 1, refCount: true }))
+
+    sourcesCache.set(cacheKey, observable)
+    return observable
+  }
+
+  const targets$ = (source: string, relation: string) => {
+    const cacheKey = `${source}\0${relation}`
+    const cached = targetsCache.get(cacheKey)
+    if (cached) return cached
+
+    const observable = new Observable<string[]>(subscriber => {
+      const refresh = () => {
+        client.targets(source, relation as Relation)
+          .then(targets => subscriber.next(targets))
+          .catch(error => {
+            callbackError('GetTargets', error)
+            subscriber.next([])
+          })
+      }
+
+      refresh()
+      const unsubscribeAdded = client.onLinkAdded(signal => {
+        if (signal.relation === relation && signal.source === source) refresh()
+      })
+      const unsubscribeRemoved = client.onLinkRemoved(signal => {
+        if (signal.relation === relation && signal.source === source) refresh()
+      })
+      const unsubscribeSet = client.onLinkSet(signal => {
+        if (signal.relation === relation && signal.source === source) refresh()
+      })
+
+      return () => {
+        unsubscribeAdded()
+        unsubscribeRemoved()
+        unsubscribeSet()
+        targetsCache.delete(cacheKey)
+      }
+    }).pipe(shareReplay({ bufferSize: 1, refCount: true }))
+
+    targetsCache.set(cacheKey, observable)
+    return observable
+  }
+
   const activeProject$ = new BehaviorSubject<LocusProject | null>(null)
-  const selectedWorkspace$ = new BehaviorSubject('')
-  const selectedWindow$ = new BehaviorSubject('')
-  const schemaClient = new LocusSchemaClient(createDbusClient())
-
-  const getTargets = (source: string, relation: string, callback: (targets: string[]) => void) => {
-    call(
-      'GetTargets',
-      new GLib.Variant('(ss)', [source, relation]),
-      '(as)',
-      ([targets]) => targets as string[],
-      callback,
-      [],
-    )
-  }
-
-  const getSources = (target: string, relation: string, callback: (sources: string[]) => void) => {
-    call(
-      'GetSources',
-      new GLib.Variant('(ss)', [target, relation]),
-      '(as)',
-      ([sources]) => sources as string[],
-      callback,
-      [],
-    )
-  }
-
-  const getContextTargets = (
-    context: string,
-    relation: string,
-    callback: (targets: string[]) => void,
-  ) => {
-    call(
-      'GetTargets',
-      new GLib.Variant('(ss)', [`context:${context}`, relation]),
-      '(as)',
-      ([targets]) => targets as string[],
-      callback,
-      [],
-    )
-  }
-
-  const setContextLink = (context: string, relation: string, target: string) => {
-    Gio.DBus.session.call(
-      BUS_NAME,
-      ROOT_PATH,
-      GRAPH_IFACE,
-      'SetLink',
-      new GLib.Variant('(sss)', [`context:${context}`, relation, target]),
-      null,
-      Gio.DBusCallFlags.NONE,
-      -1,
-      null,
-      (_conn: any, res: any) => {
-        try {
-          Gio.DBus.session.call_finish(res)
-        } catch (e) {
-          console.error('[Locus] SetLink failed:', e)
-        }
-      },
-    )
-  }
-
-  const clearContextLink = (context: string, relation: string) => {
-    Gio.DBus.session.call(
-      BUS_NAME,
-      ROOT_PATH,
-      GRAPH_IFACE,
-      'RemoveLinks',
-      new GLib.Variant('(ss)', [`context:${context}`, relation]),
-      null,
-      Gio.DBusCallFlags.NONE,
-      -1,
-      null,
-      (_conn: any, res: any) => {
-        try {
-          Gio.DBus.session.call_finish(res)
-        } catch (e) {
-          console.error('[Locus] RemoveLinks failed:', e)
-        }
-      },
-    )
-  }
-
-  const getProperties = (
-    subject: string,
-    callback: (properties: Record<string, string>) => void,
-  ) => {
-    call(
-      'GetProperties',
-      new GLib.Variant('(s)', [subject]),
-      '(a{ss})',
-      ([properties]) => properties as Record<string, string>,
-      callback,
-      {},
-    )
-  }
-
-  const resolve = (
-    source: string,
-    path: string[],
-    callback: (subject: string) => void,
-  ) => {
-    call(
-      'Resolve',
-      new GLib.Variant('(sas)', [source, path]),
-      '(s)',
-      ([subject]) => subject as string,
-      callback,
-      '',
-    )
-  }
-
-  const subscribeResolve = (
-    source: string,
-    path: string[],
-    callback: (subject: string) => void,
-  ) => {
-    call(
-      'SubscribeResolve',
-      new GLib.Variant('(sas)', [source, path]),
-      '(s)',
-      ([subject]) => subject as string,
-      subject => {
-        console.log(`[Locus] SubscribeResolve initial ${source} path=${path.join('>') || '<self>'} target=${subject || '<none>'}`)
-        callback(subject)
-      },
-      '',
-    )
-  }
-
   const setActiveProject = (project: string) => {
     if (!project) {
       activeProject$.next(null)
       return
     }
 
-    getProperties(project, properties => {
-      activeProject$.next(toProject(project, properties))
-    })
+    client.properties(project)
+      .then(properties => activeProject$.next(toProject(project, properties)))
+      .catch(error => {
+        callbackError('GetProperties', error)
+        activeProject$.next(null)
+      })
   }
 
   const refreshActiveProject = () => {
-    schemaClient.selectedProject()
-      .then(project => setActiveProject(project ?? ''))
-      .catch(() => setActiveProject(''))
+    client.resolvePath('selected-project')
+      .then(project => setActiveProject(present(project)))
+      .catch(error => {
+        callbackError('ResolvePath(selected-project)', error)
+        setActiveProject('')
+      })
   }
 
-  const refreshSelectedWorkspace = () => {
-    schemaClient.selectedWorkspace()
-      .then(workspace => selectedWorkspace$.next(workspace ?? ''))
-      .catch(() => selectedWorkspace$.next(''))
-  }
-
-  const refreshSelectedWindow = () => {
-    getContextTargets(SELECTED_CONTEXT, WINDOW_RELATION, targets => {
-      const window = targets[0] || ''
-      if (window === selectedWindow$.value) return
-      console.log(`[Locus] selected window=${window || '<none>'}`)
-      selectedWindow$.next(window)
-    })
-  }
-
-  Gio.DBus.session.signal_subscribe(
-    BUS_NAME,
-    GRAPH_IFACE,
-    null,
-    null,
-    null,
-    Gio.DBusSignalFlags.NONE,
-    (_conn: any, _sender: any, _path: any, _iface: any, signal: string, params: any) => {
-      const unpacked = params.deepUnpack()
-      if (signal === 'LinkAdded' || signal === 'LinkRemoved') {
-        const [source, relation, target] = unpacked as [string, string, string]
-        if (
-          signal === 'LinkRemoved'
-          && source === SELECTED_SUBJECT
-          && relation === WINDOW_RELATION
-          && target === selectedWindow$.value
-        ) {
-          refreshSelectedWindow()
-        }
-      } else if (signal === 'LinkSet') {
-        const [source, relation] = unpacked as [string, string, string[], string]
-        if (source === SELECTED_SUBJECT && relation === WINDOW_RELATION) {
-          refreshSelectedWindow()
-        }
-      } else if (signal === 'ResolveChanged') {
-        const [source, path, target] = unpacked as [string, string[], string]
-        console.log(`[Locus] ResolveChanged ${source} path=${path.join('>') || '<self>'} target=${target || '<none>'}`)
-        if (source === SELECTED_SUBJECT && samePath(path, SELECTED_WORKSPACE_PATH)) {
-          selectedWorkspace$.next(target)
-        } else if (source === SELECTED_SUBJECT && samePath(path, SELECTED_PROJECT_PATH)) {
-          setActiveProject(target)
-        }
-      } else if (signal === 'PropertyChanged' || signal === 'PropertyRemoved') {
-        const [subject] = unpacked as [string, string, string?]
-        if (subject === activeProject$.value?.subject) {
-          refreshActiveProject()
-        }
-      }
-    },
-  )
-
-  schemaClient.subscribeSelectedWorkspace()
-    .then(workspace => {
-      console.log(`[Locus] SubscribeResolve initial ${SELECTED_SUBJECT} path=${SELECTED_WORKSPACE_PATH.join('>')} target=${workspace || '<none>'}`)
-      selectedWorkspace$.next(workspace ?? '')
-    })
-    .catch(() => selectedWorkspace$.next(''))
-  schemaClient.subscribeSelectedProject()
-    .then(project => {
-      console.log(`[Locus] SubscribeResolve initial ${SELECTED_SUBJECT} path=${SELECTED_PROJECT_PATH.join('>')} target=${project || '<none>'}`)
-      setActiveProject(project ?? '')
-    })
-    .catch(() => setActiveProject(''))
-  refreshSelectedWindow()
+  path$('selected-project').subscribe(setActiveProject)
 
   service = {
     activeProject$,
-    selectedWorkspace$,
-    selectedWindow$,
+    selectedWorkspace$: path$('selected-workspace'),
+    selectedWindow$: path$('selected-window'),
     refreshActiveProject,
-    getTargets,
-    getSources,
-    getProperties,
-    resolve,
-    subscribeResolve,
-    setContextLink,
-    clearContextLink,
+    getTargets(source, relation, callback) {
+      client.targets(source, relation as Relation)
+        .then(callback)
+        .catch(error => {
+          callbackError('GetTargets', error)
+          callback([])
+        })
+    },
+    getSources(target, relation, callback) {
+      client.sources(target, relation as Relation)
+        .then(callback)
+        .catch(error => {
+          callbackError('GetSources', error)
+          callback([])
+        })
+    },
+    getProperty(subject, key, callback) {
+      client.property(subject, key as PropertyKey)
+        .then(value => callback(present(value)))
+        .catch(error => {
+          callbackError('GetProperty', error)
+          callback('')
+        })
+    },
+    getProperties(subject, callback) {
+      client.properties(subject)
+        .then(callback)
+        .catch(error => {
+          callbackError('GetProperties', error)
+          callback({})
+        })
+    },
+    resolve(source, path, callback) {
+      client.resolve(source, path as Relation[])
+        .then(target => callback(present(target)))
+        .catch(error => {
+          callbackError('Resolve', error)
+          callback('')
+        })
+    },
+    path$,
+    resolve$,
+    property$,
+    sources$,
+    targets$,
+    setContextLink(context, relation, target) {
+      client.setLink(contextSubject(context), relation as Relation, target)
+        .catch(error => callbackError('SetLink', error))
+    },
+    clearContextLink(context, relation) {
+      client.removeLinks(contextSubject(context), relation as Relation)
+        .catch(error => callbackError('RemoveLinks', error))
+    },
   }
+
   return service
 }

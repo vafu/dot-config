@@ -17,11 +17,38 @@ const CONTEXT_STAGES = [
 
 const STYLE = { style: 'line' as const, thickness: 3 }
 const AGENT_SESSION_NODE_PREFIX = 'agent-session:'
-const AGENT_SESSION_RELATION = 'agent-session'
+const SELECTED_AGENT_SESSION_PATH = ['window', 'agent-session']
 
-const DEFAULT_STATUS: AgentStatus = { agentName: '', state: 'no-session', taskComplete: false, requiresAttention: false, contextPct: 0, modelName: '', cwd: '', costUsd: 0, pendingPrompt: '', pendingOptions: [], sessionName: '', fiveHourUsagePct: 0, fiveHourResetsAt: 0, sevenDayUsagePct: 0, sevenDayResetsAt: 0 }
+const DEFAULT_STATUS: AgentStatus = { agentName: '', state: 'no-session', taskComplete: false, requiresAttention: false, contextPct: 0, modelName: '', cwd: '', costUsd: 0, pendingPrompt: '', pendingOptions: [], pendingCount: 0, pendingRequestIds: [], pendingPrompts: [], pendingOptionsList: [], sessionName: '', fiveHourUsagePct: 0, fiveHourResetsAt: 0, sevenDayUsagePct: 0, sevenDayResetsAt: 0 }
 const selectedSession$ = new BehaviorSubject('')
 let selectedSessionSetup = false
+
+type PendingRequest = {
+  requestId: string
+  prompt: string
+  options: string[]
+}
+
+function pendingRequests(status: AgentStatus): PendingRequest[] {
+  if (!status.requiresAttention) return []
+
+  if (status.pendingRequestIds.length > 0) {
+    return status.pendingRequestIds.map((requestId, idx) => ({
+      requestId,
+      prompt: status.pendingPrompts[idx] ?? status.pendingPrompt,
+      options: status.pendingOptionsList[idx] ?? status.pendingOptions,
+    })).filter(request => request.prompt)
+  }
+
+  if (!status.pendingPrompt) return []
+  return [{ requestId: '', prompt: status.pendingPrompt, options: status.pendingOptions }]
+}
+
+function pendingSignature(status: AgentStatus): string {
+  return pendingRequests(status)
+    .map(request => `${request.requestId}:${request.prompt}:${request.options.join('\0')}`)
+    .join('\n')
+}
 
 const AgentWidget = (sessionId: string) => {
   const { sessions$, respondToElicitation, iconForSession } = getAgentService()
@@ -37,8 +64,7 @@ const AgentWidget = (sessionId: string) => {
       a.modelName === b.modelName &&
       a.cwd === b.cwd &&
       a.costUsd === b.costUsd &&
-      a.pendingPrompt === b.pendingPrompt &&
-      a.pendingOptions.join('\0') === b.pendingOptions.join('\0') &&
+      pendingSignature(a) === pendingSignature(b) &&
       a.sessionName === b.sessionName
     ),
     shareReplay(1),
@@ -172,23 +198,36 @@ const AgentWidget = (sessionId: string) => {
       child = next
     }
 
-    if (status.requiresAttention && status.pendingPrompt) {
-      promptLabel.label = status.pendingPrompt
+    const requests = pendingRequests(status)
+    if (requests.length > 0) {
+      promptLabel.label = requests.length === 1 ? requests[0].prompt : `${requests.length} pending requests`
       elicitationBox.visible = true
 
-      const options = status.pendingOptions.length > 0 ? status.pendingOptions : ['Allow', 'Deny']
-      for (const option of options) {
-        const btn = (
-          <button
-            label={option}
-            onClicked={() => {
-              console.log(`[Agent] popup button clicked: session=${sessionId} option=${option}`)
-              popover.popdown()
-              respondToElicitation(sessionId, option)
-            }}
-          />
-        ) as Gtk.Button
-        buttonsBox.append(btn)
+      for (const request of requests) {
+        if (requests.length > 1) {
+          buttonsBox.append(new Gtk.Label({
+            label: request.prompt,
+            wrap: true,
+            maxWidthChars: 40,
+            xalign: 0,
+            cssClasses: ['agent-popup-prompt'],
+          }))
+        }
+
+        const options = request.options.length > 0 ? request.options : ['Allow', 'Deny']
+        for (const option of options) {
+          const btn = (
+            <button
+              label={option}
+              onClicked={() => {
+                console.log(`[Agent] popup button clicked: session=${sessionId} request=${request.requestId || '(oldest)'} option=${option}`)
+                popover.popdown()
+                respondToElicitation(sessionId, option, request.requestId)
+              }}
+            />
+          ) as Gtk.Button
+          buttonsBox.append(btn)
+        }
       }
 
     } else {
@@ -302,21 +341,11 @@ function setupSelectedSessionTracking() {
   selectedSessionSetup = true
 
   const locus = getLocusService()
-  let lookupSeq = 0
-
-  locus.selectedWindow$.pipe(distinctUntilChanged()).subscribe(window => {
-    const seq = ++lookupSeq
-    if (!window) {
-      selectedSession$.next('')
-      return
-    }
-
-    locus.getTargets(window, AGENT_SESSION_RELATION, targets => {
-      if (seq !== lookupSeq) return
-      const session = targets
-        .find(target => target.startsWith(AGENT_SESSION_NODE_PREFIX))
-        ?.slice(AGENT_SESSION_NODE_PREFIX.length) ?? ''
-      selectedSession$.next(session)
-    })
-  })
+  const setSelectedSession = (target: string) => {
+    const session = target.startsWith(AGENT_SESSION_NODE_PREFIX)
+      ? target.slice(AGENT_SESSION_NODE_PREFIX.length)
+      : ''
+    selectedSession$.next(session)
+  }
+  locus.resolve$('context:selected', SELECTED_AGENT_SESSION_PATH).subscribe(setSelectedSession)
 }

@@ -58,7 +58,7 @@
   }
 
   &.thinking materialicon:first-child {
-    animation: agent-thinking-pulse 1.5s ease-in-out infinite;
+    animation: agent-thinking-pulse 0.5s ease-in-out infinite;
   }
 
   &.tool-use materialicon:first-child {
