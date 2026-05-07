@@ -97,7 +97,7 @@ _locus_wrap_app() {
   } always {
     command_status=$?
     if (( linked )); then
-      locusctl link remove "$selected_window" app-instance "$app_node" >/dev/null 2>&1 || true
+      locusctl delete-node "$app_node" >/dev/null 2>&1 || true
     fi
   }
 
