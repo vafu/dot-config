@@ -1,0 +1,14 @@
+[Unit]
+Description=Locus Niri publisher
+After=graphical-session.target locusd.service
+Wants=locusd.service
+
+[Service]
+Type=simple
+Environment=PATH=/home/v47/.cargo/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/home/v47/.cargo/bin/locus-niri
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target
