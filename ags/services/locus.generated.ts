@@ -19,7 +19,6 @@ export type Relation =
   | "app-instance"
   | "output"
   | "project"
-  | "selected-workspace"
   | "window"
   | "workspace"
 ;
@@ -96,36 +95,37 @@ export const locusSchema = {
       from: { type: "kind", kind: "app-instance" },
       to: { type: "kind", kind: "agent-session" },
       cardinality: "one-to-one",
+      retention: "weak",
     },
     "app-instance": {
       from: { type: "kind", kind: "window" },
       to: { type: "kind", kind: "app-instance" },
       cardinality: "one-to-one",
+      retention: "weak",
     },
     "output": {
       from: { type: "kind", kind: "workspace" },
       to: { type: "kind", kind: "output" },
       cardinality: "many-to-one",
+      retention: "strong",
     },
     "project": {
       from: { type: "kind", kind: "workspace" },
       to: { type: "kind", kind: "project" },
       cardinality: "one-to-one",
-    },
-    "selected-workspace": {
-      from: { type: "exact", id: "context:selected" },
-      to: { type: "kind", kind: "workspace" },
-      cardinality: "many-to-one",
+      retention: "strong",
     },
     "window": {
       from: { type: "exact", id: "context:selected" },
       to: { type: "kind", kind: "window" },
       cardinality: "many-to-one",
+      retention: "strong",
     },
     "workspace": {
       from: { type: "kind", kind: "window" },
       to: { type: "kind", kind: "workspace" },
       cardinality: "many-to-one",
+      retention: "strong",
     },
   },
   paths: {
@@ -136,12 +136,12 @@ export const locusSchema = {
     },
     "selected-output": {
       from: "context:selected",
-      path: ["selected-workspace", "output"],
+      path: ["window", "workspace", "output"],
       many: false,
     },
     "selected-project": {
       from: "context:selected",
-      path: ["selected-workspace", "project"],
+      path: ["window", "workspace", "project"],
       many: false,
     },
     "selected-window": {
@@ -151,7 +151,7 @@ export const locusSchema = {
     },
     "selected-workspace": {
       from: "context:selected",
-      path: ["selected-workspace"],
+      path: ["window", "workspace"],
       many: false,
     },
     "window-agent-session": {
@@ -277,6 +277,10 @@ export class LocusDbusClient {
 
   removeLinks(source: NodeId, relation: Relation): Promise<void> {
     return this.callGraph('RemoveLinks', new GLib.Variant('(ss)', [source, relation]), null, () => undefined);
+  }
+
+  deleteNode(subject: NodeId): Promise<void> {
+    return this.callGraph('DeleteNode', new GLib.Variant('(s)', [subject]), null, () => undefined);
   }
 
   targets(source: NodeId, relation: Relation): Promise<NodeId[]> {
