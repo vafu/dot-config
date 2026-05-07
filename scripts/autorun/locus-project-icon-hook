@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+. "$HOME/.config/locus/locus.sh"
+
 start_watcher() {
   exec locusctl watch property-changed \
     --filter 'subject.startsWith("project:") && (key == "kind" || key == "path" || key == "name")' \

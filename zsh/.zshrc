@@ -123,7 +123,7 @@ _locus_project_subject_for_pwd() {
 }
 
 _locus_chpwd_project_workspace() {
-  (( $+commands[locusctl] )) || return 0
+  command -v "$LOCUSCTL" >/dev/null 2>&1 || return 0
 
   local project_subject workspace_subject
   project_subject="$(_locus_project_subject_for_pwd)" || return 0

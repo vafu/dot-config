@@ -34,7 +34,6 @@ locus_context_get() {
 locus_context_set() {
   "$LOCUSCTL" context set "$@"
 }
-
 locus_selected_agent_session() {
   "$LOCUSCTL" resolve 'context:selected' 'window' 'app-instance' 'agent-session'
 }
