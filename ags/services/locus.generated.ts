@@ -115,8 +115,8 @@ export const locusSchema = {
     "project": {
       from: { type: "kind", kind: "workspace" },
       to: { type: "kind", kind: "project" },
-      cardinality: "one-to-one",
-      retention: "strong",
+      cardinality: "many-to-one",
+      retention: "static",
     },
     "window": {
       from: { type: "exact", id: "context:selected" },

@@ -1,0 +1,14 @@
+[Unit]
+Description=Locus graph web UI
+After=graphical-session.target locusd.service
+Wants=locusd.service
+
+[Service]
+Type=simple
+Environment=PATH=/home/v47/.cargo/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/home/v47/.cargo/bin/locus-graph 0.0.0.0:8765
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target
