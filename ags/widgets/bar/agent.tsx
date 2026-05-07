@@ -357,9 +357,7 @@ export const AgentWidgets = (props: WidgetProps) => {
 
   subscribeTo(container, attentionMode$, (attentionMode, box) => {
     box.remove_css_class('agent-attention')
-    box.remove_css_class('agent-attention-passive')
     if (attentionMode === 'prompt') box.add_css_class('agent-attention')
-    else if (attentionMode === 'passive') box.add_css_class('agent-attention-passive')
   })
 
   subscribeTo(container, sessions$, (sessions, box) => {

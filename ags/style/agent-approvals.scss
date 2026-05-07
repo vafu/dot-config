@@ -23,11 +23,7 @@
   background: #{$osd_bg};
   border-radius: 12px;
   padding: 20px;
-  min-width: 640px;
-  max-width: 640px;
   margin: 0 40px;
-  halign: center;
-  valign: center;
 }
 
 .agent-approval-header {
@@ -47,6 +43,94 @@
 .agent-approval-prompt {
   font-size: 1.05em;
   line-height: 1.35;
+}
+
+.agent-approval-content-scroll {
+  border-radius: 8px;
+}
+
+.agent-approval-detail-block {
+  background: color-mix(in srgb, #{$fg} 7%, transparent);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.agent-approval-detail {
+  font-size: 0.94em;
+  line-height: 1.25;
+}
+
+.agent-approval-detail-monospace {
+  font-family: monospace;
+}
+
+.agent-approval-diff-block textview,
+.agent-approval-diff-view,
+.agent-approval-diff-code-view,
+.agent-approval-source-view {
+  background: transparent;
+}
+
+.agent-approval-diff-block text,
+.agent-approval-diff-view text,
+.agent-approval-diff-code-view text,
+.agent-approval-source-view text {
+  background: transparent;
+}
+
+.agent-approval-source-block,
+.agent-approval-source-view {
+  min-height: 28px;
+}
+
+.agent-approval-diff-row {
+  min-height: 1.35em;
+}
+
+.agent-approval-diff-file {
+  background: color-mix(in srgb, #{$sys_warn} 12%, #{$bg});
+  color: #{$fg};
+  font-weight: 700;
+  padding: 1px 4px;
+}
+
+.agent-approval-diff-hunk {
+  background: color-mix(in srgb, #{$accent_color} 16%, #{$bg});
+  color: #{$accent_color};
+  font-weight: 700;
+  padding: 1px 4px;
+}
+
+.agent-approval-diff-meta {
+  color: color-mix(in srgb, #{$fg} 60%, transparent);
+  padding: 1px 4px;
+}
+
+.agent-approval-diff-added {
+  background: color-mix(in srgb, #{$sys_ok} 20%, #{$bg});
+}
+
+.agent-approval-diff-removed {
+  background: color-mix(in srgb, #{$sys_danger} 18%, #{$bg});
+}
+
+.agent-approval-diff-sign {
+  min-width: 18px;
+  padding: 0 4px;
+  font-weight: 700;
+}
+
+.agent-approval-diff-added .agent-approval-diff-sign {
+  color: #{$sys_ok};
+}
+
+.agent-approval-diff-removed .agent-approval-diff-sign {
+  color: #{$sys_danger};
+}
+
+.agent-approval-diff-code-view {
+  min-width: 780px;
+  padding: 0 4px 0 0;
 }
 
 .agent-approval-option {

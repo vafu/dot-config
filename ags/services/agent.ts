@@ -10,16 +10,21 @@ export interface AgentStatus {
   state: AgentState
   taskComplete: boolean
   requiresAttention: boolean
+  attentionReasons: string[]
   contextPct: number
   modelName: string
   cwd: string
   costUsd: number
   pendingPrompt: string
+  pendingDetailKind: string
+  pendingDetailText: string
   pendingOptions: string[]
   pendingOptionDescriptions: string[]
   pendingCount: number
   pendingRequestIds: string[]
   pendingPrompts: string[]
+  pendingDetailKinds: string[]
+  pendingDetailTexts: string[]
   pendingOptionsList: string[][]
   pendingOptionDescriptionsList: string[][]
   sessionName: string
@@ -64,16 +69,21 @@ function propsToStatus(props: Record<string, GLib.Variant>): Partial<AgentStatus
   if ('State' in props) status.state = props['State'].deepUnpack() as AgentState
   if ('TaskComplete' in props) status.taskComplete = props['TaskComplete'].deepUnpack() as boolean
   if ('RequiresAttention' in props) status.requiresAttention = props['RequiresAttention'].deepUnpack() as boolean
+  if ('AttentionReasons' in props) status.attentionReasons = props['AttentionReasons'].deepUnpack() as string[]
   if ('ContextPct' in props) status.contextPct = props['ContextPct'].deepUnpack() as number
   if ('ModelName' in props) status.modelName = props['ModelName'].deepUnpack() as string
   if ('Cwd' in props) status.cwd = props['Cwd'].deepUnpack() as string
   if ('CostUsd' in props) status.costUsd = props['CostUsd'].deepUnpack() as number
   if ('PendingPrompt' in props) status.pendingPrompt = props['PendingPrompt'].deepUnpack() as string
+  if ('PendingDetailKind' in props) status.pendingDetailKind = props['PendingDetailKind'].deepUnpack() as string
+  if ('PendingDetailText' in props) status.pendingDetailText = props['PendingDetailText'].deepUnpack() as string
   if ('PendingOptions' in props) status.pendingOptions = props['PendingOptions'].deepUnpack() as string[]
   if ('PendingOptionDescriptions' in props) status.pendingOptionDescriptions = props['PendingOptionDescriptions'].deepUnpack() as string[]
   if ('PendingCount' in props) status.pendingCount = props['PendingCount'].deepUnpack() as number
   if ('PendingRequestIds' in props) status.pendingRequestIds = props['PendingRequestIds'].deepUnpack() as string[]
   if ('PendingPrompts' in props) status.pendingPrompts = props['PendingPrompts'].deepUnpack() as string[]
+  if ('PendingDetailKinds' in props) status.pendingDetailKinds = props['PendingDetailKinds'].deepUnpack() as string[]
+  if ('PendingDetailTexts' in props) status.pendingDetailTexts = props['PendingDetailTexts'].deepUnpack() as string[]
   if ('PendingOptionsList' in props) status.pendingOptionsList = props['PendingOptionsList'].deepUnpack() as string[][]
   if ('PendingOptionDescriptionsList' in props) status.pendingOptionDescriptionsList = props['PendingOptionDescriptionsList'].deepUnpack() as string[][]
   if ('SessionName' in props) status.sessionName = props['SessionName'].deepUnpack() as string
@@ -90,7 +100,7 @@ export function getAgentService(): AgentService {
   const sessions$ = new BehaviorSubject<Map<string, AgentStatus>>(new Map())
   const elicitation$ = new BehaviorSubject<AgentElicitation | null>(null)
 
-  const DEFAULT: AgentStatus = { agentName: '', state: 'no-session', taskComplete: false, requiresAttention: false, contextPct: 0, modelName: '', cwd: '', costUsd: 0, pendingPrompt: '', pendingOptions: [], pendingOptionDescriptions: [], pendingCount: 0, pendingRequestIds: [], pendingPrompts: [], pendingOptionsList: [], pendingOptionDescriptionsList: [], sessionName: '', fiveHourUsagePct: 0, fiveHourResetsAt: 0, sevenDayUsagePct: 0, sevenDayResetsAt: 0 }
+  const DEFAULT: AgentStatus = { agentName: '', state: 'no-session', taskComplete: false, requiresAttention: false, attentionReasons: [], contextPct: 0, modelName: '', cwd: '', costUsd: 0, pendingPrompt: '', pendingDetailKind: '', pendingDetailText: '', pendingOptions: [], pendingOptionDescriptions: [], pendingCount: 0, pendingRequestIds: [], pendingPrompts: [], pendingDetailKinds: [], pendingDetailTexts: [], pendingOptionsList: [], pendingOptionDescriptionsList: [], sessionName: '', fiveHourUsagePct: 0, fiveHourResetsAt: 0, sevenDayUsagePct: 0, sevenDayResetsAt: 0 }
 
   const updateSession = (sessionId: string, update: Partial<AgentStatus>) => {
     const map = new Map(sessions$.value)
