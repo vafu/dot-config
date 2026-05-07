@@ -115,24 +115,9 @@ _locus_selected_workspace_subject() {
   print -r -- "$workspace_subject"
 }
 
-_locus_project_subject_for_pwd() {
-  local project_root="${HOME:A}/proj"
-  local pwd_path="${PWD:A}"
-  [[ "${pwd_path:h}" == "$project_root" ]] || return 1
-  print -r -- "project:$pwd_path"
-}
-
 _locus_chpwd_project_workspace() {
-  command -v "$LOCUSCTL" >/dev/null 2>&1 || return 0
-
-  local project_subject workspace_subject
-  project_subject="$(_locus_project_subject_for_pwd)" || return 0
-  workspace_subject="$(_locus_selected_workspace_subject)" || return 0
-
-  locusctl prop set "$project_subject" kind project >/dev/null 2>&1 || return 0
-  locusctl prop set "$project_subject" path "$PWD" >/dev/null 2>&1 || true
-  locusctl prop set "$project_subject" name "${PWD:t}" >/dev/null 2>&1 || true
-  locusctl link set "$workspace_subject" project "$project_subject" >/dev/null 2>&1 || true
+  [[ -x "$HOME/.config/scripts/proj" ]] || return 0
+  "$HOME/.config/scripts/proj" publish >/dev/null 2>&1 || true
 }
 
 typeset -ga chpwd_functions

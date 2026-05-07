@@ -4,10 +4,20 @@ set -euo pipefail
 . "$HOME/.config/locus/locus.sh"
 
 start_watcher() {
+  seed_existing_projects
   exec locusctl watch property-changed \
     --filter 'subject.startsWith("project:") && (key == "kind" || key == "path" || key == "name")' \
     --missing-property icon \
     --exec "$0"
+}
+
+seed_existing_projects() {
+  while IFS= read -r existing_project; do
+    [[ -n "$existing_project" ]] || continue
+    if [[ -z "$(locusctl prop get "$existing_project" icon || true)" ]]; then
+      "$0" "$existing_project" || true
+    fi
+  done < <(locusctl prop subjects --key kind --value project || true)
 }
 
 project="${1:-}"
@@ -21,6 +31,15 @@ fi
 
 name="$(locusctl prop get "$project" name || true)"
 path="$(locusctl prop get "$project" path || true)"
+
+if [[ -n "$path" && -x "$HOME/.config/scripts/proj" ]]; then
+  metadata_icon="$("$HOME/.config/scripts/proj" metadata icon "$path" 2>/dev/null || true)"
+  if [[ -n "$metadata_icon" ]]; then
+    locusctl prop set "$project" icon "$metadata_icon"
+    echo "locus-project-icon-hook: set $project icon=$metadata_icon from .project.json" >&2
+    exit 0
+  fi
+fi
 
 if [[ -z "$name" && -n "$path" ]]; then
   name="${path##*/}"

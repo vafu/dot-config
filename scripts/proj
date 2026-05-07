@@ -1,0 +1,165 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PROJECT_PARENT="${PROJECT_PARENT:-$HOME/proj}"
+LOCUS_SH="${LOCUS_SH:-$HOME/.config/locus/locus.sh}"
+
+usage() {
+  cat >&2 <<'EOF'
+Usage:
+  proj init [--force] [path]
+  proj publish [path]
+  proj root [path]
+  proj metadata <key> [path]
+EOF
+}
+
+die() {
+  echo "proj: $*" >&2
+  exit 1
+}
+
+project_root_for_path() {
+  local path="${1:-$PWD}"
+  local abs parent child
+  abs="$(cd "$path" 2>/dev/null && pwd -P)" || return 1
+  parent="$(cd "$PROJECT_PARENT" 2>/dev/null && pwd -P)" || return 1
+  [[ "$abs" == "$parent"/* ]] || return 1
+  child="${abs#$parent/}"
+  child="${child%%/*}"
+  [[ -n "$child" ]] || return 1
+  printf '%s/%s\n' "$parent" "$child"
+}
+
+metadata_file() {
+  printf '%s/.project.json\n' "$1"
+}
+
+json_get() {
+  local file="$1"
+  local key="$2"
+  [[ -f "$file" ]] || return 1
+  jq -er --arg key "$key" '.[$key] // empty' "$file"
+}
+
+project_name() {
+  local root="$1"
+  local file
+  file="$(metadata_file "$root")"
+  json_get "$file" name || basename "$root"
+}
+
+project_icon() {
+  local root="$1"
+  local file
+  file="$(metadata_file "$root")"
+  json_get "$file" icon || true
+}
+
+selected_workspace() {
+  local workspace
+  if [[ -r "$LOCUS_SH" ]]; then
+    # shellcheck disable=SC1090
+    . "$LOCUS_SH"
+    workspace="$(locus_selected_workspace 2>/dev/null || true)"
+    if [[ "$workspace" == workspace:* ]]; then
+      printf '%s\n' "$workspace"
+      return 0
+    fi
+  fi
+  workspace="$(locusctl resolve context:selected window workspace 2>/dev/null || true)"
+  if [[ "$workspace" == workspace:* ]]; then
+    printf '%s\n' "$workspace"
+    return 0
+  fi
+  locusctl prop subjects --key focused --value true 2>/dev/null \
+    | awk '/^workspace:/ { print; exit }'
+}
+
+cmd_init() {
+  local force=0 path="${1:-}"
+  if [[ "${1:-}" == "--force" ]]; then
+    force=1
+    shift
+    path="${1:-}"
+  fi
+
+  local root file name icon output picker
+  root="$(project_root_for_path "${path:-$PWD}")" || die "not inside $PROJECT_PARENT/<project>"
+  file="$(metadata_file "$root")"
+  if [[ -e "$file" && "$force" != 1 ]]; then
+    die "$file already exists; use --force to overwrite"
+  fi
+
+  name="$(basename "$root")"
+  picker="${LOCUS_ICON_PICKER:-pick-icon}"
+  icon=""
+  if command -v "$picker" >/dev/null 2>&1; then
+    output="$("$picker" -n 1 -s "$name" || true)"
+    icon="$(printf '%s\n' "$output" | awk 'NF { print $1; exit }')"
+  fi
+
+  jq -n --arg name "$name" --arg icon "$icon" \
+    '{name: $name, icon: (if $icon == "" then null else $icon end)}' \
+    > "$file"
+  printf '%s\n' "$file"
+}
+
+cmd_publish() {
+  local root workspace subject name icon
+  root="$(project_root_for_path "${1:-$PWD}")" || return 0
+  workspace="$(selected_workspace || true)"
+  [[ "$workspace" == workspace:* ]] || return 0
+
+  subject="project:$root"
+  name="$(project_name "$root")"
+  icon="$(project_icon "$root")"
+
+  locusctl prop set "$subject" kind project >/dev/null
+  locusctl prop set "$subject" path "$root" >/dev/null
+  locusctl prop set "$subject" name "$name" >/dev/null
+  if [[ -n "$icon" ]]; then
+    locusctl prop set "$subject" icon "$icon" >/dev/null
+  fi
+  locusctl link set "$workspace" project "$subject" >/dev/null
+}
+
+cmd_root() {
+  project_root_for_path "${1:-$PWD}" || return 1
+}
+
+cmd_metadata() {
+  local key="${1:-}"
+  [[ -n "$key" ]] || die "metadata key is required"
+  shift || true
+  local root file
+  root="$(project_root_for_path "${1:-$PWD}")" || return 1
+  file="$(metadata_file "$root")"
+  json_get "$file" "$key"
+}
+
+case "${1:-}" in
+  init)
+    shift
+    cmd_init "$@"
+    ;;
+  publish)
+    shift
+    cmd_publish "$@"
+    ;;
+  root)
+    shift
+    cmd_root "$@"
+    ;;
+  metadata)
+    shift
+    cmd_metadata "$@"
+    ;;
+  -h|--help|help|"")
+    usage
+    ;;
+  *)
+    usage
+    exit 2
+    ;;
+esac
