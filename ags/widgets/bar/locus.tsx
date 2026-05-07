@@ -1,33 +1,35 @@
 import { Gtk } from 'ags/gtk4'
-import { map, distinctUntilChanged } from 'rxjs'
+import { combineLatest, map, distinctUntilChanged } from 'rxjs'
 import { bindAs } from 'rxbinding'
-import { getLocusService } from 'services/locus'
+import { firstProjectName } from 'services/locus'
+import { locus } from 'services/locus.generated'
 import { MaterialIcon } from 'widgets/materialicon'
 import { WidgetProps } from 'widgets'
 
 export const LocusProjectWidget = (props: WidgetProps) => {
-  const activeProject$ = getLocusService().activeProject$
+  const selectedProject$ = locus.selectedProjectString$()
+  const selectedProjectProperties$ = locus.pathProperties$('selected-project')
   const cssClasses = (props.cssClasses ?? []).concat(['locus-project-widget'])
 
-  const visible$ = activeProject$.pipe(
-    map(project => project != null),
+  const visible$ = selectedProject$.pipe(
+    map(project => !!project),
     distinctUntilChanged(),
   )
-  const icon$ = activeProject$.pipe(
-    map(project => project?.icon || 'folder_code'),
+  const icon$ = selectedProjectProperties$.pipe(
+    map(properties => properties.icon || properties['icon-name'] || properties.symbolicIcon || 'folder_code'),
     distinctUntilChanged(),
   )
-  const name$ = activeProject$.pipe(
-    map(project => project?.name || ''),
+  const name$ = combineLatest([selectedProject$, selectedProjectProperties$]).pipe(
+    map(([project, properties]) => project ? firstProjectName(project, properties) : ''),
     distinctUntilChanged(),
   )
-  const tooltip$ = activeProject$.pipe(
-    map(project => {
+  const tooltip$ = combineLatest([selectedProject$, selectedProjectProperties$]).pipe(
+    map(([project, properties]) => {
       if (!project) return ''
-      const metadata = Object.entries(project.properties)
+      const metadata = Object.entries(properties)
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([key, value]) => `${key}: ${value}`)
-      return [project.subject, ...metadata].join('\n')
+      return [project, ...metadata].join('\n')
     }),
     distinctUntilChanged(),
   )

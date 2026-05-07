@@ -3,9 +3,7 @@ import { Observable, Subscription } from 'rxjs'
 import { Gdk } from 'ags/gtk4'
 import Gio from 'gi://Gio?version=2.0'
 import GObject from 'gi://GObject?version=2.0'
-import { getLocusService, LocusWorkspace } from 'services/locus'
-
-const locus = getLocusService()
+import { LocusWorkspace, workspacesOnMonitor$ } from 'services/locus'
 
 export function WSIndicator(props: { monitor: Gdk.Monitor }) {
   const items = new Gio.ListStore({})
@@ -41,7 +39,7 @@ export function WSIndicator(props: { monitor: Gdk.Monitor }) {
 
   listView.add_css_class('workspaces')
 
-  locus.workspacesOnMonitor$(props.monitor).subscribe(i => {
+  workspacesOnMonitor$(props.monitor).subscribe(i => {
     items.remove_all()
     i.forEach(w => items.append(w))
   })

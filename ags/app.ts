@@ -15,7 +15,8 @@ import { prepareTheme } from 'style/theming'
 import { bindCommands } from 'commands'
 import { getPomodoroService } from 'services/pomodoro'
 import { AgentStatus, getAgentService } from 'services/agent'
-import { getLocusService } from 'services/locus'
+import { activeMonitor$, monitors$ } from 'services/locus'
+import { locus } from 'services/locus.generated'
 import { execAsync } from 'ags/process'
 import { combineLatest, distinctUntilChanged, first, map, of, shareReplay, switchMap } from 'rxjs'
 import { createRoot } from 'gnim'
@@ -29,17 +30,16 @@ app.start({
     prepareTheme()
     bindCommands()
 
-    const locus = getLocusService()
     setupPomodoro()
     setupAgentApprovalAutoOpen()
-    setupForMonitor(locus.monitors$, Bar)
+    setupForMonitor(monitors$, Bar)
 
-    locus.activeMonitor$.pipe(first()).subscribe(initialMonitor => {
+    activeMonitor$.pipe(first()).subscribe(initialMonitor => {
       createRoot(() => {
-        OSD(binding(locus.activeMonitor$, initialMonitor))
-        Rsynapse(binding(locus.activeMonitor$, initialMonitor))
-        TodoPopup(binding(locus.activeMonitor$, initialMonitor))
-        AgentApprovalOverlay(binding(locus.activeMonitor$, initialMonitor))
+        OSD(binding(activeMonitor$, initialMonitor))
+        Rsynapse(binding(activeMonitor$, initialMonitor))
+        TodoPopup(binding(activeMonitor$, initialMonitor))
+        AgentApprovalOverlay(binding(activeMonitor$, initialMonitor))
       })
     })
   },
@@ -49,10 +49,9 @@ type PendingAgentRequest = [string, AgentStatus]
 const AGENT_SESSION_NODE_PREFIX = 'agent-session:'
 
 function setupAgentApprovalAutoOpen() {
-  const locus = getLocusService()
   let lastAutoOpenKey = ''
 
-  const workspaceSessions$ = locus.selectedWorkspace$.pipe(
+  const workspaceSessions$ = locus.selectedWorkspaceString$().pipe(
     distinctUntilChanged(),
     switchMap(workspace => {
       if (!workspace) return of({ workspace, sessionIds: [] as string[] })

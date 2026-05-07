@@ -4,6 +4,8 @@
 import Gio from 'gi://Gio?version=2.0';
 import GLib from 'gi://GLib?version=2.0';
 
+import { Observable, distinctUntilChanged, map, shareReplay, switchMap } from 'rxjs';
+
 export type NodeKind =
   | "agent-session"
   | "app-instance"
@@ -46,6 +48,7 @@ export const locusSchema = {
     "agent-session": {
       properties: {
         "cwd": { required: false },
+        "id": { required: false },
         "model": { required: false },
       },
     },
@@ -163,7 +166,7 @@ export const locusSchema = {
 } as const;
 
 export type PropertyKeyByKind = {
-  "agent-session": "cwd" | "model";
+  "agent-session": "cwd" | "id" | "model";
   "app-instance": "icon" | "name";
   "context": never;
   "output": "connector" | "source";
@@ -188,7 +191,9 @@ export type WatchPropertiesUpdatedSignal = { type: 'watch-properties-updated'; c
 
 const BUS_NAME = 'io.github.Locus';
 const ROOT_PATH = '/io/github/Locus';
-const GRAPH_IFACE = 'io.github.Locus.Graph';
+const GRAPH_READ_IFACE = 'io.github.Locus.Graph.Read';
+const GRAPH_WRITE_IFACE = 'io.github.Locus.Graph.Write';
+const GRAPH_RESOLVE_IFACE = 'io.github.Locus.Graph.Resolve';
 const WATCH_IFACE = 'io.github.Locus.Watch';
 const PROPERTIES_IFACE = 'org.freedesktop.DBus.Properties';
 const NONE = '';
@@ -268,47 +273,47 @@ export class LocusDbusClient {
   }
 
   setLink(source: NodeId, relation: Relation, target: NodeId): Promise<void> {
-    return this.callGraph('SetLink', new GLib.Variant('(sss)', [source, relation, target]), null, () => undefined);
+    return this.callWrite('SetLink', new GLib.Variant('(sss)', [source, relation, target]), null, () => undefined);
   }
 
   removeLink(source: NodeId, relation: Relation, target: NodeId): Promise<void> {
-    return this.callGraph('RemoveLink', new GLib.Variant('(sss)', [source, relation, target]), null, () => undefined);
+    return this.callWrite('RemoveLink', new GLib.Variant('(sss)', [source, relation, target]), null, () => undefined);
   }
 
   removeLinks(source: NodeId, relation: Relation): Promise<void> {
-    return this.callGraph('RemoveLinks', new GLib.Variant('(ss)', [source, relation]), null, () => undefined);
+    return this.callWrite('RemoveLinks', new GLib.Variant('(ss)', [source, relation]), null, () => undefined);
   }
 
   deleteNode(subject: NodeId): Promise<void> {
-    return this.callGraph('DeleteNode', new GLib.Variant('(s)', [subject]), null, () => undefined);
+    return this.callWrite('DeleteNode', new GLib.Variant('(s)', [subject]), null, () => undefined);
   }
 
   targets(source: NodeId, relation: Relation): Promise<NodeId[]> {
-    return this.callGraph('GetTargets', new GLib.Variant('(ss)', [source, relation]), '(as)', ([targets]) => targets as NodeId[]);
+    return this.callRead('GetTargets', new GLib.Variant('(ss)', [source, relation]), '(as)', ([targets]) => targets as NodeId[]);
   }
 
   sources(target: NodeId, relation: Relation): Promise<NodeId[]> {
-    return this.callGraph('GetSources', new GLib.Variant('(ss)', [target, relation]), '(as)', ([sources]) => sources as NodeId[]);
+    return this.callRead('GetSources', new GLib.Variant('(ss)', [target, relation]), '(as)', ([sources]) => sources as NodeId[]);
   }
 
   setProperty(subject: NodeId, key: PropertyKey, value: string): Promise<void> {
-    return this.callGraph('SetProperty', new GLib.Variant('(sss)', [subject, key, value]), null, () => undefined);
+    return this.callWrite('SetProperty', new GLib.Variant('(sss)', [subject, key, value]), null, () => undefined);
   }
 
   async property(subject: NodeId, key: PropertyKey): Promise<OptionalNodeId> {
-    return none(await this.callGraph('GetProperty', new GLib.Variant('(ss)', [subject, key]), '(s)', ([value]) => value as string));
+    return none(await this.callRead('GetProperty', new GLib.Variant('(ss)', [subject, key]), '(s)', ([value]) => value as string));
   }
 
   properties(subject: NodeId): Promise<Record<string, string>> {
-    return this.callGraph('GetProperties', new GLib.Variant('(s)', [subject]), '(a{ss})', ([properties]) => properties as Record<string, string>);
+    return this.callRead('GetProperties', new GLib.Variant('(s)', [subject]), '(a{ss})', ([properties]) => properties as Record<string, string>);
   }
 
   async resolve(source: NodeId, relations: Relation[]): Promise<OptionalNodeId> {
-    return none(await this.callGraph('Resolve', new GLib.Variant('(sas)', [source, relations]), '(s)', ([target]) => target as string));
+    return none(await this.callResolve('Resolve', new GLib.Variant('(sas)', [source, relations]), '(s)', ([target]) => target as string));
   }
 
   resolveAll(source: NodeId, relations: Relation[]): Promise<NodeId[]> {
-    return this.callGraph('ResolveAll', new GLib.Variant('(sas)', [source, relations]), '(as)', ([targets]) => targets as NodeId[]);
+    return this.callResolve('ResolveAll', new GLib.Variant('(sas)', [source, relations]), '(as)', ([targets]) => targets as NodeId[]);
   }
 
   resolvePath(name: NamedPath, source?: NodeId): Promise<OptionalNodeId> {
@@ -322,7 +327,7 @@ export class LocusDbusClient {
   }
 
   async subscribeResolve(source: NodeId, relations: Relation[]): Promise<OptionalNodeId> {
-    return none(await this.callGraph('SubscribeResolve', new GLib.Variant('(sas)', [source, relations]), '(s)', ([target]) => target as string));
+    return none(await this.callResolve('SubscribeResolve', new GLib.Variant('(sas)', [source, relations]), '(s)', ([target]) => target as string));
   }
 
   subscribePath(name: NamedPath, source?: NodeId): Promise<OptionalNodeId> {
@@ -331,7 +336,7 @@ export class LocusDbusClient {
   }
 
   async watchNode(source: NodeId, relations: Relation[]): Promise<LocusWatch> {
-    const objectPath = await this.callGraph('WatchNode', new GLib.Variant('(sas)', [source, relations]), '(o)', ([objectPath]) => objectPath as string);
+    const objectPath = await this.callResolve('WatchNode', new GLib.Variant('(sas)', [source, relations]), '(o)', ([objectPath]) => objectPath as string);
     return new LocusWatch(this, objectPath);
   }
 
@@ -341,42 +346,42 @@ export class LocusDbusClient {
   }
 
   onLinkAdded(handler: (signal: LinkAddedSignal) => void): Unsubscribe {
-    return this.subscribeSignal(GRAPH_IFACE, 'LinkAdded', null, null, params => {
+    return this.subscribeSignal(GRAPH_WRITE_IFACE, 'LinkAdded', null, null, params => {
       const [source, relation, target] = params.deepUnpack() as [NodeId, Relation, NodeId];
       handler({ type: 'link-added', source, relation, target });
     });
   }
 
   onLinkRemoved(handler: (signal: LinkRemovedSignal) => void): Unsubscribe {
-    return this.subscribeSignal(GRAPH_IFACE, 'LinkRemoved', null, null, params => {
+    return this.subscribeSignal(GRAPH_WRITE_IFACE, 'LinkRemoved', null, null, params => {
       const [source, relation, target] = params.deepUnpack() as [NodeId, Relation, NodeId];
       handler({ type: 'link-removed', source, relation, target });
     });
   }
 
   onLinkSet(handler: (signal: LinkSetSignal) => void): Unsubscribe {
-    return this.subscribeSignal(GRAPH_IFACE, 'LinkSet', null, null, params => {
+    return this.subscribeSignal(GRAPH_WRITE_IFACE, 'LinkSet', null, null, params => {
       const [source, relation, oldTargets, target] = params.deepUnpack() as [NodeId, Relation, NodeId[], NodeId];
       handler({ type: 'link-set', source, relation, oldTargets, target });
     });
   }
 
   onPropertyChanged(handler: (signal: PropertyChangedSignal) => void): Unsubscribe {
-    return this.subscribeSignal(GRAPH_IFACE, 'PropertyChanged', null, null, params => {
+    return this.subscribeSignal(GRAPH_WRITE_IFACE, 'PropertyChanged', null, null, params => {
       const [subject, key, value] = params.deepUnpack() as [NodeId, PropertyKey, string];
       handler({ type: 'property-changed', subject, key, value });
     });
   }
 
   onPropertyRemoved(handler: (signal: PropertyRemovedSignal) => void): Unsubscribe {
-    return this.subscribeSignal(GRAPH_IFACE, 'PropertyRemoved', null, null, params => {
+    return this.subscribeSignal(GRAPH_WRITE_IFACE, 'PropertyRemoved', null, null, params => {
       const [subject, key] = params.deepUnpack() as [NodeId, PropertyKey];
       handler({ type: 'property-removed', subject, key });
     });
   }
 
   onResolveChanged(handler: (signal: ResolveChangedSignal) => void, source?: NodeId): Unsubscribe {
-    return this.subscribeSignal(GRAPH_IFACE, 'ResolveChanged', null, source ?? null, params => {
+    return this.subscribeSignal(GRAPH_RESOLVE_IFACE, 'ResolveChanged', null, source ?? null, params => {
       const [changedSource, changedPath, target] = params.deepUnpack() as [NodeId, Relation[], string];
       handler({ type: 'resolve-changed', source: changedSource, path: changedPath, target: none(target) });
     });
@@ -404,8 +409,16 @@ export class LocusDbusClient {
     return this.callOn(objectPath, WATCH_IFACE, 'Close', null, null, () => undefined);
   }
 
-  private callGraph<T>(method: string, params: GLib.Variant | null, resultType: string | null, unpack: (result: any) => T): Promise<T> {
-    return this.callOn(ROOT_PATH, GRAPH_IFACE, method, params, resultType, unpack);
+  private callRead<T>(method: string, params: GLib.Variant | null, resultType: string | null, unpack: (result: any) => T): Promise<T> {
+    return this.callOn(ROOT_PATH, GRAPH_READ_IFACE, method, params, resultType, unpack);
+  }
+
+  private callWrite<T>(method: string, params: GLib.Variant | null, resultType: string | null, unpack: (result: any) => T): Promise<T> {
+    return this.callOn(ROOT_PATH, GRAPH_WRITE_IFACE, method, params, resultType, unpack);
+  }
+
+  private callResolve<T>(method: string, params: GLib.Variant | null, resultType: string | null, unpack: (result: any) => T): Promise<T> {
+    return this.callOn(ROOT_PATH, GRAPH_RESOLVE_IFACE, method, params, resultType, unpack);
   }
 
   private callOn<T>(objectPath: string, iface: string, method: string, params: GLib.Variant | null, resultType: string | null, unpack: (result: any) => T): Promise<T> {
@@ -456,4 +469,435 @@ export class LocusDbusClient {
     console.log(`[LocusDbus] ${method}${status} +${elapsed}ms`);
   }
 }
+
+
+const SHARE_REPLAY_ONE = { bufferSize: 1, refCount: true } as const;
+
+function present(value: OptionalNodeId): string {
+  return value ?? '';
+}
+
+function cacheKey(parts: readonly unknown[]): string {
+  return parts
+    .map(part => Array.isArray(part) ? part.join('\u0001') : String(part))
+    .join('\u0000');
+}
+
+function sameArray(left: string[], right: string[]): boolean {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
+export class LocusObservableAdapterBase {
+  private readonly watchCache = new Map<string, Observable<LocusWatch>>();
+  private readonly pathCache = new Map<string, Observable<OptionalNodeId>>();
+  private readonly pathAllCache = new Map<string, Observable<NodeId[]>>();
+  private readonly resolveCache = new Map<string, Observable<string>>();
+  private readonly resolvedPropertyCache = new Map<string, Observable<string>>();
+  private readonly pathPropertyCache = new Map<string, Observable<string>>();
+  private readonly propertyCache = new Map<string, Observable<string>>();
+  private readonly propertiesCache = new Map<string, Observable<Record<string, string>>>();
+  private readonly pathPropertiesCache = new Map<string, Observable<Record<string, string>>>();
+  private readonly sourcesCache = new Map<string, Observable<NodeId[]>>();
+  private readonly targetsCache = new Map<string, Observable<NodeId[]>>();
+
+  constructor(protected readonly client: LocusDbusClient = new LocusDbusClient()) {}
+
+  watch$(source: NodeId, relations: readonly string[]): Observable<LocusWatch> {
+    const key = cacheKey(['watch', source, relations]);
+    let cached = this.watchCache.get(key);
+    if (!cached) {
+      cached = new Observable<LocusWatch>(subscriber => {
+        let watch: LocusWatch | null = null;
+        let closed = false;
+        this.client.watchNode(source, [...relations] as Relation[])
+          .then(value => {
+            if (closed) {
+              value.close().catch(error => console.error('[LocusRx] close stale watch failed:', error));
+              return;
+            }
+            watch = value;
+            subscriber.next(value);
+          })
+          .catch(error => subscriber.error(error));
+        return () => {
+          closed = true;
+          if (watch) {
+            watch.close().catch(error => console.error('[LocusRx] close watch failed:', error));
+          }
+        };
+      }).pipe(shareReplay(SHARE_REPLAY_ONE));
+      this.watchCache.set(key, cached);
+    }
+    return cached;
+  }
+
+  resolve$(source: NodeId, relations: readonly string[]): Observable<string> {
+    const key = cacheKey(['resolve', source, relations]);
+    let cached = this.resolveCache.get(key);
+    if (!cached) {
+      cached = this.watch$(source, relations).pipe(
+        switchMap(watch => new Observable<string>(subscriber => {
+          watch.target().then(value => subscriber.next(present(value))).catch(error => subscriber.error(error));
+          const unsubscribe = watch.onTargetChanged(value => subscriber.next(present(value)));
+          return unsubscribe;
+        })),
+        distinctUntilChanged(),
+        shareReplay(SHARE_REPLAY_ONE),
+      );
+      this.resolveCache.set(key, cached);
+    }
+    return cached;
+  }
+
+  path$(name: NamedPath, source?: NodeId): Observable<OptionalNodeId> {
+    const spec = path(name);
+    const resolvedSource = source ?? spec.from;
+    const key = cacheKey(['path', name, resolvedSource]);
+    let cached = this.pathCache.get(key);
+    if (!cached) {
+      cached = this.watch$(resolvedSource, spec.path).pipe(
+        switchMap(watch => new Observable<OptionalNodeId>(subscriber => {
+          watch.target().then(value => subscriber.next(value)).catch(error => subscriber.error(error));
+          const unsubscribe = watch.onTargetChanged(value => subscriber.next(value));
+          return unsubscribe;
+        })),
+        distinctUntilChanged(),
+        shareReplay(SHARE_REPLAY_ONE),
+      );
+      this.pathCache.set(key, cached);
+    }
+    return cached;
+  }
+
+  pathAll$(name: NamedPath, source?: NodeId): Observable<NodeId[]> {
+    const spec = path(name);
+    const resolvedSource = source ?? spec.from;
+    const key = cacheKey(['path-all', name, resolvedSource]);
+    let cached = this.pathAllCache.get(key);
+    if (!cached) {
+      cached = new Observable<NodeId[]>(subscriber => {
+        const relations = new Set<string>(spec.path);
+        const refresh = () => {
+          this.client.resolveAllPath(name, resolvedSource)
+            .then(targets => subscriber.next(targets))
+            .catch(error => subscriber.error(error));
+        };
+
+        refresh();
+        const unsubscribeAdded = this.client.onLinkAdded(signal => {
+          if (relations.has(signal.relation)) refresh();
+        });
+        const unsubscribeRemoved = this.client.onLinkRemoved(signal => {
+          if (relations.has(signal.relation)) refresh();
+        });
+        const unsubscribeSet = this.client.onLinkSet(signal => {
+          if (relations.has(signal.relation)) refresh();
+        });
+
+        return () => {
+          unsubscribeAdded();
+          unsubscribeRemoved();
+          unsubscribeSet();
+        };
+      }).pipe(
+        distinctUntilChanged(sameArray),
+        shareReplay(SHARE_REPLAY_ONE),
+      );
+      this.pathAllCache.set(key, cached);
+    }
+    return cached;
+  }
+
+  pathString$(name: NamedPath, source?: NodeId): Observable<string> {
+    return this.path$(name, source).pipe(
+      map(present),
+      distinctUntilChanged(),
+      shareReplay(SHARE_REPLAY_ONE),
+    );
+  }
+
+  pathProperty$(name: NamedPath, key: string, source?: NodeId): Observable<string> {
+    const spec = path(name);
+    const resolvedSource = source ?? spec.from;
+    const cache = cacheKey(['path-property', name, resolvedSource, key]);
+    let cached = this.pathPropertyCache.get(cache);
+    if (!cached) {
+      cached = this.watch$(resolvedSource, spec.path).pipe(
+        switchMap(watch => new Observable<string>(subscriber => {
+          watch.property(key).then(value => subscriber.next(value)).catch(error => subscriber.error(error));
+          const unsubscribe = watch.onPropertyUpdated(key, value => subscriber.next(value));
+          return unsubscribe;
+        })),
+        distinctUntilChanged(),
+        shareReplay(SHARE_REPLAY_ONE),
+      );
+      this.pathPropertyCache.set(cache, cached);
+    }
+    return cached;
+  }
+
+  resolvedProperty$(source: NodeId, relations: readonly string[], key: string): Observable<string> {
+    const cache = cacheKey(['resolved-property', source, relations, key]);
+    let cached = this.resolvedPropertyCache.get(cache);
+    if (!cached) {
+      cached = this.watch$(source, relations).pipe(
+        switchMap(watch => new Observable<string>(subscriber => {
+          watch.property(key).then(value => subscriber.next(value)).catch(error => subscriber.error(error));
+          const unsubscribe = watch.onPropertyUpdated(key, value => subscriber.next(value));
+          return unsubscribe;
+        })),
+        distinctUntilChanged(),
+        shareReplay(SHARE_REPLAY_ONE),
+      );
+      this.resolvedPropertyCache.set(cache, cached);
+    }
+    return cached;
+  }
+
+  property$(subject: NodeId, key: string): Observable<string> {
+    const cache = cacheKey(['property', subject, key]);
+    let cached = this.propertyCache.get(cache);
+    if (!cached) {
+      cached = new Observable<string>(subscriber => {
+        this.client.property(subject, key as PropertyKey)
+          .then(value => subscriber.next(present(value)))
+          .catch(error => subscriber.error(error));
+        const changed = this.client.onPropertyChanged(signal => {
+          if (signal.subject === subject && signal.key === key) subscriber.next(signal.value);
+        });
+        const removed = this.client.onPropertyRemoved(signal => {
+          if (signal.subject === subject && signal.key === key) subscriber.next('');
+        });
+        return () => {
+          changed();
+          removed();
+        };
+      }).pipe(
+        distinctUntilChanged(),
+        shareReplay(SHARE_REPLAY_ONE),
+      );
+      this.propertyCache.set(cache, cached);
+    }
+    return cached;
+  }
+
+  properties$(subject: NodeId): Observable<Record<string, string>> {
+    let cached = this.propertiesCache.get(subject);
+    if (!cached) {
+      cached = new Observable<Record<string, string>>(subscriber => {
+        const refresh = () => {
+          this.client.properties(subject)
+            .then(properties => subscriber.next(properties))
+            .catch(error => subscriber.error(error));
+        };
+
+        refresh();
+        const changed = this.client.onPropertyChanged(signal => {
+          if (signal.subject === subject) refresh();
+        });
+        const removed = this.client.onPropertyRemoved(signal => {
+          if (signal.subject === subject) refresh();
+        });
+        return () => {
+          changed();
+          removed();
+        };
+      }).pipe(shareReplay(SHARE_REPLAY_ONE));
+      this.propertiesCache.set(subject, cached);
+    }
+    return cached;
+  }
+
+  pathProperties$(name: NamedPath, source?: NodeId): Observable<Record<string, string>> {
+    const spec = path(name);
+    const resolvedSource = source ?? spec.from;
+    const cache = cacheKey(['path-properties', name, resolvedSource]);
+    let cached = this.pathPropertiesCache.get(cache);
+    if (!cached) {
+      cached = this.watch$(resolvedSource, spec.path).pipe(
+        switchMap(watch => new Observable<Record<string, string>>(subscriber => {
+          watch.properties().then(value => subscriber.next(value)).catch(error => subscriber.error(error));
+          const unsubscribe = watch.onPropertiesUpdated(() => {
+            watch.properties().then(value => subscriber.next(value)).catch(error => subscriber.error(error));
+          });
+          return unsubscribe;
+        })),
+        shareReplay(SHARE_REPLAY_ONE),
+      );
+      this.pathPropertiesCache.set(cache, cached);
+    }
+    return cached;
+  }
+
+  numberProperty$(subject: NodeId, key: string, fallback = 0): Observable<number> {
+    return this.property$(subject, key).pipe(
+      map(value => {
+        const number = Number(value);
+        return Number.isFinite(number) ? number : fallback;
+      }),
+      distinctUntilChanged(),
+      shareReplay(SHARE_REPLAY_ONE),
+    );
+  }
+
+  booleanProperty$(subject: NodeId, key: string): Observable<boolean> {
+    return this.property$(subject, key).pipe(
+      map(value => value === 'true'),
+      distinctUntilChanged(),
+      shareReplay(SHARE_REPLAY_ONE),
+    );
+  }
+
+  sources$(target: NodeId, relation: string): Observable<NodeId[]> {
+    const key = cacheKey(['sources', target, relation]);
+    let cached = this.sourcesCache.get(key);
+    if (!cached) {
+      cached = new Observable<NodeId[]>(subscriber => {
+        const refresh = () => {
+          this.client.sources(target, relation as Relation)
+            .then(sources => subscriber.next(sources))
+            .catch(error => subscriber.error(error));
+        };
+
+        refresh();
+        const unsubscribeAdded = this.client.onLinkAdded(signal => {
+          if (signal.relation === relation && signal.target === target) refresh();
+        });
+        const unsubscribeRemoved = this.client.onLinkRemoved(signal => {
+          if (signal.relation === relation && signal.target === target) refresh();
+        });
+        const unsubscribeSet = this.client.onLinkSet(signal => {
+          if (signal.relation === relation && (signal.target === target || signal.oldTargets.includes(target))) refresh();
+        });
+
+        return () => {
+          unsubscribeAdded();
+          unsubscribeRemoved();
+          unsubscribeSet();
+        };
+      }).pipe(
+        distinctUntilChanged(sameArray),
+        shareReplay(SHARE_REPLAY_ONE),
+      );
+      this.sourcesCache.set(key, cached);
+    }
+    return cached;
+  }
+
+  targets$(source: NodeId, relation: string): Observable<NodeId[]> {
+    const key = cacheKey(['targets', source, relation]);
+    let cached = this.targetsCache.get(key);
+    if (!cached) {
+      cached = new Observable<NodeId[]>(subscriber => {
+        const refresh = () => {
+          this.client.targets(source, relation as Relation)
+            .then(targets => subscriber.next(targets))
+            .catch(error => subscriber.error(error));
+        };
+
+        refresh();
+        const unsubscribeAdded = this.client.onLinkAdded(signal => {
+          if (signal.relation === relation && signal.source === source) refresh();
+        });
+        const unsubscribeRemoved = this.client.onLinkRemoved(signal => {
+          if (signal.relation === relation && signal.source === source) refresh();
+        });
+        const unsubscribeSet = this.client.onLinkSet(signal => {
+          if (signal.relation === relation && signal.source === source) refresh();
+        });
+
+        return () => {
+          unsubscribeAdded();
+          unsubscribeRemoved();
+          unsubscribeSet();
+        };
+      }).pipe(
+        distinctUntilChanged(sameArray),
+        shareReplay(SHARE_REPLAY_ONE),
+      );
+      this.targetsCache.set(key, cached);
+    }
+    return cached;
+  }
+}
+export class LocusObservableAdapter extends LocusObservableAdapterBase {
+  selectedAgentSession$(): Observable<OptionalNodeId> {
+    return this.path$("selected-agent-session");
+  }
+
+  selectedAgentSessionString$(): Observable<string> {
+    return this.pathString$("selected-agent-session");
+  }
+
+  selectedAgentSessionProperty$(key: string): Observable<string> {
+    return this.pathProperty$("selected-agent-session", key);
+  }
+
+  selectedOutput$(): Observable<OptionalNodeId> {
+    return this.path$("selected-output");
+  }
+
+  selectedOutputString$(): Observable<string> {
+    return this.pathString$("selected-output");
+  }
+
+  selectedOutputProperty$(key: string): Observable<string> {
+    return this.pathProperty$("selected-output", key);
+  }
+
+  selectedProject$(): Observable<OptionalNodeId> {
+    return this.path$("selected-project");
+  }
+
+  selectedProjectString$(): Observable<string> {
+    return this.pathString$("selected-project");
+  }
+
+  selectedProjectProperty$(key: string): Observable<string> {
+    return this.pathProperty$("selected-project", key);
+  }
+
+  selectedWindow$(): Observable<OptionalNodeId> {
+    return this.path$("selected-window");
+  }
+
+  selectedWindowString$(): Observable<string> {
+    return this.pathString$("selected-window");
+  }
+
+  selectedWindowProperty$(key: string): Observable<string> {
+    return this.pathProperty$("selected-window", key);
+  }
+
+  selectedWorkspace$(): Observable<OptionalNodeId> {
+    return this.path$("selected-workspace");
+  }
+
+  selectedWorkspaceString$(): Observable<string> {
+    return this.pathString$("selected-workspace");
+  }
+
+  selectedWorkspaceProperty$(key: string): Observable<string> {
+    return this.pathProperty$("selected-workspace", key);
+  }
+
+  windowAgentSession$(): Observable<OptionalNodeId> {
+    return this.path$("window-agent-session");
+  }
+
+  windowAgentSessionString$(): Observable<string> {
+    return this.pathString$("window-agent-session");
+  }
+
+  windowAgentSessionProperty$(key: string): Observable<string> {
+    return this.pathProperty$("window-agent-session", key);
+  }
+
+}
+
+export function createLocusObservables(client: LocusDbusClient = new LocusDbusClient()): LocusObservableAdapter {
+  return new LocusObservableAdapter(client);
+}
+
+export const locus = createLocusObservables();
 

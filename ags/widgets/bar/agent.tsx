@@ -1,6 +1,6 @@
 import { Gdk, Gtk } from 'ags/gtk4'
 import { getAgentService, AgentStatus } from 'services/agent'
-import { getLocusService } from 'services/locus'
+import { locus } from 'services/locus.generated'
 import { LevelIndicator } from 'widgets/circularstatus'
 import { MaterialIcon } from 'widgets/materialicon'
 import { bindAs, subscribeTo } from 'rxbinding'
@@ -17,7 +17,20 @@ const CONTEXT_STAGES = [
 
 const STYLE = { style: 'line' as const, thickness: 3 }
 
-const DEFAULT_STATUS: AgentStatus = { agentName: '', state: 'no-session', taskComplete: false, requiresAttention: false, contextPct: 0, modelName: '', cwd: '', costUsd: 0, pendingPrompt: '', pendingOptions: [], pendingOptionDescriptions: [], pendingCount: 0, pendingRequestIds: [], pendingPrompts: [], pendingOptionsList: [], pendingOptionDescriptionsList: [], sessionName: '', fiveHourUsagePct: 0, fiveHourResetsAt: 0, sevenDayUsagePct: 0, sevenDayResetsAt: 0 }
+const DEFAULT_STATUS: AgentStatus = { agentName: '', state: 'no-session', taskComplete: false, requiresAttention: false, attentionReasons: [], contextPct: 0, modelName: '', cwd: '', costUsd: 0, pendingPrompt: '', pendingDetailKind: '', pendingDetailText: '', pendingOptions: [], pendingOptionDescriptions: [], pendingCount: 0, pendingRequestIds: [], pendingPrompts: [], pendingDetailKinds: [], pendingDetailTexts: [], pendingOptionsList: [], pendingOptionDescriptionsList: [], sessionName: '', fiveHourUsagePct: 0, fiveHourResetsAt: 0, sevenDayUsagePct: 0, sevenDayResetsAt: 0 }
+
+const ATTENTION_REASON_CLASSES = [
+  'pending-request',
+  'request-user-input',
+  'plan-mode-prompt',
+  'agent-turn-complete',
+  'tool-suggestion',
+  'exec-approval',
+  'apply-patch-approval',
+  'request-permissions',
+  'mcp-server-elicitation',
+  'attention',
+]
 
 type PendingRequest = {
   requestId: string
@@ -48,6 +61,20 @@ function pendingSignature(status: AgentStatus): string {
     .join('\n')
 }
 
+function hasPromptAttention(status: AgentStatus): boolean {
+  return pendingRequests(status).length > 0
+}
+
+function attentionSignature(status: AgentStatus): string {
+  return status.attentionReasons.join('\0')
+}
+
+function attentionLabel(status: AgentStatus): string {
+  if (!status.requiresAttention) return ''
+  const labels = status.attentionReasons.length > 0 ? status.attentionReasons : ['attention']
+  return ` · ${labels.join(', ')}`
+}
+
 const AgentWidget = (sessionId: string) => {
   const { sessions$, respondToElicitation, iconForSession } = getAgentService()
 
@@ -58,6 +85,7 @@ const AgentWidget = (sessionId: string) => {
       a.agentName === b.agentName &&
       a.taskComplete === b.taskComplete &&
       a.requiresAttention === b.requiresAttention &&
+      attentionSignature(a) === attentionSignature(b) &&
       a.contextPct === b.contextPct &&
       a.modelName === b.modelName &&
       a.cwd === b.cwd &&
@@ -76,7 +104,7 @@ const AgentWidget = (sessionId: string) => {
     shareReplay(1),
   )
   const contextPct$ = status$.pipe(map(s => s.contextPct), distinctUntilChanged())
-  const selected$ = getLocusService().selectedAgentSessionId$.pipe(
+  const selected$ = locus.selectedAgentSessionProperty$('id').pipe(
     map(selected => selected === sessionId),
     distinctUntilChanged(),
   )
@@ -155,7 +183,7 @@ const AgentWidget = (sessionId: string) => {
   const widget = (
     <menubutton
       cssClasses={['agent-widget', 'flat', 'circular', 'panel-widget']}
-      tooltipText={bindAs(status$, s => `${s.agentName || 'agent'} · ${s.modelName || 'idle'} · ${Math.round(s.contextPct)}%`, '')}
+      tooltipText={bindAs(status$, s => `${s.agentName || 'agent'} · ${s.modelName || 'idle'} · ${Math.round(s.contextPct)}%${attentionLabel(s)}`, '')}
       popover={popover}
     >
       <box cssClasses={['agent-inner']}>
@@ -169,12 +197,22 @@ const AgentWidget = (sessionId: string) => {
     w.remove_css_class('thinking')
     w.remove_css_class('tool-use')
     w.remove_css_class('attention')
+    w.remove_css_class('attention-passive')
     w.remove_css_class('no-session')
     w.remove_css_class('idle')
     w.remove_css_class('compacting')
     w.remove_css_class('task-complete')
+    for (const reason of ATTENTION_REASON_CLASSES) {
+      w.remove_css_class(`attention-${reason}`)
+    }
     w.add_css_class(status.state)
-    if (status.requiresAttention) w.add_css_class('attention')
+    if (status.requiresAttention) {
+      w.add_css_class(hasPromptAttention(status) ? 'attention' : 'attention-passive')
+      const reasons = status.attentionReasons.length > 0 ? status.attentionReasons : ['attention']
+      for (const reason of reasons) {
+        w.add_css_class(`attention-${reason}`)
+      }
+    }
     if (status.taskComplete) w.add_css_class('task-complete')
 
     modelLabel.label = status.modelName || '—'
@@ -290,8 +328,13 @@ export const AgentWidgets = (props: WidgetProps) => {
     distinctUntilChanged(),
   )
 
-  const anyAttention$ = sessions$.pipe(
-    map(s => [...s.values()].some(v => v.requiresAttention)),
+  const attentionMode$ = sessions$.pipe(
+    map(sessions => {
+      const statuses = [...sessions.values()]
+      if (statuses.some(hasPromptAttention)) return 'prompt'
+      if (statuses.some(status => status.requiresAttention)) return 'passive'
+      return 'none'
+    }),
     distinctUntilChanged(),
   )
 
@@ -312,9 +355,11 @@ export const AgentWidgets = (props: WidgetProps) => {
   const container = (<box cssClasses={cssClasses} visible={bindAs(visible$, v => v, false)} />) as Gtk.Box
   const sessionWidgets = new Map<string, Gtk.Widget>()
 
-  subscribeTo(container, anyAttention$, (attention, box) => {
-    if (attention) box.add_css_class('agent-attention')
-    else box.remove_css_class('agent-attention')
+  subscribeTo(container, attentionMode$, (attentionMode, box) => {
+    box.remove_css_class('agent-attention')
+    box.remove_css_class('agent-attention-passive')
+    if (attentionMode === 'prompt') box.add_css_class('agent-attention')
+    else if (attentionMode === 'passive') box.add_css_class('agent-attention-passive')
   })
 
   subscribeTo(container, sessions$, (sessions, box) => {

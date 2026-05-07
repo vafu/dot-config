@@ -1,12 +1,10 @@
 import { Astal, Gdk } from 'ags/gtk4'
 import { WSIndicator } from './ws'
-import { getLocusService } from 'services/locus'
+import { activeWorkspaceForMonitor$ } from 'services/locus'
 import { delay, merge, of, shareReplay, switchMap } from 'rxjs'
 
-const locus = getLocusService()
-
 export const WSSideOverlay = (monitor: Gdk.Monitor) => {
-  const reveal = locus.activeWorkspaceForMonitor$(monitor).pipe(
+  const reveal = activeWorkspaceForMonitor$(monitor).pipe(
     switchMap(_ => merge(of(true), of(false).pipe(delay(1000)))),
     shareReplay(1),
   )

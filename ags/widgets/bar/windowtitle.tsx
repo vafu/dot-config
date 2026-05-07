@@ -1,10 +1,10 @@
 import Pango from 'gi://Pango?version=1.0'
 import { binding } from 'rxbinding'
 import { Gtk } from 'ags/gtk4'
-import { getLocusService } from 'services/locus'
+import { locus } from 'services/locus.generated'
 import { WidgetProps } from 'widgets'
 
-const title = getLocusService().selectedWindowTitle$
+const title = locus.selectedWindowProperty$('title')
 
 export const WindowTitle = (props: WidgetProps) => (
   <label
