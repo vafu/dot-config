@@ -46,7 +46,6 @@ app.start({
 })
 
 type PendingAgentRequest = [string, AgentStatus]
-const AGENT_SESSION_NODE_PREFIX = 'agent-session:'
 
 function setupAgentApprovalAutoOpen() {
   let lastAutoOpenKey = ''
@@ -54,10 +53,10 @@ function setupAgentApprovalAutoOpen() {
   const workspaceSessions$ = locus.selectedWorkspaceString$().pipe(
     distinctUntilChanged(),
     switchMap(workspace => {
-      if (!workspace) return of({ workspace, sessionIds: [] as string[] })
+      if (!workspace) return of({ workspace, sessionNodes: [] as string[] })
       return locus.sources$(workspace, 'workspace').pipe(
         switchMap(windows => {
-          const windowSubjects = [...new Set(windows.filter(subject => subject.startsWith('window:')))]
+          const windowSubjects = [...new Set(windows)]
           if (windowSubjects.length === 0) return of([] as string[])
           return combineLatest(windowSubjects.map(window => locus.pathAll$('window-agent-session', window))).pipe(
             map(targets => targets.flat()),
@@ -65,7 +64,7 @@ function setupAgentApprovalAutoOpen() {
         }),
         map(targets => ({
           workspace,
-          sessionIds: sessionIdsFromTargets(targets),
+          sessionNodes: [...new Set(targets)],
         })),
       )
     }),
@@ -74,7 +73,7 @@ function setupAgentApprovalAutoOpen() {
   combineLatest([workspaceSessions$, getAgentService().sessions$]).pipe(
     map(([workspaceSessions, sessions]) => ({
       workspace: workspaceSessions.workspace,
-      match: pendingRequestForSessionIds(workspaceSessions.sessionIds, pendingRequests(sessions)),
+      match: pendingRequestForSessionNodes(workspaceSessions.sessionNodes, pendingRequests(sessions)),
     })),
     distinctUntilChanged((left, right) =>
       left.workspace === right.workspace
@@ -99,17 +98,9 @@ function pendingRequests(sessions: Map<string, AgentStatus>): PendingAgentReques
     .filter(([, status]) => status.requiresAttention && status.pendingPrompt)
 }
 
-function sessionIdsFromTargets(targets: string[]): string[] {
-  return [...new Set(
-    targets
-      .filter(target => target.startsWith(AGENT_SESSION_NODE_PREFIX))
-      .map(target => target.slice(AGENT_SESSION_NODE_PREFIX.length)),
-  )]
-}
-
-function pendingRequestForSessionIds(sessionIds: string[], pending: PendingAgentRequest[]): PendingAgentRequest | null {
-  const linkedSessions = new Set(sessionIds)
-  return pending.find(([sessionId]) => linkedSessions.has(sessionId)) ?? null
+function pendingRequestForSessionNodes(sessionNodes: string[], pending: PendingAgentRequest[]): PendingAgentRequest | null {
+  const linkedSessions = new Set(sessionNodes)
+  return pending.find(([sessionId]) => linkedSessions.has(`agent-session:${sessionId}`)) ?? null
 }
 
 function autoOpenKey(sessionId: string, status: AgentStatus) {

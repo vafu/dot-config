@@ -167,10 +167,7 @@ export class LocusWorkspace extends GObject.Object {
     )
     this.urgent = locus.booleanProperty$(subject, 'urgent')
 
-    const windowSubjects$ = locus.sources$(subject, 'workspace').pipe(
-      map(sources => sources.filter(source => source.startsWith('window:'))),
-      shareReplay(1),
-    )
+    const windowSubjects$ = locus.sources$(subject, 'workspace').pipe(shareReplay(1))
 
     this.occupied = windowSubjects$.pipe(
       map(subjects => subjects.length > 0),
@@ -337,7 +334,6 @@ export const activeWorkspace$ = locus.selectedWorkspaceString$().pipe(
 )
 
 export const workspacesOnMonitor$ = (monitor: Gdk.Monitor) => locus.sources$(`output:${monitor.connector}`, 'output').pipe(
-  map(subjects => subjects.filter(subject => subject.startsWith('workspace:'))),
   map(subjects => subjects.sort((left, right) => workspaceId(left) - workspaceId(right))),
   distinctUntilChanged(sameArray),
   map(subjects => subjects.map(subject => workspace$(workspaceId(subject)))),

@@ -104,8 +104,8 @@ const AgentWidget = (sessionId: string) => {
     shareReplay(1),
   )
   const contextPct$ = status$.pipe(map(s => s.contextPct), distinctUntilChanged())
-  const selected$ = locus.selectedAgentSessionProperty$('id').pipe(
-    map(selected => selected === sessionId),
+  const selected$ = locus.selectedAgentSessionString$().pipe(
+    map(selected => selected === `agent-session:${sessionId}`),
     distinctUntilChanged(),
   )
 

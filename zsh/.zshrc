@@ -65,6 +65,8 @@ _locus_safe_node_part() {
   print -r -- "$1" | tr -c '[:alnum:]_' '_'
 }
 
+[[ -r "$HOME/.config/locus/locus.sh" ]] && source "$HOME/.config/locus/locus.sh"
+
 _locus_wrap_app() {
   local app_name="$1"
   local app_icon="$2"
@@ -74,7 +76,7 @@ _locus_wrap_app() {
   fi
 
   local selected_window app_part app_node linked=0 command_status=0
-  selected_window="$(locusctl context get selected window --first 2>/dev/null)"
+  selected_window="$(locus_selected_window 2>/dev/null)"
   app_part="$(_locus_safe_node_part "$app_name")"
   app_node="app-instance:${app_part}/${$}-${RANDOM}"
 
@@ -108,7 +110,7 @@ nvim() {
 
 _locus_selected_workspace_subject() {
   local workspace_subject
-  workspace_subject="$(locusctl resolve context:selected window workspace 2>/dev/null)"
+  workspace_subject="$(locus_selected_workspace 2>/dev/null)"
   [[ "$workspace_subject" == workspace:* ]] || return 1
   print -r -- "$workspace_subject"
 }
