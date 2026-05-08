@@ -4,7 +4,7 @@ import { locus } from 'services/locus.generated'
 import { LevelIndicator } from 'widgets/circularstatus'
 import { MaterialIcon } from 'widgets/materialicon'
 import { bindAs, subscribeTo } from 'rxbinding'
-import { map, distinctUntilChanged, shareReplay, switchMap } from 'rxjs'
+import { map, distinctUntilChanged, shareReplay } from 'rxjs'
 import { WidgetProps } from 'widgets'
 
 const CONTEXT_STAGES = [
@@ -76,7 +76,8 @@ function attentionLabel(status: AgentStatus): string {
 }
 
 const AgentWidget = (sessionId: string) => {
-  const { sessions$, respondToElicitation, iconForSession } = getAgentService()
+  const { sessions$, respondToElicitation } = getAgentService()
+  const agentSessionNode = `agent-session:${sessionId}`
 
   const status$ = sessions$.pipe(
     map(sessions => sessions.get(sessionId) ?? DEFAULT_STATUS),
@@ -97,15 +98,14 @@ const AgentWidget = (sessionId: string) => {
   )
 
   const state$ = status$.pipe(map(s => s.state), distinctUntilChanged())
-  const projectIcon$ = status$.pipe(
-    map(s => ({ cwd: s.cwd, sessionName: s.sessionName })),
-    distinctUntilChanged((a, b) => a.cwd === b.cwd && a.sessionName === b.sessionName),
-    switchMap(({ cwd, sessionName }) => iconForSession(cwd, sessionName)),
+  const projectIcon$ = locus.agentSessionProjectProperty$(agentSessionNode, 'icon').pipe(
+    map(icon => icon || 'smart_toy'),
+    distinctUntilChanged(),
     shareReplay(1),
   )
   const contextPct$ = status$.pipe(map(s => s.contextPct), distinctUntilChanged())
   const selected$ = locus.selectedAgentSessionString$().pipe(
-    map(selected => selected === `agent-session:${sessionId}`),
+    map(selected => selected === agentSessionNode),
     distinctUntilChanged(),
   )
 

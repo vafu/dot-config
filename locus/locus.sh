@@ -34,6 +34,100 @@ locus_context_get() {
 locus_context_set() {
   "$LOCUSCTL" context set "$@"
 }
+locus_agent_session_project() {
+  local source="${1:?usage: locus_agent_session_project <source>}"
+  "$LOCUSCTL" resolve "$source" 'agent-session' 'app-instance' 'workspace' 'project'
+}
+
+locus_agent_session_project_all() {
+  local source="${1:?usage: locus_agent_session_project_all <source>}"
+  "$LOCUSCTL" resolve-all "$source" 'agent-session' 'app-instance' 'workspace' 'project'
+}
+
+locus_agent_session_project_prop() {
+  local source="${1:?usage: locus_agent_session_project_prop <source> <key>}"
+  local key="${2:?usage: locus_agent_session_project_prop <source> <key>}"
+  local subject
+  subject=$("$LOCUSCTL" resolve "$source" 'agent-session' 'app-instance' 'workspace' 'project') || return
+  [ -n "$subject" ] || return 1
+  "$LOCUSCTL" prop get "$subject" "$key"
+}
+
+locus_agent_session_project_props() {
+  local source="${1:?usage: locus_agent_session_project_props <source>}"
+  local subject
+  subject=$("$LOCUSCTL" resolve "$source" 'agent-session' 'app-instance' 'workspace' 'project') || return
+  [ -n "$subject" ] || return 1
+  "$LOCUSCTL" prop list "$subject"
+}
+
+locus_agent_session_project_icon() {
+  locus_agent_session_project_prop "$1" 'icon'
+}
+
+locus_agent_session_project_name() {
+  locus_agent_session_project_prop "$1" 'name'
+}
+
+locus_agent_session_project_path() {
+  locus_agent_session_project_prop "$1" 'path'
+}
+
+locus_agent_session_workspace() {
+  local source="${1:?usage: locus_agent_session_workspace <source>}"
+  "$LOCUSCTL" resolve "$source" 'agent-session' 'app-instance' 'workspace'
+}
+
+locus_agent_session_workspace_all() {
+  local source="${1:?usage: locus_agent_session_workspace_all <source>}"
+  "$LOCUSCTL" resolve-all "$source" 'agent-session' 'app-instance' 'workspace'
+}
+
+locus_agent_session_workspace_prop() {
+  local source="${1:?usage: locus_agent_session_workspace_prop <source> <key>}"
+  local key="${2:?usage: locus_agent_session_workspace_prop <source> <key>}"
+  local subject
+  subject=$("$LOCUSCTL" resolve "$source" 'agent-session' 'app-instance' 'workspace') || return
+  [ -n "$subject" ] || return 1
+  "$LOCUSCTL" prop get "$subject" "$key"
+}
+
+locus_agent_session_workspace_props() {
+  local source="${1:?usage: locus_agent_session_workspace_props <source>}"
+  local subject
+  subject=$("$LOCUSCTL" resolve "$source" 'agent-session' 'app-instance' 'workspace') || return
+  [ -n "$subject" ] || return 1
+  "$LOCUSCTL" prop list "$subject"
+}
+
+locus_agent_session_workspace_active() {
+  locus_agent_session_workspace_prop "$1" 'active'
+}
+
+locus_agent_session_workspace_external_id() {
+  locus_agent_session_workspace_prop "$1" 'external-id'
+}
+
+locus_agent_session_workspace_focused() {
+  locus_agent_session_workspace_prop "$1" 'focused'
+}
+
+locus_agent_session_workspace_idx() {
+  locus_agent_session_workspace_prop "$1" 'idx'
+}
+
+locus_agent_session_workspace_name() {
+  locus_agent_session_workspace_prop "$1" 'name'
+}
+
+locus_agent_session_workspace_source() {
+  locus_agent_session_workspace_prop "$1" 'source'
+}
+
+locus_agent_session_workspace_urgent() {
+  locus_agent_session_workspace_prop "$1" 'urgent'
+}
+
 locus_selected_agent_session() {
   "$LOCUSCTL" resolve 'context:selected' 'window' 'app-instance' 'agent-session'
 }

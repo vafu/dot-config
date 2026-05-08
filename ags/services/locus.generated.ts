@@ -26,6 +26,8 @@ export type Relation =
 ;
 
 export type NamedPath =
+  | "agent-session-project"
+  | "agent-session-workspace"
   | "selected-agent-session"
   | "selected-output"
   | "selected-project"
@@ -132,6 +134,16 @@ export const locusSchema = {
     },
   },
   paths: {
+    "agent-session-project": {
+      from: "agent-session",
+      path: ["agent-session", "app-instance", "workspace", "project"],
+      many: false,
+    },
+    "agent-session-workspace": {
+      from: "agent-session",
+      path: ["agent-session", "app-instance", "workspace"],
+      many: false,
+    },
     "selected-agent-session": {
       from: "context:selected",
       path: ["window", "app-instance", "agent-session"],
@@ -308,6 +320,10 @@ export class LocusDbusClient {
     return this.callRead('GetProperties', new GLib.Variant('(s)', [subject]), '(a{ss})', ([properties]) => properties as Record<string, string>);
   }
 
+  findSubjects(key: PropertyKey, value: string): Promise<NodeId[]> {
+    return this.callRead('FindSubjects', new GLib.Variant('(ss)', [key, value]), '(as)', ([subjects]) => subjects as NodeId[]);
+  }
+
   async resolve(source: NodeId, relations: Relation[]): Promise<OptionalNodeId> {
     return none(await this.callResolve('Resolve', new GLib.Variant('(sas)', [source, relations]), '(s)', ([target]) => target as string));
   }
@@ -470,7 +486,6 @@ export class LocusDbusClient {
   }
 }
 
-
 const SHARE_REPLAY_ONE = { bufferSize: 1, refCount: true } as const;
 
 function present(value: OptionalNodeId): string {
@@ -497,6 +512,7 @@ export class LocusObservableAdapterBase {
   private readonly propertyCache = new Map<string, Observable<string>>();
   private readonly propertiesCache = new Map<string, Observable<Record<string, string>>>();
   private readonly pathPropertiesCache = new Map<string, Observable<Record<string, string>>>();
+  private readonly findSubjectsCache = new Map<string, Observable<NodeId[]>>();
   private readonly sourcesCache = new Map<string, Observable<NodeId[]>>();
   private readonly targetsCache = new Map<string, Observable<NodeId[]>>();
 
@@ -708,6 +724,37 @@ export class LocusObservableAdapterBase {
     return cached;
   }
 
+  findSubjects$(key: string, value: string): Observable<NodeId[]> {
+    const cache = cacheKey(['find-subjects', key, value]);
+    let cached = this.findSubjectsCache.get(cache);
+    if (!cached) {
+      cached = new Observable<NodeId[]>(subscriber => {
+        const refresh = () => {
+          this.client.findSubjects(key as PropertyKey, value)
+            .then(subjects => subscriber.next(subjects))
+            .catch(error => subscriber.error(error));
+        };
+
+        refresh();
+        const changed = this.client.onPropertyChanged(signal => {
+          if (signal.key === key) refresh();
+        });
+        const removed = this.client.onPropertyRemoved(signal => {
+          if (signal.key === key) refresh();
+        });
+        return () => {
+          changed();
+          removed();
+        };
+      }).pipe(
+        distinctUntilChanged(sameArray),
+        shareReplay(SHARE_REPLAY_ONE),
+      );
+      this.findSubjectsCache.set(cache, cached);
+    }
+    return cached;
+  }
+
   pathProperties$(name: NamedPath, source?: NodeId): Observable<Record<string, string>> {
     const spec = path(name);
     const resolvedSource = source ?? spec.from;
@@ -821,6 +868,30 @@ export class LocusObservableAdapterBase {
   }
 }
 export class LocusObservableAdapter extends LocusObservableAdapterBase {
+  agentSessionProject$(source: NodeId): Observable<OptionalNodeId> {
+    return this.path$("agent-session-project", source);
+  }
+
+  agentSessionProjectString$(source: NodeId): Observable<string> {
+    return this.pathString$("agent-session-project", source);
+  }
+
+  agentSessionProjectProperty$(source: NodeId, key: string): Observable<string> {
+    return this.pathProperty$("agent-session-project", key, source);
+  }
+
+  agentSessionWorkspace$(source: NodeId): Observable<OptionalNodeId> {
+    return this.path$("agent-session-workspace", source);
+  }
+
+  agentSessionWorkspaceString$(source: NodeId): Observable<string> {
+    return this.pathString$("agent-session-workspace", source);
+  }
+
+  agentSessionWorkspaceProperty$(source: NodeId, key: string): Observable<string> {
+    return this.pathProperty$("agent-session-workspace", key, source);
+  }
+
   selectedAgentSession$(): Observable<OptionalNodeId> {
     return this.path$("selected-agent-session");
   }
@@ -881,16 +952,16 @@ export class LocusObservableAdapter extends LocusObservableAdapterBase {
     return this.pathProperty$("selected-workspace", key);
   }
 
-  windowAgentSession$(): Observable<OptionalNodeId> {
-    return this.path$("window-agent-session");
+  windowAgentSession$(source: NodeId): Observable<OptionalNodeId> {
+    return this.path$("window-agent-session", source);
   }
 
-  windowAgentSessionString$(): Observable<string> {
-    return this.pathString$("window-agent-session");
+  windowAgentSessionString$(source: NodeId): Observable<string> {
+    return this.pathString$("window-agent-session", source);
   }
 
-  windowAgentSessionProperty$(key: string): Observable<string> {
-    return this.pathProperty$("window-agent-session", key);
+  windowAgentSessionProperty$(source: NodeId, key: string): Observable<string> {
+    return this.pathProperty$("window-agent-session", key, source);
   }
 
 }
