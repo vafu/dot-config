@@ -21,6 +21,7 @@ export type Relation =
   | "app-instance"
   | "output"
   | "project"
+  | "session-project"
   | "window"
   | "workspace"
 ;
@@ -120,6 +121,12 @@ export const locusSchema = {
       cardinality: "many-to-one",
       retention: "static",
     },
+    "session-project": {
+      from: { type: "kind", kind: "agent-session" },
+      to: { type: "kind", kind: "project" },
+      cardinality: "many-to-one",
+      retention: "strong",
+    },
     "window": {
       from: { type: "exact", id: "context:selected" },
       to: { type: "kind", kind: "window" },
@@ -127,7 +134,7 @@ export const locusSchema = {
       retention: "strong",
     },
     "workspace": {
-      from: { type: "kind", kind: "window" },
+      from: { type: "any" },
       to: { type: "kind", kind: "workspace" },
       cardinality: "many-to-one",
       retention: "strong",
@@ -136,7 +143,7 @@ export const locusSchema = {
   paths: {
     "agent-session-project": {
       from: "agent-session",
-      path: ["agent-session", "app-instance", "workspace", "project"],
+      path: ["session-project"],
       many: false,
     },
     "agent-session-workspace": {
@@ -151,12 +158,12 @@ export const locusSchema = {
     },
     "selected-output": {
       from: "context:selected",
-      path: ["window", "workspace", "output"],
+      path: ["workspace", "output"],
       many: false,
     },
     "selected-project": {
       from: "context:selected",
-      path: ["window", "workspace", "project"],
+      path: ["workspace", "project"],
       many: false,
     },
     "selected-window": {
@@ -166,7 +173,7 @@ export const locusSchema = {
     },
     "selected-workspace": {
       from: "context:selected",
-      path: ["window", "workspace"],
+      path: ["workspace"],
       many: false,
     },
     "window-agent-session": {

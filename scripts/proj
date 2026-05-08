@@ -67,7 +67,7 @@ selected_workspace() {
       return 0
     fi
   fi
-  workspace="$(locusctl resolve context:selected window workspace 2>/dev/null || true)"
+  workspace="$(locusctl resolve context:selected workspace 2>/dev/null || true)"
   if [[ "$workspace" == workspace:* ]]; then
     printf '%s\n' "$workspace"
     return 0
