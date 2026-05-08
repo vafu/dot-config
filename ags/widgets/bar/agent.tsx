@@ -338,18 +338,27 @@ export const AgentWidgets = (props: WidgetProps) => {
     distinctUntilChanged(),
   )
 
-  const fiveHourPct$ = sessions$.pipe(
+  const usage$ = sessions$.pipe(
     map(sessions => {
-      let best = 0, bestReset = 0
+      let best = { fiveHourUsagePct: 0, fiveHourResetsAt: 0, sevenDayUsagePct: 0, sevenDayResetsAt: 0 }
       for (const s of sessions.values()) {
-        if (s.fiveHourResetsAt > bestReset) {
-          best = s.fiveHourUsagePct
-          bestReset = s.fiveHourResetsAt
+        if (s.fiveHourResetsAt > best.fiveHourResetsAt) {
+          best = {
+            fiveHourUsagePct: s.fiveHourUsagePct,
+            fiveHourResetsAt: s.fiveHourResetsAt,
+            sevenDayUsagePct: s.sevenDayUsagePct,
+            sevenDayResetsAt: s.sevenDayResetsAt,
+          }
         }
       }
       return best
     }),
-    distinctUntilChanged(),
+    distinctUntilChanged((a, b) =>
+      a.fiveHourUsagePct === b.fiveHourUsagePct &&
+      a.fiveHourResetsAt === b.fiveHourResetsAt &&
+      a.sevenDayUsagePct === b.sevenDayUsagePct &&
+      a.sevenDayResetsAt === b.sevenDayResetsAt
+    ),
   )
 
   const container = (<box cssClasses={cssClasses} visible={bindAs(visible$, v => v, false)} />) as Gtk.Box
@@ -376,17 +385,11 @@ export const AgentWidgets = (props: WidgetProps) => {
     }
   })
 
-  subscribeTo(container, fiveHourPct$, (pct, box) => {
-    updateUsageFill(pct)
-    const sessions = sessions$.value
-    let sevenDayPct = 0, bestReset = 0
-    for (const s of sessions.values()) {
-      if (s.fiveHourResetsAt > bestReset) {
-        sevenDayPct = s.sevenDayUsagePct
-        bestReset = s.fiveHourResetsAt
-      }
-    }
-    box.tooltipText = pct > 0 ? `5h: ${Math.round(pct)}% · 7d: ${Math.round(sevenDayPct)}%` : ''
+  subscribeTo(container, usage$, (usage, box) => {
+    updateUsageFill(usage.fiveHourUsagePct)
+    box.tooltipText = usage.fiveHourResetsAt > 0
+      ? `5h: ${Math.round(usage.fiveHourUsagePct)}% · 7d: ${Math.round(usage.sevenDayUsagePct)}%`
+      : ''
   })
 
   return container
