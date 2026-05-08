@@ -213,8 +213,6 @@ source_if_exists "$ZDOTDIR/env.zsh"
 source_if_exists "$ZDOTDIR/aliases.zsh"
 source_if_exists "$ZDOTDIR/niri.zsh"
 
-cd /tmp
-
 #THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
 export SDKMAN_DIR="$HOME/.sdkman"
 [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"

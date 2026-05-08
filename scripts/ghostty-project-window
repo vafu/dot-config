@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+working_dir="/tmp"
+export LOCUSCTL="${LOCUSCTL:-$HOME/.cargo/bin/locusctl}"
+
+if [[ -r "$HOME/.config/locus/locus.sh" ]]; then
+  # shellcheck disable=SC1091
+  source "$HOME/.config/locus/locus.sh"
+  project_dir="$(locus_selected_project_path 2>/dev/null || true)"
+  if [[ -n "$project_dir" && -d "$project_dir" ]]; then
+    working_dir="$project_dir"
+  fi
+fi
+
+exec /usr/bin/ghostty \
+  --window-inherit-working-directory=false \
+  --working-directory="$working_dir" \
+  +new-window
