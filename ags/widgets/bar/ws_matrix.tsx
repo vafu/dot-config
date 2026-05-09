@@ -29,14 +29,14 @@ export const WSMatrix = (props: { monitor: Gdk.Monitor } & WidgetProps) => {
 
     workspaces.forEach(ws => {
       const strip = WorkspaceStrip(ws, { monitor: props.monitor })
-      strip['wsId'] = ws.wsId
+      strip['workspaceSubject'] = ws.subject
       carousel.append(strip)
     })
 
     sub = activeWorkspaceForMonitor$(props.monitor).subscribe(ws => {
       for (let i = 0; i < carousel.get_n_pages(); i++) {
         const wsstrip = carousel.get_nth_page(i) as Gtk.Overlay
-        if (wsstrip['wsId'] == ws.wsId) {
+        if (wsstrip['workspaceSubject'] == ws.subject) {
           carousel.scroll_to(wsstrip, carousel.get_position() != i)
           wsstrip.add_css_class('selected')
         } else {

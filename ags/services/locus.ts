@@ -20,7 +20,7 @@ export interface LocusTab {
 
 const apps = AstalApps.Apps.new()
 const iconNameCache = new Map<string, string>()
-const workspaces = new Map<number, LocusWorkspace>()
+const workspaces = new Map<string, LocusWorkspace>()
 
 const DEFAULT_MONITOR_WIDTH = 1920
 const COLUMN_GAP_PX = 12
@@ -68,12 +68,17 @@ export function getIconForAppId(appId: string): string {
   return icon
 }
 
-export function workspaceSubject(id: number) {
-  return `workspace:${id}`
+export function workspaceSubject(subjectOrId: string | number) {
+  if (typeof subjectOrId === 'string' && subjectOrId.startsWith('workspace:')) {
+    return subjectOrId
+  }
+
+  return `workspace:${subjectOrId}`
 }
 
 export function workspaceId(subject: string) {
-  return Number(subject.replace(/^workspace:/, '')) || 0
+  const identity = subject.replace(/^workspace:/, '')
+  return Number(identity.split('/').at(-1)) || 0
 }
 
 function sameArray(left: string[], right: string[]) {
@@ -146,6 +151,7 @@ export class LocusWorkspace extends GObject.Object {
   }
 
   wsId: number
+  subject: string
   name: Observable<string>
   tabs: Observable<LocusTab[]>
   selectedTab: Observable<LocusTab>
@@ -154,10 +160,11 @@ export class LocusWorkspace extends GObject.Object {
   urgent: Observable<boolean>
   viewportOffset: Observable<number>
 
-  constructor(id: number) {
+  constructor(subjectOrId: string | number) {
     super()
-    this.wsId = id
-    const subject = workspaceSubject(id)
+    const subject = workspaceSubject(subjectOrId)
+    this.subject = subject
+    this.wsId = workspaceId(subject)
 
     this.name = locus.property$(subject, 'name').pipe(shareReplay(1))
     this.active = locus.selectedWorkspaceString$().pipe(
@@ -167,7 +174,11 @@ export class LocusWorkspace extends GObject.Object {
     )
     this.urgent = locus.booleanProperty$(subject, 'urgent')
 
-    const windowSubjects$ = locus.sources$(subject, 'workspace').pipe(shareReplay(1))
+    const windowSubjects$ = locus.sources$(subject, 'workspace').pipe(
+      map(subjects => subjects.filter(subject => subject.startsWith('window:')).sort()),
+      distinctUntilChanged(sameArray),
+      shareReplay(1),
+    )
 
     this.occupied = windowSubjects$.pipe(
       map(subjects => subjects.length > 0),
@@ -305,9 +316,10 @@ export const windowIcon$ = (window: string) =>
     shareReplay(1),
   )
 
-export const workspace$ = (id: number) => {
-  if (!workspaces.has(id)) workspaces.set(id, new LocusWorkspace(id))
-  return workspaces.get(id)!
+export const workspace$ = (subjectOrId: string | number) => {
+  const subject = workspaceSubject(subjectOrId)
+  if (!workspaces.has(subject)) workspaces.set(subject, new LocusWorkspace(subject))
+  return workspaces.get(subject)!
 }
 
 export const selectedWindowIcon$ = locus.selectedWindowString$().pipe(
@@ -327,16 +339,15 @@ export const activeMonitor$ = locus.selectedOutputProperty$('connector').pipe(
 )
 
 export const activeWorkspace$ = locus.selectedWorkspaceString$().pipe(
-  map(workspaceId),
-  filter(id => id > 0),
+  filter(subject => workspaceId(subject) > 0),
   map(workspace$),
   shareReplay(1),
 )
 
 export const workspacesOnMonitor$ = (monitor: Gdk.Monitor) => locus.sources$(`output:${monitor.connector}`, 'output').pipe(
-  map(subjects => subjects.sort((left, right) => workspaceId(left) - workspaceId(right))),
+  map(subjects => subjects.filter(subject => subject.startsWith('workspace:')).sort((left, right) => workspaceId(left) - workspaceId(right))),
   distinctUntilChanged(sameArray),
-  map(subjects => subjects.map(subject => workspace$(workspaceId(subject)))),
+  map(subjects => subjects.map(workspace$)),
   shareReplay(1),
 )
 
@@ -345,8 +356,7 @@ export const activeWorkspaceForMonitor$ = (monitor: Gdk.Monitor) => combineLates
   workspacesOnMonitor$(monitor),
 ]).pipe(
   map(([selected, monitorWorkspaces]) => {
-    const id = workspaceId(selected)
-    return monitorWorkspaces.find(workspace => workspace.wsId === id) ?? workspace$(id)
+    return monitorWorkspaces.find(workspace => workspace.subject === selected) ?? workspace$(selected)
   }),
   filter(workspace => workspace.wsId > 0),
   distinctUntilChanged(),
