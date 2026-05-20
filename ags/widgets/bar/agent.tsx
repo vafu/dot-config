@@ -4,7 +4,7 @@ import { locus } from 'services/locus.generated'
 import { LevelIndicator } from 'widgets/circularstatus'
 import { MaterialIcon } from 'widgets/materialicon'
 import { bindAs, subscribeTo } from 'rxbinding'
-import { map, distinctUntilChanged, shareReplay } from 'rxjs'
+import { Observable, map, distinctUntilChanged, shareReplay } from 'rxjs'
 import { WidgetProps } from 'widgets'
 
 const CONTEXT_STAGES = [
@@ -17,7 +17,7 @@ const CONTEXT_STAGES = [
 
 const STYLE = { style: 'line' as const, thickness: 3 }
 
-const DEFAULT_STATUS: AgentStatus = { agentName: '', state: 'no-session', taskComplete: false, requiresAttention: false, attentionReasons: [], contextPct: 0, modelName: '', cwd: '', costUsd: 0, pendingPrompt: '', pendingDetailKind: '', pendingDetailText: '', pendingOptions: [], pendingOptionDescriptions: [], pendingCount: 0, pendingRequestIds: [], pendingPrompts: [], pendingDetailKinds: [], pendingDetailTexts: [], pendingOptionsList: [], pendingOptionDescriptionsList: [], sessionName: '', fiveHourUsagePct: 0, fiveHourResetsAt: 0, sevenDayUsagePct: 0, sevenDayResetsAt: 0 }
+const DEFAULT_STATUS: AgentStatus = { agentName: '', isSubagent: false, parentSessionId: '', agentNickname: '', agentRole: '', state: 'no-session', taskComplete: false, requiresAttention: false, attentionReasons: [], contextPct: 0, modelName: '', cwd: '', costUsd: 0, pendingPrompt: '', pendingDetailKind: '', pendingDetailText: '', pendingOptions: [], pendingOptionDescriptions: [], pendingCount: 0, pendingRequestIds: [], pendingPrompts: [], pendingDetailKinds: [], pendingDetailTexts: [], pendingOptionsList: [], pendingOptionDescriptionsList: [], sessionName: '', fiveHourUsagePct: 0, fiveHourResetsAt: 0, sevenDayUsagePct: 0, sevenDayResetsAt: 0 }
 
 const ATTENTION_REASON_CLASSES = [
   'pending-request',
@@ -75,7 +75,7 @@ function attentionLabel(status: AgentStatus): string {
   return ` · ${labels.join(', ')}`
 }
 
-const AgentWidget = (sessionId: string) => {
+const AgentWidget = (sessionId: string, subagentCount$: Observable<number>) => {
   const { sessions$, respondToElicitation } = getAgentService()
   const agentSessionNode = `agent-session:${sessionId}`
 
@@ -84,6 +84,10 @@ const AgentWidget = (sessionId: string) => {
     distinctUntilChanged((a, b) =>
       a.state === b.state &&
       a.agentName === b.agentName &&
+      a.isSubagent === b.isSubagent &&
+      a.parentSessionId === b.parentSessionId &&
+      a.agentNickname === b.agentNickname &&
+      a.agentRole === b.agentRole &&
       a.taskComplete === b.taskComplete &&
       a.requiresAttention === b.requiresAttention &&
       attentionSignature(a) === attentionSignature(b) &&
@@ -110,6 +114,10 @@ const AgentWidget = (sessionId: string) => {
   )
 
   const mainIcon$ = projectIcon$
+  const subagentBadgeVisible$ = subagentCount$.pipe(
+    map(count => count > 0),
+    distinctUntilChanged(),
+  )
 
   const icon = (
     <MaterialIcon
@@ -186,10 +194,20 @@ const AgentWidget = (sessionId: string) => {
       tooltipText={bindAs(status$, s => `${s.agentName || 'agent'} · ${s.modelName || 'idle'} · ${Math.round(s.contextPct)}%${attentionLabel(s)}`, '')}
       popover={popover}
     >
-      <box cssClasses={['agent-inner']}>
-        {icon}
-        {level}
-      </box>
+      <overlay>
+        <box cssClasses={['agent-inner']}>
+          {icon}
+          {level}
+        </box>
+        <label
+          $type="overlay"
+          label={bindAs(subagentCount$, count => count > 9 ? '9+' : `${count}`, '')}
+          visible={bindAs(subagentBadgeVisible$, visible => visible, false)}
+          cssClasses={['agent-subagent-badge']}
+          halign={Gtk.Align.END}
+          valign={Gtk.Align.START}
+        />
+      </overlay>
     </menubutton>
   ) as Gtk.MenuButton
 
@@ -324,7 +342,7 @@ export const AgentWidgets = (props: WidgetProps) => {
   const cssClasses = (props.cssClasses ?? []).concat(['agent-usage-fill'])
 
   const visible$ = sessions$.pipe(
-    map(s => s.size > 0),
+    map(sessions => [...sessions.values()].some(status => !status.isSubagent)),
     distinctUntilChanged(),
   )
 
@@ -370,15 +388,21 @@ export const AgentWidgets = (props: WidgetProps) => {
   })
 
   subscribeTo(container, sessions$, (sessions, box) => {
-    for (const [sessionId] of sessions) {
+    for (const [sessionId, status] of sessions) {
+      if (status.isSubagent) continue
       if (!sessionWidgets.has(sessionId)) {
-        const w = AgentWidget(sessionId)
+        const subagentCount$ = locus.targets$(`agent-session:${sessionId}`, 'subagent-session').pipe(
+          map(children => children.length),
+          distinctUntilChanged(),
+          shareReplay(1),
+        )
+        const w = AgentWidget(sessionId, subagentCount$)
         sessionWidgets.set(sessionId, w)
         box.append(w)
       }
     }
     for (const [sessionId, w] of [...sessionWidgets]) {
-      if (!sessions.has(sessionId)) {
+      if (!sessions.has(sessionId) || sessions.get(sessionId)?.isSubagent) {
         box.remove(w)
         sessionWidgets.delete(sessionId)
       }

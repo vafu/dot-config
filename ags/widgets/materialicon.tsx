@@ -68,6 +68,7 @@ class MaterialIconInternal extends Gtk.Image {
   set icon(icon: string) {
     this._icon = icon
     this.clear()
+    if (!icon) return
     fetchForProps(icon, this._style, (name, file) => {
       if (file) {
         const paintable = Gtk.IconPaintable.new_for_file(file, this._style.size, 1)

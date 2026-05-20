@@ -61,6 +61,12 @@ codex() {
   _locus_wrap_app codex utilities-terminal -- "$codex_bin" "$@"
 }
 
+gemini() {
+  local gemini_bin
+  gemini_bin="$(whence -p gemini)"
+  _locus_wrap_app gemini utilities-terminal -- "$gemini_bin" "$@"
+}
+
 _locus_safe_node_part() {
   print -r -- "$1" | tr -c '[:alnum:]_' '_'
 }

@@ -12,6 +12,19 @@
     padding: 0 4px;
   }
 
+  .agent-subagent-badge {
+    min-width: 12px;
+    min-height: 12px;
+    padding: 0 3px;
+    margin-top: -2px;
+    margin-right: -3px;
+    border-radius: 999px;
+    background-color: #{$sys_warn};
+    color: #{$bg};
+    font-size: 7pt;
+    font-weight: 700;
+  }
+
   &.attention {
     background-color: transparent;
   }

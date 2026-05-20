@@ -7,6 +7,10 @@ export type AgentState = 'no-session' | 'idle' | 'thinking' | 'tool-use' | 'comp
 
 export interface AgentStatus {
   agentName: string
+  isSubagent: boolean
+  parentSessionId: string
+  agentNickname: string
+  agentRole: string
   state: AgentState
   taskComplete: boolean
   requiresAttention: boolean
@@ -66,6 +70,10 @@ function sessionIdFromPath(path: string): string | null {
 function propsToStatus(props: Record<string, GLib.Variant>): Partial<AgentStatus> {
   const status: Partial<AgentStatus> = {}
   if ('AgentName' in props) status.agentName = props['AgentName'].deepUnpack() as string
+  if ('IsSubagent' in props) status.isSubagent = props['IsSubagent'].deepUnpack() as boolean
+  if ('ParentSessionId' in props) status.parentSessionId = props['ParentSessionId'].deepUnpack() as string
+  if ('AgentNickname' in props) status.agentNickname = props['AgentNickname'].deepUnpack() as string
+  if ('AgentRole' in props) status.agentRole = props['AgentRole'].deepUnpack() as string
   if ('State' in props) status.state = props['State'].deepUnpack() as AgentState
   if ('TaskComplete' in props) status.taskComplete = props['TaskComplete'].deepUnpack() as boolean
   if ('RequiresAttention' in props) status.requiresAttention = props['RequiresAttention'].deepUnpack() as boolean
@@ -100,7 +108,7 @@ export function getAgentService(): AgentService {
   const sessions$ = new BehaviorSubject<Map<string, AgentStatus>>(new Map())
   const elicitation$ = new BehaviorSubject<AgentElicitation | null>(null)
 
-  const DEFAULT: AgentStatus = { agentName: '', state: 'no-session', taskComplete: false, requiresAttention: false, attentionReasons: [], contextPct: 0, modelName: '', cwd: '', costUsd: 0, pendingPrompt: '', pendingDetailKind: '', pendingDetailText: '', pendingOptions: [], pendingOptionDescriptions: [], pendingCount: 0, pendingRequestIds: [], pendingPrompts: [], pendingDetailKinds: [], pendingDetailTexts: [], pendingOptionsList: [], pendingOptionDescriptionsList: [], sessionName: '', fiveHourUsagePct: 0, fiveHourResetsAt: 0, sevenDayUsagePct: 0, sevenDayResetsAt: 0 }
+  const DEFAULT: AgentStatus = { agentName: '', isSubagent: false, parentSessionId: '', agentNickname: '', agentRole: '', state: 'no-session', taskComplete: false, requiresAttention: false, attentionReasons: [], contextPct: 0, modelName: '', cwd: '', costUsd: 0, pendingPrompt: '', pendingDetailKind: '', pendingDetailText: '', pendingOptions: [], pendingOptionDescriptions: [], pendingCount: 0, pendingRequestIds: [], pendingPrompts: [], pendingDetailKinds: [], pendingDetailTexts: [], pendingOptionsList: [], pendingOptionDescriptionsList: [], sessionName: '', fiveHourUsagePct: 0, fiveHourResetsAt: 0, sevenDayUsagePct: 0, sevenDayResetsAt: 0 }
 
   const updateSession = (sessionId: string, update: Partial<AgentStatus>) => {
     const map = new Map(sessions$.value)

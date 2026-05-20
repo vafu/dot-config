@@ -120,6 +120,7 @@ layout {
         proportion 0.33333
         proportion 0.5
         proportion 0.66667
+        proportion 0.75
 
         // Fixed sets the width in logical pixels exactly.
         // fixed 1920
@@ -197,7 +198,7 @@ binds {
     Mod+Return hotkey-overlay-title="Open a Terminal" { spawn-sh "~/.config/scripts/ghostty-project-window"; }
     Mod+D hotkey-overlay-title="Run an Application: rsynapse" { spawn-sh "~/.cargo/bin/rsynapse-ui"; }
     Mod+A hotkey-overlay-title="Agent approvals" { spawn-sh "ags request agent-approvals"; }
-    Mod+N hotkey-overlay-title="Run an Application: remarked" { spawn-sh "remarked-ui"; }
+    Mod+N hotkey-overlay-title="Run an Application: remarked" { spawn-sh " ~/proj/remarked/target/debug/remarked-ui"; }
     Ctrl+Shift+L hotkey-overlay-title="Lock the Screen: swaylock" { spawn-sh "runapp -o hyprlock"; }
     Ctrl+Shift+U hotkey-overlay-title="Lock the Screen: swaylock" { spawn-sh "~/.config/scripts/suspend.sh"; }
 

@@ -22,12 +22,14 @@ export type Relation =
   | "output"
   | "project"
   | "session-project"
+  | "subagent-session"
   | "window"
   | "workspace"
 ;
 
 export type NamedPath =
   | "agent-session-project"
+  | "agent-session-subagents"
   | "agent-session-workspace"
   | "selected-agent-session"
   | "selected-output"
@@ -127,6 +129,12 @@ export const locusSchema = {
       cardinality: "many-to-one",
       retention: "strong",
     },
+    "subagent-session": {
+      from: { type: "kind", kind: "agent-session" },
+      to: { type: "kind", kind: "agent-session" },
+      cardinality: "one-to-many",
+      retention: "strong",
+    },
     "window": {
       from: { type: "exact", id: "context:selected" },
       to: { type: "kind", kind: "window" },
@@ -145,6 +153,11 @@ export const locusSchema = {
       from: "agent-session",
       path: ["session-project"],
       many: false,
+    },
+    "agent-session-subagents": {
+      from: "agent-session",
+      path: ["subagent-session"],
+      many: true,
     },
     "agent-session-workspace": {
       from: "agent-session",
