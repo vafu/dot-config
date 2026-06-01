@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_PARENT="${PROJECT_PARENT:-$HOME/proj}"
 LOCUS_SH="${LOCUS_SH:-$HOME/.config/locus/locus.sh}"
 
 usage() {
@@ -19,16 +18,26 @@ die() {
   exit 1
 }
 
+absolute_dir() {
+  local path="${1:-$PWD}"
+  cd "$path" 2>/dev/null && pwd -P
+}
+
 project_root_for_path() {
   local path="${1:-$PWD}"
-  local abs parent child
-  abs="$(cd "$path" 2>/dev/null && pwd -P)" || return 1
-  parent="$(cd "$PROJECT_PARENT" 2>/dev/null && pwd -P)" || return 1
-  [[ "$abs" == "$parent"/* ]] || return 1
-  child="${abs#$parent/}"
-  child="${child%%/*}"
-  [[ -n "$child" ]] || return 1
-  printf '%s/%s\n' "$parent" "$child"
+  local dir
+  dir="$(absolute_dir "$path")" || return 1
+
+  while [[ "$dir" != "/" ]]; do
+    if [[ -f "$(metadata_file "$dir")" ]]; then
+      printf '%s\n' "$dir"
+      return 0
+    fi
+    dir="${dir%/*}"
+    [[ -n "$dir" ]] || dir="/"
+  done
+
+  return 1
 }
 
 metadata_file() {
@@ -85,7 +94,7 @@ cmd_init() {
   fi
 
   local root file name icon output picker
-  root="$(project_root_for_path "${path:-$PWD}")" || die "not inside $PROJECT_PARENT/<project>"
+  root="$(absolute_dir "${path:-$PWD}")" || die "directory not found: ${path:-$PWD}"
   file="$(metadata_file "$root")"
   if [[ -e "$file" && "$force" != 1 ]]; then
     die "$file already exists; use --force to overwrite"
