@@ -134,12 +134,15 @@
 }
 
 .agent-approval-option {
+  background-color: transparent;
+  background-image: none;
+  box-shadow: none;
   padding: 10px 12px;
   border-radius: 8px;
 }
 
 .agent-approval-option:focus {
-  background-color: color-mix(in srgb, currentColor 8%, transparent);
+  background-color: transparent;
   background-image: none;
 }
 
