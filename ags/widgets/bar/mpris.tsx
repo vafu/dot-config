@@ -15,6 +15,7 @@ import {
 import { WidgetProps } from 'widgets'
 import { Subgroup } from './panel-widgets'
 import { MaterialIcon } from 'widgets/materialicon'
+import { AudioRoutePopover, defaultSpeakerTypeIcon } from './audio_route'
 
 const mpris = AstalMpris.get_default()
 const player = fromConnectable(mpris, 'players').pipe(
@@ -80,14 +81,16 @@ export const MPRISWidget = (props: WidgetProps) => {
         label={binding(metadata, '')}
         tooltipText={binding(metadata, '')}
       />
-      <button css_classes={["flat", "circular", "button-subgroup-main"]} onClicked={() =>
-        mpris.players?.at(0)?.play_pause()
-      }>
+      <menubutton
+        css_classes={["flat", "circular", "button-subgroup-main"]}
+        popover={AudioRoutePopover()}
+      >
         <MaterialIcon
-          icon="music_note"
+          icon={binding(defaultSpeakerTypeIcon, 'speaker')}
           tinted={bindAs(playerStateCss, s => s != "playing", false)}
+          style={{ size: 24, fill: false }}
         />
-      </button>
+      </menubutton>
     </Subgroup>
   )
 }

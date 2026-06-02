@@ -24,7 +24,7 @@ export const Subgroup = (props: SubgroupProps) => {
   const revealer = new Gtk.Revealer({
     child: box,
     reveal_child: false,
-    transition_type: Gtk.RevealerTransitionType.SLIDE_RIGHT
+    transition_type: Gtk.RevealerTransitionType.SLIDE_LEFT
   })
 
   if (!!revealWhen) {
@@ -39,8 +39,8 @@ export const Subgroup = (props: SubgroupProps) => {
       onEnter={() => revealer.set_reveal_child(true)}
       onLeave={() => revealer.set_reveal_child(false)}
     />
-    {main}
     {revealer}
+    {main}
   </box>
 }
 
@@ -201,4 +201,3 @@ export const DualIndicator = (
     />
   </box>
 )
-

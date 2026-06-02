@@ -44,6 +44,20 @@ $outline-offset: $label-margin * 0.5;
   margin-top: -14px;
 }
 
+.audio-route {
+  min-width: 260px;
+  padding: 8px;
+
+  .audio-route-title {
+    font-weight: 700;
+    padding: 4px 8px 8px;
+  }
+
+  listbox {
+    border-radius: 8px;
+  }
+}
+
 .column-item {
   margin: 1px;
   border-radius: 6px;

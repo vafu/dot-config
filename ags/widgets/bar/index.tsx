@@ -10,12 +10,12 @@ import {
   EthIndicator,
   PowerProfilesIndicator,
   WifiIndicator,
-  MutedIndicator,
 } from './indicators'
 import { BluetoothStatus } from './bt_status'
 import { WindowTitle } from './windowtitle'
 import { AgentWidgets } from './agent'
 import { LocusProjectWidget } from './locus'
+import { AudioVolumeIndicator } from './audio_route'
 
 export default (gdkmonitor: Gdk.Monitor) => {
   return (
@@ -62,7 +62,7 @@ export default (gdkmonitor: Gdk.Monitor) => {
             <Tray />
             <PowerProfilesIndicator />
             <BluetoothStatus />
-            <MutedIndicator />
+            <AudioVolumeIndicator />
             <EthIndicator />
             <WifiIndicator />
             <BatteryIndicator />
