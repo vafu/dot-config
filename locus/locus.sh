@@ -90,6 +90,15 @@ locus_watch_agent_session_project_prop() {
   locus_watch_path_prop "$source" "$key" 'session-project'
 }
 
+locus_agent_session_project_branch() {
+  locus_agent_session_project_prop "$1" 'branch'
+}
+
+locus_watch_agent_session_project_branch() {
+  local source="${1:?usage: locus_watch_agent_session_project_branch <source>}"
+  locus_watch_path_prop "$source" 'branch' 'session-project'
+}
+
 locus_agent_session_project_icon() {
   locus_agent_session_project_prop "$1" 'icon'
 }
@@ -106,6 +115,15 @@ locus_agent_session_project_name() {
 locus_watch_agent_session_project_name() {
   local source="${1:?usage: locus_watch_agent_session_project_name <source>}"
   locus_watch_path_prop "$source" 'name' 'session-project'
+}
+
+locus_agent_session_project_notebook_scope() {
+  locus_agent_session_project_prop "$1" 'notebook_scope'
+}
+
+locus_watch_agent_session_project_notebook_scope() {
+  local source="${1:?usage: locus_watch_agent_session_project_notebook_scope <source>}"
+  locus_watch_path_prop "$source" 'notebook_scope' 'session-project'
 }
 
 locus_agent_session_project_path() {
@@ -354,6 +372,14 @@ locus_watch_selected_project_prop() {
   locus_watch_path_prop 'context:selected' "$key" 'workspace' 'project'
 }
 
+locus_selected_project_branch() {
+  locus_selected_project_prop 'branch'
+}
+
+locus_watch_selected_project_branch() {
+  locus_watch_path_prop 'context:selected' 'branch' 'workspace' 'project'
+}
+
 locus_selected_project_icon() {
   locus_selected_project_prop 'icon'
 }
@@ -368,6 +394,14 @@ locus_selected_project_name() {
 
 locus_watch_selected_project_name() {
   locus_watch_path_prop 'context:selected' 'name' 'workspace' 'project'
+}
+
+locus_selected_project_notebook_scope() {
+  locus_selected_project_prop 'notebook_scope'
+}
+
+locus_watch_selected_project_notebook_scope() {
+  locus_watch_path_prop 'context:selected' 'notebook_scope' 'workspace' 'project'
 }
 
 locus_selected_project_path() {

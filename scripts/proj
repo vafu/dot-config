@@ -51,6 +51,17 @@ json_get() {
   jq -er --arg key "$key" '.[$key] // empty' "$file"
 }
 
+json_locus_properties() {
+  local file="$1"
+  [[ -f "$file" ]] || return 1
+  jq -r '
+    to_entries[]
+    | select(.value != null)
+    | [.key, (if (.value | type) == "string" then .value else (.value | tojson) end)]
+    | @tsv
+  ' "$file"
+}
+
 project_name() {
   local root="$1"
   local file
@@ -58,11 +69,52 @@ project_name() {
   json_get "$file" name || basename "$root"
 }
 
-project_icon() {
+git_branch_name() {
   local root="$1"
-  local file
-  file="$(metadata_file "$root")"
-  json_get "$file" icon || true
+  git -C "$root" branch --show-current 2>/dev/null || true
+}
+
+sanitize_branch_tail() {
+  local value="$1"
+  value="${value#refs/heads/}"
+  printf '%s\n' "$value" \
+    | tr '[:upper:]' '[:lower:]' \
+    | sed -E 's#[^a-z0-9.-]+#-#g; s#-+#-#g; s#(^-|-$)##g'
+}
+
+branch_scope_tag() {
+  local root="$1" branch tail
+  branch="$(git_branch_name "$root")"
+  case "$branch" in
+    ""|main|master)
+      return 0
+      ;;
+  esac
+  if [[ "$branch" == feat/* ]]; then
+    tail="$(sanitize_branch_tail "${branch#feat/}")"
+  else
+    tail="$(sanitize_branch_tail "$branch")"
+  fi
+  [[ -n "$tail" ]] || return 0
+  printf 'feat/%s\n' "$tail"
+}
+
+composed_notebook_scope() {
+  local file="$1" tag="$2"
+  jq -c --arg tag "$tag" '
+    (.notebook_scope // {}) as $scope
+    | {
+        path: ($scope.path // null),
+        tags: ((($scope.tags // []) + [$tag])
+          | map(tostring | gsub("^\\s+|\\s+$"; ""))
+          | map(select(. != ""))
+          | unique)
+      }
+    | with_entries(select(
+        (.value != null)
+        and ((.value | type) != "array" or (.value | length) > 0)
+      ))
+  ' "$file"
 }
 
 selected_workspace() {
@@ -115,22 +167,50 @@ cmd_init() {
 }
 
 cmd_publish() {
-  local root workspace subject name icon
+  local root workspace subject file name key value branch scope_tag scope saw_notebook_scope
+  local -a mutations
   root="$(project_root_for_path "${1:-$PWD}")" || return 0
   workspace="$(selected_workspace || true)"
   [[ "$workspace" == workspace:* ]] || return 0
 
   subject="project:$root"
+  file="$(metadata_file "$root")"
   name="$(project_name "$root")"
-  icon="$(project_icon "$root")"
-
-  locusctl prop set "$subject" kind project >/dev/null
-  locusctl prop set "$subject" path "$root" >/dev/null
-  locusctl prop set "$subject" name "$name" >/dev/null
-  if [[ -n "$icon" ]]; then
-    locusctl prop set "$subject" icon "$icon" >/dev/null
+  branch="$(git_branch_name "$root")"
+  scope_tag="$(branch_scope_tag "$root")"
+  if [[ -n "$scope_tag" ]]; then
+    scope="$(composed_notebook_scope "$file" "$scope_tag")"
   fi
-  locusctl link set "$workspace" project "$subject" >/dev/null
+
+  mutations=()
+  saw_notebook_scope=0
+  mutations+=("set-property"$'\t'"$subject"$'\t'"kind"$'\t'"project")
+  mutations+=("set-property"$'\t'"$subject"$'\t'"path"$'\t'"$root")
+  mutations+=("set-property"$'\t'"$subject"$'\t'"name"$'\t'"$name")
+  if [[ -n "$scope_tag" ]]; then
+    mutations+=("set-property"$'\t'"$subject"$'\t'"branch"$'\t'"$branch")
+    mutations+=("set-property"$'\t'"$subject"$'\t'"notebook_scope"$'\t'"$scope")
+  else
+    mutations+=("remove-property"$'\t'"$subject"$'\t'"branch"$'\t')
+  fi
+  while IFS=$'\t' read -r key value; do
+    [[ -n "$key" ]] || continue
+    case "$key" in
+      kind|path|name|branch)
+        continue
+        ;;
+      notebook_scope)
+        saw_notebook_scope=1
+        [[ -n "$scope_tag" ]] && continue
+        ;;
+    esac
+    mutations+=("set-property"$'\t'"$subject"$'\t'"$key"$'\t'"$value")
+  done < <(json_locus_properties "$file")
+  if [[ -z "$scope_tag" && "$saw_notebook_scope" == 0 ]]; then
+    mutations+=("remove-property"$'\t'"$subject"$'\t'"notebook_scope"$'\t')
+  fi
+  mutations+=("set-link"$'\t'"$workspace"$'\t'"project"$'\t'"$subject")
+  printf '%s\n' "${mutations[@]}" | locusctl apply >/dev/null
 }
 
 cmd_root() {

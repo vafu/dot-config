@@ -55,83 +55,6 @@ WORDCHARS=${WORDCHARS//[\/]}
 # If none is provided, the default '%n@%m: %~' is used.
 #zstyle ':zim:termtitle' format '%1~'
 
-codex() {
-  local codex_bin
-  codex_bin="$(whence -p codex)"
-  _locus_wrap_app codex utilities-terminal -- "$codex_bin" "$@"
-}
-
-gemini() {
-  local gemini_bin
-  gemini_bin="$(whence -p gemini)"
-  _locus_wrap_app gemini utilities-terminal -- "$gemini_bin" "$@"
-}
-
-_locus_safe_node_part() {
-  print -r -- "$1" | tr -c '[:alnum:]_' '_'
-}
-
-[[ -r "$HOME/.config/locus/locus.sh" ]] && source "$HOME/.config/locus/locus.sh"
-
-_locus_wrap_app() {
-  local app_name="$1"
-  local app_icon="$2"
-  shift 2
-  if [[ "$1" == "--" ]]; then
-    shift
-  fi
-
-  local selected_window app_part app_node linked=0 command_status=0
-  selected_window="$(locus_selected_window 2>/dev/null)"
-  app_part="$(_locus_safe_node_part "$app_name")"
-  app_node="app-instance:${app_part}/${$}-${RANDOM}"
-
-  if [[ "$selected_window" == window:* && -n "$1" && -n "$app_part" ]]; then
-    locusctl prop set "$app_node" kind app-instance >/dev/null 2>&1 \
-      && locusctl prop set "$app_node" name "$app_name" >/dev/null 2>&1 \
-      && locusctl prop set "$app_node" icon "$app_icon" >/dev/null 2>&1 \
-      && locusctl link set "$selected_window" app-instance "$app_node" >/dev/null 2>&1 \
-      && linked=1
-  fi
-
-  {
-    if (( linked )); then
-      LOCUS_APP_INSTANCE="$app_node" AGENT_DBUS_WINDOW_ID="${selected_window#window:}" "$@"
-    else
-      "$@"
-    fi
-  } always {
-    command_status=$?
-    if (( linked )); then
-      locusctl delete-node "$app_node" >/dev/null 2>&1 || true
-    fi
-  }
-
-  return $command_status
-}
-
-nvim() {
-  _locus_wrap_app neovim "$HOME/.config/ags/assets/icons/Neovim.svg" -- /usr/bin/nvim "$@"
-}
-
-_locus_selected_workspace_subject() {
-  local workspace_subject
-  workspace_subject="$(locus_selected_workspace 2>/dev/null)"
-  [[ "$workspace_subject" == workspace:* ]] || return 1
-  print -r -- "$workspace_subject"
-}
-
-_locus_chpwd_project_workspace() {
-  [[ -x "$HOME/.config/scripts/proj" ]] || return 0
-  "$HOME/.config/scripts/proj" publish >/dev/null 2>&1 || true
-}
-
-typeset -ga chpwd_functions
-chpwd_functions=("${(@)chpwd_functions:#_locus_chpwd_project_window}")
-chpwd_functions=("${(@)chpwd_functions:#_locus_chpwd_project_workspace}")
-chpwd_functions+=(_locus_chpwd_project_workspace)
-_locus_chpwd_project_workspace
-
 #
 # zsh-autosuggestions
 #
@@ -217,6 +140,7 @@ source_if_exists() {
 
 source_if_exists "$ZDOTDIR/env.zsh"
 source_if_exists "$ZDOTDIR/aliases.zsh"
+source_if_exists "$ZDOTDIR/locus.zsh"
 source_if_exists "$ZDOTDIR/niri.zsh"
 
 #THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
