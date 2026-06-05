@@ -20,7 +20,7 @@ export const LocusProjectWidget = (props: WidgetProps) => {
     distinctUntilChanged(),
   )
   const name$ = combineLatest([selectedProject$, selectedProjectProperties$]).pipe(
-    map(([project, properties]) => project ? firstProjectName(project, properties) : ''),
+    map(([project, properties]) => project ? (properties['branch-description'] || firstProjectName(project, properties)) : ''),
     distinctUntilChanged(),
   )
   const tooltip$ = combineLatest([selectedProject$, selectedProjectProperties$]).pipe(
@@ -45,7 +45,7 @@ export const LocusProjectWidget = (props: WidgetProps) => {
       <label
         label={bindAs(name$, v => v, '')}
         ellipsize={3}
-        maxWidthChars={22}
+        maxWidthChars={38}
       />
     </box>
   ) as Gtk.Box

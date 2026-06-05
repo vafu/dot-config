@@ -102,7 +102,11 @@ const AgentWidget = (sessionId: string, subagentCount$: Observable<number>) => {
   )
 
   const state$ = status$.pipe(map(s => s.state), distinctUntilChanged())
-  const projectIcon$ = locus.agentSessionProjectProperty$(agentSessionNode, 'icon').pipe(
+  const projectIcon$ = locus.resolvedProperty$(
+    agentSessionNode,
+    ['agent-session', 'app-instance', 'workspace', 'project'],
+    'icon',
+  ).pipe(
     map(icon => icon || 'smart_toy'),
     distinctUntilChanged(),
     shareReplay(1),
