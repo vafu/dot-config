@@ -69,52 +69,52 @@ project_name() {
   json_get "$file" name || basename "$root"
 }
 
+icon_picker() {
+  printf '%s\n' "${LOCUS_ICON_PICKER:-pick-icon}"
+}
+
+first_icon_from_picker_output() {
+  awk '
+    /^[[:space:]]*\[/ {
+      if (match($0, /"icon"[[:space:]]*:[[:space:]]*"[^"]+"/)) {
+        value = substr($0, RSTART, RLENGTH)
+        sub(/^"icon"[[:space:]]*:[[:space:]]*"/, "", value)
+        sub(/"$/, "", value)
+        print value
+        exit
+      }
+    }
+    NF { print $1; exit }
+  '
+}
+
+pick_icon() {
+  local query="$1"
+  local root="${2:-}" picker output
+  picker="$(icon_picker)"
+  command -v "$picker" >/dev/null 2>&1 || return 0
+  if [[ -n "$root" ]]; then
+    output="$("$picker" -n 1 -s "$query" -f "$root/AGENTS.md" -f "$root/README.md" || true)"
+  else
+    output="$("$picker" -n 1 -s "$query" || true)"
+  fi
+  printf '%s\n' "$output" | first_icon_from_picker_output
+}
+
 git_branch_name() {
   local root="$1"
   git -C "$root" branch --show-current 2>/dev/null || true
 }
 
-sanitize_branch_tail() {
-  local value="$1"
-  value="${value#refs/heads/}"
-  printf '%s\n' "$value" \
-    | tr '[:upper:]' '[:lower:]' \
-    | sed -E 's#[^a-z0-9.-]+#-#g; s#-+#-#g; s#(^-|-$)##g'
+git_worktree_path() {
+  local root="$1"
+  git -C "$root" rev-parse --show-toplevel 2>/dev/null || true
 }
 
-branch_scope_tag() {
-  local root="$1" branch tail
-  branch="$(git_branch_name "$root")"
-  case "$branch" in
-    ""|main|master)
-      return 0
-      ;;
-  esac
-  if [[ "$branch" == feat/* ]]; then
-    tail="$(sanitize_branch_tail "${branch#feat/}")"
-  else
-    tail="$(sanitize_branch_tail "$branch")"
-  fi
-  [[ -n "$tail" ]] || return 0
-  printf 'feat/%s\n' "$tail"
-}
-
-composed_notebook_scope() {
-  local file="$1" tag="$2"
-  jq -c --arg tag "$tag" '
-    (.notebook_scope // {}) as $scope
-    | {
-        path: ($scope.path // null),
-        tags: ((($scope.tags // []) + [$tag])
-          | map(tostring | gsub("^\\s+|\\s+$"; ""))
-          | map(select(. != ""))
-          | unique)
-      }
-    | with_entries(select(
-        (.value != null)
-        and ((.value | type) != "array" or (.value | length) > 0)
-      ))
-  ' "$file"
+worktree_name() {
+  local path="$1"
+  [[ -n "$path" ]] || return 0
+  basename "$path"
 }
 
 selected_workspace() {
@@ -145,7 +145,7 @@ cmd_init() {
     path="${1:-}"
   fi
 
-  local root file name icon output picker
+  local root file name icon
   root="$(absolute_dir "${path:-$PWD}")" || die "directory not found: ${path:-$PWD}"
   file="$(metadata_file "$root")"
   if [[ -e "$file" && "$force" != 1 ]]; then
@@ -153,12 +153,8 @@ cmd_init() {
   fi
 
   name="$(basename "$root")"
-  picker="${LOCUS_ICON_PICKER:-pick-icon}"
   icon=""
-  if command -v "$picker" >/dev/null 2>&1; then
-    output="$("$picker" -n 1 -s "$name" || true)"
-    icon="$(printf '%s\n' "$output" | awk 'NF { print $1; exit }')"
-  fi
+  icon="$(pick_icon "$name")"
 
   jq -n --arg name "$name" --arg icon "$icon" \
     '{name: $name, icon: (if $icon == "" then null else $icon end)}' \
@@ -167,7 +163,7 @@ cmd_init() {
 }
 
 cmd_publish() {
-  local root workspace subject file name key value branch scope_tag scope saw_notebook_scope
+  local root workspace subject file name key value branch worktree_path worktree saw_notebook_scope
   local -a mutations
   root="$(project_root_for_path "${1:-$PWD}")" || return 0
   workspace="$(selected_workspace || true)"
@@ -177,36 +173,39 @@ cmd_publish() {
   file="$(metadata_file "$root")"
   name="$(project_name "$root")"
   branch="$(git_branch_name "$root")"
-  scope_tag="$(branch_scope_tag "$root")"
-  if [[ -n "$scope_tag" ]]; then
-    scope="$(composed_notebook_scope "$file" "$scope_tag")"
-  fi
+  worktree_path="$(git_worktree_path "$root")"
+  worktree="$(worktree_name "$worktree_path")"
 
   mutations=()
   saw_notebook_scope=0
   mutations+=("set-property"$'\t'"$subject"$'\t'"kind"$'\t'"project")
   mutations+=("set-property"$'\t'"$subject"$'\t'"path"$'\t'"$root")
   mutations+=("set-property"$'\t'"$subject"$'\t'"name"$'\t'"$name")
-  if [[ -n "$scope_tag" ]]; then
+  if [[ -n "$worktree_path" ]]; then
+    mutations+=("set-property"$'\t'"$subject"$'\t'"worktree"$'\t'"$worktree")
+    mutations+=("set-property"$'\t'"$subject"$'\t'"worktree-path"$'\t'"$worktree_path")
+  else
+    mutations+=("remove-property"$'\t'"$subject"$'\t'"worktree"$'\t')
+    mutations+=("remove-property"$'\t'"$subject"$'\t'"worktree-path"$'\t')
+  fi
+  if [[ -n "$branch" ]]; then
     mutations+=("set-property"$'\t'"$subject"$'\t'"branch"$'\t'"$branch")
-    mutations+=("set-property"$'\t'"$subject"$'\t'"notebook_scope"$'\t'"$scope")
   else
     mutations+=("remove-property"$'\t'"$subject"$'\t'"branch"$'\t')
   fi
   while IFS=$'\t' read -r key value; do
     [[ -n "$key" ]] || continue
     case "$key" in
-      kind|path|name|branch)
+      kind|path|name|branch|worktree|worktree-path)
         continue
         ;;
       notebook_scope)
         saw_notebook_scope=1
-        [[ -n "$scope_tag" ]] && continue
         ;;
     esac
     mutations+=("set-property"$'\t'"$subject"$'\t'"$key"$'\t'"$value")
   done < <(json_locus_properties "$file")
-  if [[ -z "$scope_tag" && "$saw_notebook_scope" == 0 ]]; then
+  if [[ "$saw_notebook_scope" == 0 ]]; then
     mutations+=("remove-property"$'\t'"$subject"$'\t'"notebook_scope"$'\t')
   fi
   mutations+=("set-link"$'\t'"$workspace"$'\t'"project"$'\t'"$subject")

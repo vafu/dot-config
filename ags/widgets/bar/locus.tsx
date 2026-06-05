@@ -23,6 +23,18 @@ export const LocusProjectWidget = (props: WidgetProps) => {
     map(([project, properties]) => project ? firstProjectName(project, properties) : ''),
     distinctUntilChanged(),
   )
+  const branch$ = selectedProjectProperties$.pipe(
+    map(properties => (properties.branch || '').trim()),
+    distinctUntilChanged(),
+  )
+  const worktree$ = selectedProjectProperties$.pipe(
+    map(properties => (properties.worktree || '').trim()),
+    distinctUntilChanged(),
+  )
+  const worktreeVisible$ = combineLatest([name$, worktree$]).pipe(
+    map(([name, worktree]) => !!worktree && worktree !== name),
+    distinctUntilChanged(),
+  )
   const tooltip$ = combineLatest([selectedProject$, selectedProjectProperties$]).pipe(
     map(([project, properties]) => {
       if (!project) return ''
@@ -46,6 +58,21 @@ export const LocusProjectWidget = (props: WidgetProps) => {
         label={bindAs(name$, v => v, '')}
         ellipsize={3}
         maxWidthChars={22}
+        cssClasses={['locus-project-name']}
+      />
+      <label
+        label={bindAs(worktree$, v => v ? `· ${v}` : '', '')}
+        visible={bindAs(worktreeVisible$, v => v, false)}
+        ellipsize={3}
+        maxWidthChars={18}
+        cssClasses={['locus-project-worktree']}
+      />
+      <label
+        label={bindAs(branch$, v => v ? `· ${v}` : '', '')}
+        visible={bindAs(branch$, v => !!v, false)}
+        ellipsize={3}
+        maxWidthChars={18}
+        cssClasses={['locus-project-branch']}
       />
     </box>
   ) as Gtk.Box

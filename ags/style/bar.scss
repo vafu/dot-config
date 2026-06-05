@@ -33,8 +33,14 @@ $outline-offset: $label-margin * 0.5;
     margin-right: 2px;
   }
 
-  label {
+  .locus-project-name {
     font-weight: 700;
+  }
+
+  .locus-project-worktree,
+  .locus-project-branch {
+    font-weight: 600;
+    opacity: 0.58;
   }
 }
 

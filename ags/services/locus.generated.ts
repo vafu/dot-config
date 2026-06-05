@@ -75,9 +75,13 @@ export const locusSchema = {
     },
     "project": {
       properties: {
+        "branch": { required: false },
         "icon": { required: false },
         "name": { required: false },
+        "notebook_scope": { required: false },
         "path": { required: true },
+        "worktree": { required: false },
+        "worktree-path": { required: false },
       },
     },
     "window": {
@@ -202,7 +206,7 @@ export type PropertyKeyByKind = {
   "app-instance": "icon" | "name";
   "context": never;
   "output": "connector" | "source";
-  "project": "icon" | "name" | "path";
+  "project": "branch" | "icon" | "name" | "notebook_scope" | "path" | "worktree" | "worktree-path";
   "window": "external-id" | "source";
   "workspace": "active" | "external-id" | "focused" | "idx" | "name" | "source" | "urgent";
 };
@@ -991,4 +995,3 @@ export function createLocusObservables(client: LocusDbusClient = new LocusDbusCl
 }
 
 export const locus = createLocusObservables();
-

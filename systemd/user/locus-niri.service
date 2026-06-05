@@ -1,12 +1,13 @@
 [Unit]
 Description=Locus Niri publisher
+Documentation=https://github.com/vafu/locus
 After=graphical-session.target locusd.service
 Wants=locusd.service
 
 [Service]
 Type=simple
-Environment=PATH=/home/v47/.cargo/bin:/usr/local/bin:/usr/bin:/bin
-ExecStart=/home/v47/.cargo/bin/locus-niri
+Environment=PATH=%h/.cargo/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=%h/.cargo/bin/locus-niri
 Restart=on-failure
 RestartSec=2
 

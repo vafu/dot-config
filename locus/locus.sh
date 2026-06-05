@@ -135,6 +135,24 @@ locus_watch_agent_session_project_path() {
   locus_watch_path_prop "$source" 'path' 'session-project'
 }
 
+locus_agent_session_project_worktree() {
+  locus_agent_session_project_prop "$1" 'worktree'
+}
+
+locus_watch_agent_session_project_worktree() {
+  local source="${1:?usage: locus_watch_agent_session_project_worktree <source>}"
+  locus_watch_path_prop "$source" 'worktree' 'session-project'
+}
+
+locus_agent_session_project_worktree_path() {
+  locus_agent_session_project_prop "$1" 'worktree-path'
+}
+
+locus_watch_agent_session_project_worktree_path() {
+  local source="${1:?usage: locus_watch_agent_session_project_worktree_path <source>}"
+  locus_watch_path_prop "$source" 'worktree-path' 'session-project'
+}
+
 locus_agent_session_workspace() {
   local source="${1:?usage: locus_agent_session_workspace <source>}"
   "$LOCUSCTL" resolve "$source" 'agent-session' 'app-instance' 'workspace'
@@ -412,6 +430,22 @@ locus_watch_selected_project_path() {
   locus_watch_path_prop 'context:selected' 'path' 'workspace' 'project'
 }
 
+locus_selected_project_worktree() {
+  locus_selected_project_prop 'worktree'
+}
+
+locus_watch_selected_project_worktree() {
+  locus_watch_path_prop 'context:selected' 'worktree' 'workspace' 'project'
+}
+
+locus_selected_project_worktree_path() {
+  locus_selected_project_prop 'worktree-path'
+}
+
+locus_watch_selected_project_worktree_path() {
+  locus_watch_path_prop 'context:selected' 'worktree-path' 'workspace' 'project'
+}
+
 locus_selected_window() {
   "$LOCUSCTL" resolve 'context:selected' 'window'
 }
@@ -612,4 +646,3 @@ locus_watch_window_agent_session_model() {
   local source="${1:?usage: locus_watch_window_agent_session_model <source>}"
   locus_watch_path_prop "$source" 'model' 'app-instance' 'agent-session'
 }
-
