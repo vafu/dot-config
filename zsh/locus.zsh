@@ -59,7 +59,9 @@ gemini() {
 }
 
 nvim() {
-  _locus_wrap_app neovim "$HOME/.config/ags/assets/icons/Neovim.svg" -- /usr/bin/nvim "$@"
+  local nvim_bin
+  nvim_bin="$(whence -p nvim)" || return 1
+  _locus_wrap_app neovim "$HOME/.config/ags/assets/icons/Neovim.svg" -- "$nvim_bin" "$@"
 }
 
 zmodload -F zsh/stat b:zstat 2>/dev/null || true

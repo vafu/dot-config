@@ -16,6 +16,6 @@ layout {
 }
 
 cursor {
-    xcursor-theme "BreezeX-RosePine-Linux"
+    xcursor-theme "phinger-cursors-light"
     xcursor-size 24
 }

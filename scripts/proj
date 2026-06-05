@@ -8,6 +8,7 @@ usage() {
 Usage:
   proj init [--force] [path]
   proj publish [path]
+  proj clear [workspace]
   proj root [path]
   proj metadata <key> [path]
 EOF
@@ -111,10 +112,116 @@ git_worktree_path() {
   git -C "$root" rev-parse --show-toplevel 2>/dev/null || true
 }
 
+sanitize_branch_tail() {
+  local value="$1"
+  value="${value#refs/heads/}"
+  printf '%s\n' "$value" \
+    | tr '[:upper:]' '[:lower:]' \
+    | sed -E 's#[^a-z0-9.-]+#-#g; s#-+#-#g; s#(^-|-$)##g'
+}
+
 worktree_name() {
   local path="$1"
   [[ -n "$path" ]] || return 0
   basename "$path"
+}
+
+titleize_branch_part() {
+  local value="$1"
+  printf '%s\n' "$value" \
+    | sed -E 's#[/_-]+# #g; s#[[:space:]]+# #g; s#^ | $##g' \
+    | awk '{ for (i = 1; i <= NF; i++) $i = toupper(substr($i, 1, 1)) substr($i, 2); print }'
+}
+
+branch_description_for_branch() {
+  local value="$1"
+  local -a parts clean feature_parts
+  local part project feature
+  value="${value#refs/heads/}"
+  case "$value" in
+    ""|main|master|checkpoint)
+      return 0
+      ;;
+  esac
+  IFS='/' read -r -a parts <<< "$value"
+
+  clean=()
+  for part in "${parts[@]}"; do
+    case "$part" in
+      ""|vafu)
+        ;;
+      feat|feature|fix|bugfix|hotfix|chore)
+        ;;
+      *)
+        clean+=("$part")
+        ;;
+    esac
+  done
+
+  case "${#clean[@]}" in
+    0)
+      return 0
+      ;;
+    1)
+      titleize_branch_part "${clean[0]}"
+      ;;
+    *)
+      project="$(titleize_branch_part "${clean[0]}")"
+      feature_parts=("${clean[@]:1}")
+      feature="$(titleize_branch_part "${feature_parts[*]}")"
+      printf '[%s] %s\n' "$project" "$feature"
+      ;;
+  esac
+}
+project_icon_for_branch() {
+  local branch="$1" fallback="$2" root="${3:-}" icon
+  case "$branch" in
+    ""|main|master|checkpoint)
+      printf '%s\n' "$fallback"
+      return 0
+      ;;
+  esac
+
+  icon="$(pick_icon "$branch" "$root" || true)"
+  if [[ -n "$icon" ]]; then
+    printf '%s\n' "$icon"
+    return 0
+  fi
+  printf '%s\n' "$fallback"
+}
+branch_scope_tag() {
+  local root="$1" branch tail
+  branch="$(git_branch_name "$root")"
+  case "$branch" in
+    ""|main|master|checkpoint)
+      return 0
+      ;;
+  esac
+  if [[ "$branch" == feat/* ]]; then
+    tail="$(sanitize_branch_tail "${branch#feat/}")"
+  else
+    tail="$(sanitize_branch_tail "$branch")"
+  fi
+  [[ -n "$tail" ]] || return 0
+  printf 'feat/%s\n' "$tail"
+}
+
+composed_notebook_scope() {
+  local file="$1" tag="$2"
+  jq -c --arg tag "$tag" '
+    (.notebook_scope // {}) as $scope
+    | {
+        path: ($scope.path // null),
+        tags: ((($scope.tags // []) + [$tag])
+          | map(tostring | gsub("^\\s+|\\s+$"; ""))
+          | map(select(. != ""))
+          | unique)
+      }
+    | with_entries(select(
+        (.value != null)
+        and ((.value | type) != "array" or (.value | length) > 0)
+      ))
+  ' "$file"
 }
 
 selected_workspace() {
@@ -163,7 +270,7 @@ cmd_init() {
 }
 
 cmd_publish() {
-  local root workspace subject file name key value branch worktree_path worktree saw_notebook_scope
+  local root workspace subject file name key value branch worktree_path worktree branch_description scope_tag scope saw_notebook_scope project_icon project_publish_icon
   local -a mutations
   root="$(project_root_for_path "${1:-$PWD}")" || return 0
   workspace="$(selected_workspace || true)"
@@ -172,9 +279,16 @@ cmd_publish() {
   subject="project:$root"
   file="$(metadata_file "$root")"
   name="$(project_name "$root")"
+  project_icon="$(json_get "$file" icon || true)"
   branch="$(git_branch_name "$root")"
   worktree_path="$(git_worktree_path "$root")"
   worktree="$(worktree_name "$worktree_path")"
+  branch_description="$(branch_description_for_branch "$branch")"
+  project_publish_icon="$(project_icon_for_branch "$branch" "${project_icon:-folder_code}" "$root")"
+  scope_tag="$(branch_scope_tag "$root")"
+  if [[ -n "$scope_tag" ]]; then
+    scope="$(composed_notebook_scope "$file" "$scope_tag")"
+  fi
 
   mutations=()
   saw_notebook_scope=0
@@ -193,6 +307,9 @@ cmd_publish() {
   else
     mutations+=("remove-property"$'\t'"$subject"$'\t'"branch"$'\t')
   fi
+  if [[ -n "$scope_tag" ]]; then
+    mutations+=("set-property"$'\t'"$subject"$'\t'"notebook_scope"$'\t'"$scope")
+  fi
   while IFS=$'\t' read -r key value; do
     [[ -n "$key" ]] || continue
     case "$key" in
@@ -201,15 +318,33 @@ cmd_publish() {
         ;;
       notebook_scope)
         saw_notebook_scope=1
+        [[ -n "$scope_tag" ]] && continue
         ;;
     esac
     mutations+=("set-property"$'\t'"$subject"$'\t'"$key"$'\t'"$value")
   done < <(json_locus_properties "$file")
-  if [[ "$saw_notebook_scope" == 0 ]]; then
+  if [[ -z "$scope_tag" && "$saw_notebook_scope" == 0 ]]; then
     mutations+=("remove-property"$'\t'"$subject"$'\t'"notebook_scope"$'\t')
+  fi
+  mutations+=("set-property"$'\t'"$subject"$'\t'"icon"$'\t'"$project_publish_icon")
+  mutations+=("remove-property"$'\t'"$subject"$'\t'"display-name"$'\t')
+  if [[ -n "$branch_description" ]]; then
+    mutations+=("set-property"$'\t'"$subject"$'\t'"branch-description"$'\t'"$branch_description")
+  else
+    mutations+=("remove-property"$'\t'"$subject"$'\t'"branch-description"$'\t')
   fi
   mutations+=("set-link"$'\t'"$workspace"$'\t'"project"$'\t'"$subject")
   printf '%s\n' "${mutations[@]}" | locusctl apply >/dev/null
+}
+
+cmd_clear() {
+  local workspace="${1:-}"
+  if [[ -z "$workspace" ]]; then
+    workspace="$(selected_workspace || true)"
+  fi
+  [[ "$workspace" == workspace:* ]] || die "no selected workspace"
+
+  printf "%s\t%s\t%s\t%s\n" remove-links "$workspace" project "" | locusctl apply >/dev/null
 }
 
 cmd_root() {
@@ -234,6 +369,10 @@ case "${1:-}" in
   publish)
     shift
     cmd_publish "$@"
+    ;;
+  clear)
+    shift
+    cmd_clear "$@"
     ;;
   root)
     shift

@@ -1,3 +1,5 @@
 export GOPATH="$HOME/.go"
 export PATH="$HOME/.go/bin:$HOME/.config/scripts/:$HOME/ai/bin/:$HOME/.local/bin/:$HOME/.cargo/bin:$PATH"
 export EDITOR=nvim
+export XCURSOR_THEME=phinger-cursors-dark
+export XCURSOR_SIZE=24

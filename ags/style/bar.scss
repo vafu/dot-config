@@ -29,20 +29,34 @@ $outline-offset: $label-margin * 0.5;
 }
 
 .locus-project-widget {
+  .locus-project-group-delimiter {
+    opacity: 0.46;
+    margin: 0 2px;
+  }
+}
+
+.locus-project-chip {
   materialicon {
     margin-right: 2px;
   }
 
-  .locus-project-name {
+  .locus-project-primary {
     font-weight: 700;
   }
 
-  .locus-project-worktree,
-  .locus-project-branch {
+  .locus-project-delimiter,
+  .locus-project-secondary {
     font-weight: 600;
     opacity: 0.58;
   }
 }
+
+.locus-context-chip {
+  .locus-project-primary {
+    font-weight: 500;
+  }
+}
+
 
 .bt-count {
   font-size: 8pt;

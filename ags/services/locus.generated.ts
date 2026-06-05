@@ -22,14 +22,12 @@ export type Relation =
   | "output"
   | "project"
   | "session-project"
-  | "subagent-session"
   | "window"
   | "workspace"
 ;
 
 export type NamedPath =
   | "agent-session-project"
-  | "agent-session-subagents"
   | "agent-session-workspace"
   | "selected-agent-session"
   | "selected-output"
@@ -80,6 +78,8 @@ export const locusSchema = {
         "name": { required: false },
         "notebook_scope": { required: false },
         "path": { required: true },
+        "subproj": { required: false },
+        "task": { required: false },
         "worktree": { required: false },
         "worktree-path": { required: false },
       },
@@ -133,12 +133,6 @@ export const locusSchema = {
       cardinality: "many-to-one",
       retention: "strong",
     },
-    "subagent-session": {
-      from: { type: "kind", kind: "agent-session" },
-      to: { type: "kind", kind: "agent-session" },
-      cardinality: "one-to-many",
-      retention: "strong",
-    },
     "window": {
       from: { type: "exact", id: "context:selected" },
       to: { type: "kind", kind: "window" },
@@ -157,11 +151,6 @@ export const locusSchema = {
       from: "agent-session",
       path: ["session-project"],
       many: false,
-    },
-    "agent-session-subagents": {
-      from: "agent-session",
-      path: ["subagent-session"],
-      many: true,
     },
     "agent-session-workspace": {
       from: "agent-session",
@@ -206,7 +195,7 @@ export type PropertyKeyByKind = {
   "app-instance": "icon" | "name";
   "context": never;
   "output": "connector" | "source";
-  "project": "branch" | "icon" | "name" | "notebook_scope" | "path" | "worktree" | "worktree-path";
+  "project": "branch" | "icon" | "name" | "notebook_scope" | "path" | "subproj" | "task" | "worktree" | "worktree-path";
   "window": "external-id" | "source";
   "workspace": "active" | "external-id" | "focused" | "idx" | "name" | "source" | "urgent";
 };
@@ -995,3 +984,4 @@ export function createLocusObservables(client: LocusDbusClient = new LocusDbusCl
 }
 
 export const locus = createLocusObservables();
+
