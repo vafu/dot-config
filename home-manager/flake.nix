@@ -29,6 +29,14 @@
       url = "github:ghostty-org/ghostty";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    adw-gtk3-kanso = {
+      url = "path:./flakes/adw-gtk3-kanso";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    rsynapse = {
+      url = "path:/home/vfuchedzhy/proj/rsynapse";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = { self, nixpkgs, home-manager, ... } @inputs:
@@ -36,11 +44,21 @@
       homeConfigurations."vfuchedzhy" = home-manager.lib.homeManagerConfiguration {
         pkgs = import nixpkgs {
           system = "x86_64-linux";
-          allowUnfree = true;
-          allowUnfreePredicate = _: true;
+          config = {
+            allowUnfree = true;
+            allowUnfreePredicate = _: true;
+          };
           overlays = [ 
             (import ./hyprlock.nix) 
             inputs.niri.overlays.niri
+            (final: prev: {
+              libadwaita = prev.libadwaita.overrideAttrs (oldAttrs: {
+                pname = "${oldAttrs.pname}-without-adwaita";
+                doCheck = false;
+                patches = (oldAttrs.patches or []) ++ [ ./theming_patch.diff ];
+              });
+            })
+            inputs.rsynapse.overlays.default
           ];
         };
         extraSpecialArgs = { inherit inputs; };

@@ -1,47 +1,17 @@
-{ config, pkgs, inputs, ... }:
-let
-  # 1. Create the wrapper script that sets up the environment
-  niri-wrapper = pkgs.writeShellApplication {
-    name = "niri-wm-wrapper";
-    runtimeInputs = [
-      inputs.nixGL.packages.${pkgs.system}.nixGLDefault
-    ];
-    text = ''
-      # Set GBM path for mesa
-      export GBM_BACKENDS_PATH="${pkgs.mesa}/lib/gbm"
+{ config, pkgs, inputs, lib, ... }:
 
-      # Run the real niri-session binary, but using the nixGL wrapper
-      nixGL ${config.programs.niri.package}/bin/niri-session
-    '';
-  };
-in
 {
     imports = [
       inputs.ags.homeManagerModules.default
       inputs.niri.homeModules.niri
     ];
-    nixpkgs.overlays = [
-    (final: prev: {
-      libadwaita = prev.libadwaita.overrideAttrs (oldAttrs: {
-        # The name of the new derivation (optional, but good practice)
-        pname = "${oldAttrs.pname}-without-adwaita";
-        doCheck = false;
-
-        # Add the theming_patch.diff to the list of existing patches
-        patches = (oldAttrs.patches or []) ++ [
-           ./theming_patch.diff
-        ];
-      });
-    })
-  ];
-
-  # Set your home-manager state version
   home.stateVersion = "25.11";
   nixGL = {
     packages = inputs.nixGL.packages;
     defaultWrapper = "mesa";
     installScripts = [ "mesa" ];
   };
+
 
   programs.ags = {
     enable = true;
@@ -60,6 +30,7 @@ in
       astal.apps
       inputs.astal.packages.${pkgs.system}.niri
       networkmanager
+      gtksourceview5
     ];
   };
   programs.home-manager.enable = true;
@@ -79,6 +50,7 @@ in
     pavucontrol
     playerctl
     dart-sass
+    sassc
     gnome-pomodoro
     swaynotificationcenter
     nautilus
@@ -94,7 +66,6 @@ in
     hypridle
     nodejs
     neovim
-    mako
     xwayland-satellite 
     swww
     slack
@@ -116,7 +87,8 @@ in
       pygobject3
     ]))
     zk
-    pkg-config
+    tuigreet
+    tree-sitter
     wf-recorder
     codex
   ];
@@ -126,6 +98,123 @@ in
   home.sessionVariables = {
     NIXOS_OZONE_WL = "1";
     ELECTRON_OZONE_PLATFORM_HINT = "auto";
+  };
+
+
+  home.file.".local/bin/rsynapse-ui" = {
+    executable = true;
+    text = ''
+      #!${pkgs.runtimeShell}
+      export GIO_EXTRA_MODULES="${pkgs.dconf.lib}/lib/gio/modules:''${GIO_EXTRA_MODULES:-}"
+      export XDG_DATA_DIRS="${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}:${pkgs.gtk4}/share/gsettings-schemas/${pkgs.gtk4.name}:''${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+      exec "${pkgs.glibc}/lib/ld-linux-x86-64.so.2" \
+        --library-path "${pkgs.lib.makeLibraryPath (with pkgs; [
+          libadwaita
+          gtk4
+          gtk4-layer-shell
+          glib
+          pango
+          gdk-pixbuf
+          cairo
+          graphene
+          harfbuzz
+          fribidi
+          appstream
+          libepoxy
+          wayland
+          libxkbcommon
+          vulkan-loader
+          libglvnd
+          glibc
+        ])}" \
+        "$HOME/proj/rsynapse/target/debug/rsynapse-ui" "$@"
+    '';
+  };
+
+
+  home.activation.rsynapseLocalPlugins = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    plugin_dir="$HOME/.local/lib/rsynapse/plugins"
+    source_dir="$HOME/proj/rsynapse/target/release"
+    $DRY_RUN_CMD mkdir -p "$plugin_dir"
+    for plugin in       librsynapse_plugin_calc.so       librsynapse_plugin_commands.so       librsynapse_plugin_launcher.so       librsynapse_plugin_shell.so
+    do
+      if [ -e "$source_dir/$plugin" ]; then
+        $DRY_RUN_CMD ln -sfn "$source_dir/$plugin" "$plugin_dir/$plugin"
+      fi
+    done
+  '';
+
+  home.file.".local/bin/remarked-ui" = {
+    executable = true;
+    text = ''
+      #!${pkgs.runtimeShell}
+      export GIO_EXTRA_MODULES="${pkgs.dconf.lib}/lib/gio/modules:''${GIO_EXTRA_MODULES:-}"
+      export XDG_DATA_DIRS="${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}:${pkgs.gtk4}/share/gsettings-schemas/${pkgs.gtk4.name}:''${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+      exec "${pkgs.glibc}/lib/ld-linux-x86-64.so.2" \
+        --library-path "${pkgs.lib.makeLibraryPath (with pkgs; [
+          libadwaita
+          gtk4
+          gtk4-layer-shell
+          vte-gtk4
+          glib
+          pango
+          gdk-pixbuf
+          cairo
+          graphene
+          harfbuzz
+          fribidi
+          appstream
+          libepoxy
+          wayland
+          libxkbcommon
+          vulkan-loader
+          libglvnd
+          glibc
+        ])}" \
+        "$HOME/proj/remarked/target/debug/remarked-ui" "$@"
+    '';
+  };
+  
+xdg.portal = {
+  enable = true;
+  extraPortals = with pkgs; [
+    xdg-desktop-portal-gnome
+    xdg-desktop-portal-gtk
+    # Add any other portal you need, like xdg-desktop-portal-wlr
+  ];
+  config = {
+    # Set the fallback portal order specifically for your Niri environment
+    niri = {
+      default = [ "gtk" "gnome" ];
+    };
+  };
+};
+
+  systemd.user.services.swaync = {
+    Unit = {
+      Description = "Swaync notification daemon";
+      Documentation = [ "https://github.com/ErikReider/SwayNotificationCenter" ];
+      PartOf = [ "graphical-session.target" ];
+      After = [ "graphical-session.target" ];
+      ConditionEnvironment = "WAYLAND_DISPLAY";
+    };
+
+    Service = {
+      Type = "dbus";
+      BusName = "org.freedesktop.Notifications";
+      ExecStart = "${pkgs.swaynotificationcenter}/bin/swaync";
+      ExecReload = "${pkgs.swaynotificationcenter}/bin/swaync-client --reload-config ; ${pkgs.swaynotificationcenter}/bin/swaync-client --reload-css";
+      Restart = "on-failure";
+    };
+
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
+
+  xdg.configFile = {
+    "systemd/user/niri.service".source =
+      "${config.programs.niri.package}/share/systemd/user/niri.service";
+    "systemd/user/niri-shutdown.target".source =
+      "${config.programs.niri.package}/share/systemd/user/niri-shutdown.target";
   };
 
   xdg.dataFile."wayland-sessions/uwsm-niri.desktop".text = ''
