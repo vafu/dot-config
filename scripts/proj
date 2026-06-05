@@ -8,6 +8,7 @@ usage() {
 Usage:
   proj init [--force] [path]
   proj publish [path]
+  proj clear [workspace]
   proj root [path]
   proj metadata <key> [path]
 EOF
@@ -213,6 +214,16 @@ cmd_publish() {
   printf '%s\n' "${mutations[@]}" | locusctl apply >/dev/null
 }
 
+cmd_clear() {
+  local workspace="${1:-}"
+  if [[ -z "$workspace" ]]; then
+    workspace="$(selected_workspace || true)"
+  fi
+  [[ "$workspace" == workspace:* ]] || die "no selected workspace"
+
+  printf "%s\t%s\t%s\t%s\n" remove-links "$workspace" project "" | locusctl apply >/dev/null
+}
+
 cmd_root() {
   project_root_for_path "${1:-$PWD}" || return 1
 }
@@ -235,6 +246,10 @@ case "${1:-}" in
   publish)
     shift
     cmd_publish "$@"
+    ;;
+  clear)
+    shift
+    cmd_clear "$@"
     ;;
   root)
     shift
