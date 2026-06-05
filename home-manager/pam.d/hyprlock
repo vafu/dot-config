@@ -1,0 +1,7 @@
+# PAM configuration file for hyprlock on Ubuntu/generic Linux.
+#
+# Home Manager can install hyprlock, but it cannot create this system PAM
+# service file. Without it, hyprlock may fail to authenticate.
+
+@include common-auth
+@include common-account

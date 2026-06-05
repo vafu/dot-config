@@ -215,6 +215,34 @@ xdg.portal = {
       "${config.programs.niri.package}/share/systemd/user/niri.service";
     "systemd/user/niri-shutdown.target".source =
       "${config.programs.niri.package}/share/systemd/user/niri-shutdown.target";
+    "systemd/user/app-graphical.slice".source =
+      "${pkgs.uwsm}/share/systemd/user/app-graphical.slice";
+    "systemd/user/background-graphical.slice".source =
+      "${pkgs.uwsm}/share/systemd/user/background-graphical.slice";
+    "systemd/user/fumon.service".source =
+      "${pkgs.uwsm}/share/systemd/user/fumon.service";
+    "systemd/user/session-graphical.slice".source =
+      "${pkgs.uwsm}/share/systemd/user/session-graphical.slice";
+    "systemd/user/wayland-session-bindpid@.service".source =
+      "${pkgs.uwsm}/share/systemd/user/wayland-session-bindpid@.service";
+    "systemd/user/wayland-session-envelope@.target".source =
+      "${pkgs.uwsm}/share/systemd/user/wayland-session-envelope@.target";
+    "systemd/user/wayland-session-pre@.target".source =
+      "${pkgs.uwsm}/share/systemd/user/wayland-session-pre@.target";
+    "systemd/user/wayland-session-shutdown.target".source =
+      "${pkgs.uwsm}/share/systemd/user/wayland-session-shutdown.target";
+    "systemd/user/wayland-session-waitenv.service".source =
+      "${pkgs.uwsm}/share/systemd/user/wayland-session-waitenv.service";
+    "systemd/user/wayland-session-xdg-autostart@.target".source =
+      "${pkgs.uwsm}/share/systemd/user/wayland-session-xdg-autostart@.target";
+    "systemd/user/wayland-session@.target".source =
+      "${pkgs.uwsm}/share/systemd/user/wayland-session@.target";
+    "systemd/user/wayland-wm-app-daemon.service".source =
+      "${pkgs.uwsm}/share/systemd/user/wayland-wm-app-daemon.service";
+    "systemd/user/wayland-wm-env@.service".source =
+      "${pkgs.uwsm}/share/systemd/user/wayland-wm-env@.service";
+    "systemd/user/wayland-wm@.service".source =
+      "${pkgs.uwsm}/share/systemd/user/wayland-wm@.service";
   };
 
   xdg.dataFile."wayland-sessions/uwsm-niri.desktop".text = ''
