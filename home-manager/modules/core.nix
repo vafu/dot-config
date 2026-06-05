@@ -17,6 +17,7 @@
       SDL2
       alsa-utils
       brightnessctl
+      cage
       cmake
       code-cursor
       codex
@@ -43,6 +44,7 @@
       nodejs
       nwg-displays
       nwg-look
+      pamtester-hyprlock
       pavucontrol
       playerctl
       powertop

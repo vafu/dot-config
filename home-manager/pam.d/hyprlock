@@ -1,7 +1,8 @@
-# PAM configuration file for hyprlock on Ubuntu/generic Linux.
+# PAM configuration file for Nix-built hyprlock on Ubuntu/generic Linux.
 #
-# Home Manager can install hyprlock, but it cannot create this system PAM
-# service file. Without it, hyprlock may fail to authenticate.
+# Keep this local-password-only. Nix-built linux-pam loads modules from the
+# Nix store, so Ubuntu's common-auth/common-account may reference modules that
+# are unavailable there, such as pam_sss.so or pam_cap.so.
 
-@include common-auth
-@include common-account
+auth required pam_unix.so
+account required pam_unix.so
