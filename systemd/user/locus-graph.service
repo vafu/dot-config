@@ -5,8 +5,8 @@ Wants=locusd.service
 
 [Service]
 Type=simple
-Environment=PATH=/home/v47/.cargo/bin:/usr/local/bin:/usr/bin:/bin
-ExecStart=/home/v47/.cargo/bin/locus-graph 0.0.0.0:8765
+Environment=PATH=/home/vfuchedzhy/.cargo/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/home/vfuchedzhy/.cargo/bin/locus-graph 0.0.0.0:8765
 Restart=on-failure
 RestartSec=2
 

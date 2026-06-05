@@ -13,7 +13,7 @@ if [[ -r "$HOME/.config/locus/locus.sh" ]]; then
   fi
 fi
 
-exec /usr/bin/ghostty \
+exec ghostty \
   --window-inherit-working-directory=false \
   --working-directory="$working_dir" \
   +new-window

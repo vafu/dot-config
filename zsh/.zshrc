@@ -142,6 +142,7 @@ source_if_exists "$ZDOTDIR/env.zsh"
 source_if_exists "$ZDOTDIR/aliases.zsh"
 source_if_exists "$ZDOTDIR/locus.zsh"
 source_if_exists "$ZDOTDIR/niri.zsh"
+source_if_exists "$HOME/.zshrc"
 
 #THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
 export SDKMAN_DIR="$HOME/.sdkman"
