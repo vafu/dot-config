@@ -4,7 +4,7 @@ import { locus } from 'services/locus.generated'
 import { LevelIndicator } from 'widgets/circularstatus'
 import { MaterialIcon } from 'widgets/materialicon'
 import { bindAs, subscribeTo } from 'rxbinding'
-import { Observable, map, distinctUntilChanged, shareReplay } from 'rxjs'
+import { Observable, combineLatest, map, distinctUntilChanged, shareReplay } from 'rxjs'
 import { WidgetProps } from 'widgets'
 
 const CONTEXT_STAGES = [
@@ -105,9 +105,14 @@ const AgentWidget = (sessionId: string, subagentCount$: Observable<number>) => {
   const projectIcon$ = locus.resolvedProperty$(
     agentSessionNode,
     ['agent-session', 'app-instance', 'workspace', 'project'],
-    'icon',
+    'display-icon',
   ).pipe(
     map(icon => icon || 'smart_toy'),
+    distinctUntilChanged(),
+    shareReplay(1),
+  )
+  const projectBranch$ = locus.agentSessionProjectProperty$(agentSessionNode, 'branch').pipe(
+    map(branch => branch.trim()),
     distinctUntilChanged(),
     shareReplay(1),
   )
@@ -116,8 +121,14 @@ const AgentWidget = (sessionId: string, subagentCount$: Observable<number>) => {
     map(selected => selected === agentSessionNode),
     distinctUntilChanged(),
   )
+  const tooltip$ = combineLatest([status$, projectBranch$]).pipe(
+    map(([status, branch]) => {
+      const branchPart = branch ? ` · ${branch}` : ''
+      return `${status.agentName || 'agent'} · ${status.modelName || 'idle'}${branchPart} · ${Math.round(status.contextPct)}%${attentionLabel(status)}`
+    }),
+    distinctUntilChanged(),
+  )
 
-  const mainIcon$ = projectIcon$
   const subagentBadgeVisible$ = subagentCount$.pipe(
     map(count => count > 0),
     distinctUntilChanged(),
@@ -125,7 +136,7 @@ const AgentWidget = (sessionId: string, subagentCount$: Observable<number>) => {
 
   const icon = (
     <MaterialIcon
-      icon={bindAs(mainIcon$, s => s, 'smart_toy')}
+      icon={bindAs(projectIcon$, s => s, 'smart_toy')}
       tinted={false}
     />
   ) as Gtk.Widget
@@ -141,6 +152,7 @@ const AgentWidget = (sessionId: string, subagentCount$: Observable<number>) => {
 
   // Info header
   const modelLabel = new Gtk.Label({ xalign: 0, cssClasses: ['agent-info-value'] })
+  const branchLabel = new Gtk.Label({ xalign: 0, ellipsize: 3 /* END */, maxWidthChars: 35, cssClasses: ['agent-info-value'] })
   const cwdLabel = new Gtk.Label({ xalign: 0, ellipsize: 3 /* END */, maxWidthChars: 35, cssClasses: ['agent-info-value'] })
   const costLabel = new Gtk.Label({ xalign: 0, cssClasses: ['agent-info-value'] })
   const contextLabel = new Gtk.Label({ xalign: 0, cssClasses: ['agent-info-value'] })
@@ -152,9 +164,10 @@ const AgentWidget = (sessionId: string, subagentCount$: Observable<number>) => {
     infoGrid.attach(widget, 1, row, 1, 1)
   }
   addRow(0, 'Model', modelLabel)
-  addRow(1, 'CWD', cwdLabel)
-  addRow(2, 'Cost', costLabel)
-  addRow(3, 'Context', contextLabel)
+  addRow(1, 'Branch', branchLabel)
+  addRow(2, 'CWD', cwdLabel)
+  addRow(3, 'Cost', costLabel)
+  addRow(4, 'Context', contextLabel)
 
   // Elicitation area
   const elicitationBox = new Gtk.Box({
@@ -195,7 +208,7 @@ const AgentWidget = (sessionId: string, subagentCount$: Observable<number>) => {
   const widget = (
     <menubutton
       cssClasses={['agent-widget', 'flat', 'circular', 'panel-widget']}
-      tooltipText={bindAs(status$, s => `${s.agentName || 'agent'} · ${s.modelName || 'idle'} · ${Math.round(s.contextPct)}%${attentionLabel(s)}`, '')}
+      tooltipText={bindAs(tooltip$, s => s, '')}
       popover={popover}
     >
       <overlay>
@@ -241,6 +254,10 @@ const AgentWidget = (sessionId: string, subagentCount$: Observable<number>) => {
     cwdLabel.label = status.cwd ? status.cwd.replace(/^\/home\/[^/]+/, '~') : '—'
     costLabel.label = status.costUsd > 0 ? `$${status.costUsd.toFixed(4)}` : '—'
     contextLabel.label = `${Math.round(status.contextPct)}%`
+  })
+
+  subscribeTo(widget, projectBranch$, branch => {
+    branchLabel.label = branch || '—'
   })
 
   subscribeTo(widget, selected$, (selected, w) => {
