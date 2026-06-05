@@ -127,8 +127,9 @@ _locus_refresh_project_root() {
 }
 
 _locus_publish_project_if_changed() {
-  [[ -x "$HOME/.config/scripts/proj" ]] || return 0
-  local root file branch head head_mtime mtime state
+  local proj_bin root file branch head head_mtime mtime state
+  proj_bin="$(whence -p proj 2>/dev/null)" || return 0
+  [[ -x "$proj_bin" ]] || return 0
   root="$_LOCUS_PROJECT_ROOT"
   [[ -n "$root" && "$root" != "-" ]] || return 0
   file="$root/.project.json"
@@ -139,7 +140,7 @@ _locus_publish_project_if_changed() {
   state="$root|$branch|$head_mtime|$mtime"
   [[ "$state" == "$_LOCUS_PROJECT_PUBLISH_STATE" ]] && return 0
   _LOCUS_PROJECT_PUBLISH_STATE="$state"
-  "$HOME/.config/scripts/proj" publish "$root" >/dev/null 2>&1 || true
+  "$proj_bin" publish "$root" >/dev/null 2>&1 || true
 }
 
 _locus_chpwd_project_workspace() {
