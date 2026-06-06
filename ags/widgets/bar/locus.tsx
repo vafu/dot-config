@@ -39,6 +39,11 @@ type ProjectAggregate = {
   hasComplete: boolean
 }
 
+type WorkspaceProject = {
+  project: string
+  workspaceIndex: number
+}
+
 const sameArray = (left: string[], right: string[]) =>
   left.length === right.length
   && left.every((value, index) => value === right[index])
@@ -203,33 +208,53 @@ const projectAgents$ = combineLatest([sessions$, sessionProjects$]).pipe(
   shareReplay(1),
 )
 
-const workspaceProjectIds$ = (monitor: Gdk.Monitor) => workspacesOnMonitor$(monitor).pipe(
+const workspaceProjects$ = (monitor: Gdk.Monitor) => workspacesOnMonitor$(monitor).pipe(
   switchMap(workspaces => {
-    if (workspaces.length === 0) return of([] as string[])
+    if (workspaces.length === 0) return of([] as WorkspaceProject[])
 
     return combineLatest(
       workspaces.map(workspace =>
-        locus.targets$(workspace.subject, 'project').pipe(
-          map(projects => projects[0] ?? ''),
-        )
+        combineLatest([
+          locus.targets$(workspace.subject, 'project'),
+          locus.numberProperty$(workspace.subject, 'index', workspace.wsId),
+        ]).pipe(
+          map(([projects, workspaceIndex]) => ({
+            project: projects[0] ?? '',
+            workspaceIndex: workspaceIndex > 0 ? workspaceIndex : workspace.wsId,
+          })),
+        ),
       ),
     ).pipe(
-      map(projects => projects.filter(project => !!project)),
+      map(projects => projects
+        .filter(item => !!item.project)
+        .sort((left, right) => left.workspaceIndex - right.workspaceIndex)),
     )
   }),
-  map(projects => [...new Set(projects)]),
-  distinctUntilChanged(sameArray),
+  map(projects => {
+    const ordered = new Map<string, WorkspaceProject>()
+    for (const project of projects) {
+      if (!ordered.has(project.project)) ordered.set(project.project, project)
+    }
+    return [...ordered.values()]
+  }),
+  distinctUntilChanged((left, right) =>
+    left.length === right.length
+    && left.every((value, index) =>
+      value.project === right[index].project
+      && value.workspaceIndex === right[index].workspaceIndex,
+    ),
+  ),
   shareReplay(1),
 )
 
 const projectIds$ = (monitor: Gdk.Monitor) => combineLatest([
-  workspaceProjectIds$(monitor),
+  workspaceProjects$(monitor),
   selectedProject$,
   projectAgents$,
 ]).pipe(
   map(([workspaceProjects, selectedProject, agents]) => {
     const ids = new Set<string>()
-    for (const project of workspaceProjects) ids.add(project)
+    for (const item of workspaceProjects) ids.add(item.project)
     for (const agent of agents) ids.add(agent.project)
     if (selectedProject) ids.add(selectedProject)
     return [...ids]
