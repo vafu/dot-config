@@ -3,3 +3,5 @@ export PATH="$HOME/.go/bin:$HOME/.config/scripts/:$HOME/ai/bin/:$HOME/.local/bin
 export EDITOR=nvim
 export XCURSOR_THEME=phinger-cursors-dark
 export XCURSOR_SIZE=24
+export XCURSOR_PATH="$HOME/.icons:$HOME/.local/share/icons:/usr/share/icons${XCURSOR_PATH:+:$XCURSOR_PATH}"
+export UWSM_FINALIZE_VARNAMES="${UWSM_FINALIZE_VARNAMES}${UWSM_FINALIZE_VARNAMES:+ }XCURSOR_PATH"

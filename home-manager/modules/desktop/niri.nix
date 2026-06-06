@@ -6,6 +6,8 @@
 }:
 
 let
+  cursorPath = "${config.home.homeDirectory}/.icons:${config.home.homeDirectory}/.local/share/icons:/usr/share/icons";
+
   uwsmSystemdFiles = [
     "app-graphical.slice"
     "background-graphical.slice"
@@ -41,6 +43,14 @@ in
   xdg.configFile = {
     "systemd/user/niri.service".source =
       "${config.programs.niri.package}/share/systemd/user/niri.service";
+    "systemd/user/niri.service.d/cursor.conf".text = ''
+      [Service]
+      Environment=XCURSOR_PATH=${cursorPath}
+    '';
+    "systemd/user/wayland-wm@.service.d/cursor.conf".text = ''
+      [Service]
+      Environment=XCURSOR_PATH=${cursorPath}
+    '';
     "systemd/user/niri-shutdown.target".source =
       "${config.programs.niri.package}/share/systemd/user/niri-shutdown.target";
   }
