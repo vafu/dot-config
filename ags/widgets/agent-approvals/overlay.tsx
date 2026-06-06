@@ -9,7 +9,7 @@ import { getAgentService, AgentStatus } from 'services/agent'
 import { locus } from 'services/locus.generated'
 import approvalsUi from 'widgets/agent-approvals'
 import { MaterialIcon } from 'widgets/materialicon'
-import { map, distinctUntilChanged } from 'rxjs'
+import { combineLatest, map, distinctUntilChanged } from 'rxjs'
 import { parsePatch } from 'diff'
 
 type PendingApproval = {
@@ -595,8 +595,11 @@ export function AgentApprovalOverlay(monitor: Accessor<Gdk.Monitor>) {
       const options = approvalOptions(request)
       const optionDescriptions = approvalOptionDescriptions(request)
       const agentSessionNode = `agent-session:${request.sessionId}`
-      const projectIcon$ = locus.agentSessionProjectProperty$(agentSessionNode, 'icon').pipe(
-        map(projectIcon => projectIcon || 'smart_toy'),
+      const projectIcon$ = combineLatest([
+        locus.agentSessionWorkspaceProjectProperty$(agentSessionNode, 'icon'),
+        locus.agentSessionProjectProperty$(agentSessionNode, 'icon'),
+      ]).pipe(
+        map(([workspaceIcon, directIcon]) => workspaceIcon || directIcon || 'smart_toy'),
         distinctUntilChanged(),
       )
       const detailBlock = makeDetailBlock(request)

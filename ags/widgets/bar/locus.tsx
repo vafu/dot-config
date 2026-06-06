@@ -179,11 +179,17 @@ const sessionProjects$ = sessionIds$.pipe(
     if (sessionIds.length === 0) return of(new Map<string, string>())
 
     return combineLatest(
-      sessionIds.map(sessionId =>
-        locus.agentSessionProjectString$(`agent-session:${sessionId}`).pipe(
-          map(project => [sessionId, project] as const),
+      sessionIds.map(sessionId => {
+        const agentSessionNode = `agent-session:${sessionId}`
+        return combineLatest([
+          locus.agentSessionWorkspaceProjectString$(agentSessionNode),
+          locus.agentSessionProjectString$(agentSessionNode),
+        ]).pipe(
+          map(([workspaceProject, directProject]) =>
+            [sessionId, workspaceProject || directProject] as const
+          ),
         )
-      ),
+      }),
     ).pipe(
       map(entries => new Map<string, string>(entries)),
     )

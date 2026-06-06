@@ -29,6 +29,7 @@ export type Relation =
 export type NamedPath =
   | "agent-session-project"
   | "agent-session-workspace"
+  | "agent-session-workspace-project"
   | "selected-agent-session"
   | "selected-output"
   | "selected-project"
@@ -74,9 +75,12 @@ export const locusSchema = {
     "project": {
       properties: {
         "branch": { required: false },
+        "display-icon": { required: false },
+        "display-main": { required: false },
+        "display-secondary": { required: false },
         "icon": { required: false },
         "name": { required: false },
-        "notebook_scope": { required: false },
+        "notebook_path": { required: false },
         "path": { required: true },
         "subproj": { required: false },
         "task": { required: false },
@@ -157,6 +161,11 @@ export const locusSchema = {
       path: ["agent-session", "app-instance", "workspace"],
       many: false,
     },
+    "agent-session-workspace-project": {
+      from: "agent-session",
+      path: ["agent-session", "app-instance", "workspace", "project"],
+      many: false,
+    },
     "selected-agent-session": {
       from: "context:selected",
       path: ["window", "app-instance", "agent-session"],
@@ -195,7 +204,7 @@ export type PropertyKeyByKind = {
   "app-instance": "icon" | "name";
   "context": never;
   "output": "connector" | "source";
-  "project": "branch" | "icon" | "name" | "notebook_scope" | "path" | "subproj" | "task" | "worktree" | "worktree-path";
+  "project": "branch" | "display-icon" | "display-main" | "display-secondary" | "icon" | "name" | "notebook_path" | "path" | "subproj" | "task" | "worktree" | "worktree-path";
   "window": "external-id" | "source";
   "workspace": "active" | "external-id" | "focused" | "idx" | "name" | "source" | "urgent";
 };
@@ -903,6 +912,18 @@ export class LocusObservableAdapter extends LocusObservableAdapterBase {
 
   agentSessionWorkspaceProperty$(source: NodeId, key: string): Observable<string> {
     return this.pathProperty$("agent-session-workspace", key, source);
+  }
+
+  agentSessionWorkspaceProject$(source: NodeId): Observable<OptionalNodeId> {
+    return this.path$("agent-session-workspace-project", source);
+  }
+
+  agentSessionWorkspaceProjectString$(source: NodeId): Observable<string> {
+    return this.pathString$("agent-session-workspace-project", source);
+  }
+
+  agentSessionWorkspaceProjectProperty$(source: NodeId, key: string): Observable<string> {
+    return this.pathProperty$("agent-session-workspace-project", key, source);
   }
 
   selectedAgentSession$(): Observable<OptionalNodeId> {
