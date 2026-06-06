@@ -1,7 +1,6 @@
 import Gio from 'gi://Gio?version=2.0'
 import GLib from 'gi://GLib?version=2.0'
 import { BehaviorSubject, Observable } from 'rxjs'
-import { execAsync } from 'ags/process'
 
 export type AgentState = 'no-session' | 'idle' | 'thinking' | 'tool-use' | 'compacting'
 
@@ -50,7 +49,6 @@ export interface AgentService {
   sessions$: Observable<Map<string, AgentStatus>>
   elicitation$: Observable<AgentElicitation | null>
   respondToElicitation: (sessionId: string, answer: string, requestId?: string) => void
-  iconForSession: (cwd: string, sessionName: string) => Observable<string>
 }
 
 const BUS_NAME = 'io.github.AgentDBus'
@@ -309,68 +307,6 @@ export function getAgentService(): AgentService {
     )
   }
 
-  // Icon picker: cache per cwd+sessionName, watches .git/HEAD for branch changes
-  const iconCache = new Map<string, BehaviorSubject<string>>()
-  const iconForSession = (cwd: string, sessionName: string): Observable<string> => {
-    if (!cwd) return new BehaviorSubject('smart_toy')
-    const cacheKey = `${cwd}::${sessionName}`
-    const existing = iconCache.get(cacheKey)
-    if (existing) return existing
-    const subject = new BehaviorSubject<string>('smart_toy')
-    iconCache.set(cacheKey, subject)
-
-    const dirname = cwd.split('/').pop() ?? ''
-    const projectName = dirname.replace(/[-_]/g, ' ')
-
-    const refreshIcon = () => {
-      execAsync(['git', '-C', cwd, 'branch', '--show-current'])
-        .catch(() => '')
-        .then(branch => {
-          const br = branch.trim()
-          const isMain = !br || br === 'main' || br === 'master'
-          console.log(`[Agent] iconForSession: cwd=${cwd} branch=${br || '(none)'} sessionName=${sessionName}`)
-          const args = ['pick-icon', '--json', '-n', '1']
-          if (sessionName) {
-            args.push('-s', sessionName.replace(/[-_]/g, ' '))
-          } else if (isMain) {
-            args.push('-s', projectName)
-          } else {
-            args.push('-s', br.replace(/[/_-]/g, ' '))
-          }
-          for (const doc of ['AGENTS.md', 'README.md']) {
-            args.push('-f', `${cwd}/${doc}`)
-          }
-          console.log(`[Agent] iconForSession: running ${args.join(' ')}`)
-          return execAsync(args)
-        })
-        .then(output => {
-          console.log(`[Agent] iconForSession: output=${output}`)
-          const results = JSON.parse(output)
-          if (results.length > 0) {
-            console.log(`[Agent] iconForSession: picked icon=${results[0].icon} score=${results[0].score} for ${cwd}`)
-            subject.next(results[0].icon)
-          }
-        })
-        .catch(e => console.error('[Agent] pick-icon error:', e))
-    }
-
-    refreshIcon()
-
-    // Watch .git/HEAD for branch switches
-    const gitHead = Gio.File.new_for_path(`${cwd}/.git/HEAD`)
-    if (gitHead.query_exists(null)) {
-      const monitor = gitHead.monitor_file(Gio.FileMonitorFlags.NONE, null)
-      monitor.connect('changed', (_m: any, _f: any, _o: any, event: Gio.FileMonitorEvent) => {
-        if (event === Gio.FileMonitorEvent.CHANGES_DONE_HINT) {
-          console.log(`[Agent] iconForSession: .git/HEAD changed for ${cwd}, refreshing`)
-          refreshIcon()
-        }
-      })
-    }
-
-    return subject
-  }
-
-  service = { sessions$, elicitation$, respondToElicitation, iconForSession }
+  service = { sessions$, elicitation$, respondToElicitation }
   return service
 }

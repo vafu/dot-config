@@ -159,8 +159,6 @@ hotkey-overlay {
 // csd = client (app) side decoration 
 prefer-no-csd
 
-screenshot-path null
-
 // Open the Firefox picture-in-picture player as floating by default.
 window-rule {
     match app-id=r#"firefox$"# title="^Picture-in-Picture$"

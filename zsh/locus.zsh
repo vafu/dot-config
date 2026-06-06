@@ -78,8 +78,8 @@ _locus_project_root_for_pwd() {
   return 1
 }
 
-_locus_git_branch_for_root() {
-  local root="$1" git_meta git_dir head line
+_locus_git_dir_for_root() {
+  local root="$1" git_meta git_dir line
   git_meta="$root/.git"
   if [[ -f "$git_meta" ]]; then
     IFS= read -r line < "$git_meta" || return 0
@@ -90,9 +90,22 @@ _locus_git_branch_for_root() {
   else
     return 0
   fi
+  print -r -- "${git_dir:A}"
+}
 
+_locus_git_head_for_root() {
+  local root="$1" git_dir head
+  git_dir="$(_locus_git_dir_for_root "$root")"
+  [[ -n "$git_dir" ]] || return 0
   head="$git_dir/HEAD"
   [[ -r "$head" ]] || return 0
+  print -r -- "$head"
+}
+
+_locus_git_branch_for_root() {
+  local root="$1" head line
+  head="$(_locus_git_head_for_root "$root")"
+  [[ -n "$head" ]] || return 0
   IFS= read -r line < "$head" || return 0
   if [[ "$line" == ref:\ refs/heads/* ]]; then
     print -r -- "${line#ref: refs/heads/}"
@@ -114,17 +127,20 @@ _locus_refresh_project_root() {
 }
 
 _locus_publish_project_if_changed() {
-  [[ -x "$HOME/.config/scripts/proj" ]] || return 0
-  local root file branch mtime state
+  local proj_bin root file branch head head_mtime mtime state
+  proj_bin="$(whence -p proj 2>/dev/null)" || return 0
+  [[ -x "$proj_bin" ]] || return 0
   root="$_LOCUS_PROJECT_ROOT"
   [[ -n "$root" && "$root" != "-" ]] || return 0
   file="$root/.project.json"
   branch="$(_locus_git_branch_for_root "$root")"
+  head="$(_locus_git_head_for_root "$root")"
+  head_mtime="$(_locus_project_file_mtime "$head" 2>/dev/null || true)"
   mtime="$(_locus_project_file_mtime "$file")" || return 0
-  state="$root|$branch|$mtime"
+  state="$root|$branch|$head_mtime|$mtime"
   [[ "$state" == "$_LOCUS_PROJECT_PUBLISH_STATE" ]] && return 0
   _LOCUS_PROJECT_PUBLISH_STATE="$state"
-  "$HOME/.config/scripts/proj" publish "$root" >/dev/null 2>&1 &!
+  "$proj_bin" publish "$root" >/dev/null 2>&1 || true
 }
 
 _locus_chpwd_project_workspace() {

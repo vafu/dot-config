@@ -6,6 +6,7 @@ import GtkSource from 'gi://GtkSource?version=5'
 import GLib from 'gi://GLib?version=2.0'
 import { bindAs, binding } from 'rxbinding'
 import { getAgentService, AgentStatus } from 'services/agent'
+import { locus } from 'services/locus.generated'
 import approvalsUi from 'widgets/agent-approvals'
 import { MaterialIcon } from 'widgets/materialicon'
 import { map, distinctUntilChanged } from 'rxjs'
@@ -500,7 +501,7 @@ function makeDetailBlock(request: PendingApproval): Gtk.Widget | null {
 }
 
 export function AgentApprovalOverlay(monitor: Accessor<Gdk.Monitor>) {
-  const { sessions$, respondToElicitation, iconForSession } = getAgentService()
+  const { sessions$, respondToElicitation } = getAgentService()
   const carousel = new Adw.Carousel({
     orientation: Gtk.Orientation.HORIZONTAL,
     allowMouseDrag: true,
@@ -593,7 +594,11 @@ export function AgentApprovalOverlay(monitor: Accessor<Gdk.Monitor>) {
       const status = request.status
       const options = approvalOptions(request)
       const optionDescriptions = approvalOptionDescriptions(request)
-      const projectIcon$ = iconForSession(status.cwd, status.sessionName)
+      const agentSessionNode = `agent-session:${request.sessionId}`
+      const projectIcon$ = locus.agentSessionProjectProperty$(agentSessionNode, 'icon').pipe(
+        map(projectIcon => projectIcon || 'smart_toy'),
+        distinctUntilChanged(),
+      )
       const detailBlock = makeDetailBlock(request)
       const contentBox = new Gtk.Box({
         orientation: Gtk.Orientation.VERTICAL,

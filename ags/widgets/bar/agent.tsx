@@ -4,7 +4,7 @@ import { locus } from 'services/locus.generated'
 import { LevelIndicator } from 'widgets/circularstatus'
 import { MaterialIcon } from 'widgets/materialicon'
 import { bindAs, subscribeTo } from 'rxbinding'
-import { Observable, map, distinctUntilChanged, shareReplay } from 'rxjs'
+import { Observable, combineLatest, map, distinctUntilChanged, shareReplay } from 'rxjs'
 import { WidgetProps } from 'widgets'
 
 const CONTEXT_STAGES = [
@@ -75,8 +75,17 @@ function attentionLabel(status: AgentStatus): string {
   return ` · ${labels.join(', ')}`
 }
 
-const AgentWidget = (sessionId: string, subagentCount$: Observable<number>) => {
+type AgentWidgetOptions = {
+  highlightSelected?: boolean
+}
+
+export const AgentWidget = (
+  sessionId: string,
+  subagentCount$: Observable<number>,
+  options: AgentWidgetOptions = {},
+) => {
   const { sessions$, respondToElicitation } = getAgentService()
+  const highlightSelected = options.highlightSelected ?? true
   const agentSessionNode = `agent-session:${sessionId}`
 
   const status$ = sessions$.pipe(
@@ -105,9 +114,14 @@ const AgentWidget = (sessionId: string, subagentCount$: Observable<number>) => {
   const projectIcon$ = locus.resolvedProperty$(
     agentSessionNode,
     ['agent-session', 'app-instance', 'workspace', 'project'],
-    'icon',
+    'display-icon',
   ).pipe(
     map(icon => icon || 'smart_toy'),
+    distinctUntilChanged(),
+    shareReplay(1),
+  )
+  const projectBranch$ = locus.agentSessionProjectProperty$(agentSessionNode, 'branch').pipe(
+    map(branch => branch.trim()),
     distinctUntilChanged(),
     shareReplay(1),
   )
@@ -116,8 +130,14 @@ const AgentWidget = (sessionId: string, subagentCount$: Observable<number>) => {
     map(selected => selected === agentSessionNode),
     distinctUntilChanged(),
   )
+  const tooltip$ = combineLatest([status$, projectBranch$]).pipe(
+    map(([status, branch]) => {
+      const branchPart = branch ? ` · ${branch}` : ''
+      return `${status.agentName || 'agent'} · ${status.modelName || 'idle'}${branchPart} · ${Math.round(status.contextPct)}%${attentionLabel(status)}`
+    }),
+    distinctUntilChanged(),
+  )
 
-  const mainIcon$ = projectIcon$
   const subagentBadgeVisible$ = subagentCount$.pipe(
     map(count => count > 0),
     distinctUntilChanged(),
@@ -125,7 +145,7 @@ const AgentWidget = (sessionId: string, subagentCount$: Observable<number>) => {
 
   const icon = (
     <MaterialIcon
-      icon={bindAs(mainIcon$, s => s, 'smart_toy')}
+      icon={bindAs(projectIcon$, s => s, 'smart_toy')}
       tinted={false}
     />
   ) as Gtk.Widget
@@ -141,6 +161,7 @@ const AgentWidget = (sessionId: string, subagentCount$: Observable<number>) => {
 
   // Info header
   const modelLabel = new Gtk.Label({ xalign: 0, cssClasses: ['agent-info-value'] })
+  const branchLabel = new Gtk.Label({ xalign: 0, ellipsize: 3 /* END */, maxWidthChars: 35, cssClasses: ['agent-info-value'] })
   const cwdLabel = new Gtk.Label({ xalign: 0, ellipsize: 3 /* END */, maxWidthChars: 35, cssClasses: ['agent-info-value'] })
   const costLabel = new Gtk.Label({ xalign: 0, cssClasses: ['agent-info-value'] })
   const contextLabel = new Gtk.Label({ xalign: 0, cssClasses: ['agent-info-value'] })
@@ -152,9 +173,10 @@ const AgentWidget = (sessionId: string, subagentCount$: Observable<number>) => {
     infoGrid.attach(widget, 1, row, 1, 1)
   }
   addRow(0, 'Model', modelLabel)
-  addRow(1, 'CWD', cwdLabel)
-  addRow(2, 'Cost', costLabel)
-  addRow(3, 'Context', contextLabel)
+  addRow(1, 'Branch', branchLabel)
+  addRow(2, 'CWD', cwdLabel)
+  addRow(3, 'Cost', costLabel)
+  addRow(4, 'Context', contextLabel)
 
   // Elicitation area
   const elicitationBox = new Gtk.Box({
@@ -195,7 +217,7 @@ const AgentWidget = (sessionId: string, subagentCount$: Observable<number>) => {
   const widget = (
     <menubutton
       cssClasses={['agent-widget', 'flat', 'circular', 'panel-widget']}
-      tooltipText={bindAs(status$, s => `${s.agentName || 'agent'} · ${s.modelName || 'idle'} · ${Math.round(s.contextPct)}%${attentionLabel(s)}`, '')}
+      tooltipText={bindAs(tooltip$, s => s, '')}
       popover={popover}
     >
       <overlay>
@@ -243,7 +265,16 @@ const AgentWidget = (sessionId: string, subagentCount$: Observable<number>) => {
     contextLabel.label = `${Math.round(status.contextPct)}%`
   })
 
+  subscribeTo(widget, projectBranch$, branch => {
+    branchLabel.label = branch || '—'
+  })
+
   subscribeTo(widget, selected$, (selected, w) => {
+    if (!highlightSelected) {
+      w.remove_css_class('selected')
+      return
+    }
+
     if (selected) w.add_css_class('selected')
     else w.remove_css_class('selected')
   })
@@ -343,7 +374,7 @@ function updateUsageFill(pct: number) {
 
 export const AgentWidgets = (props: WidgetProps) => {
   const { sessions$ } = getAgentService()
-  const cssClasses = (props.cssClasses ?? []).concat(['agent-usage-fill'])
+  const cssClasses = props.cssClasses ?? []
 
   const visible$ = sessions$.pipe(
     map(sessions => [...sessions.values()].some(status => !status.isSubagent)),
@@ -383,15 +414,20 @@ export const AgentWidgets = (props: WidgetProps) => {
     ),
   )
 
-  const container = (<box cssClasses={cssClasses} visible={bindAs(visible$, v => v, false)} />) as Gtk.Box
+  const chip = (<box cssClasses={['agent-usage-chip', 'agent-usage-fill']} />) as Gtk.Box
+  const container = (
+    <box cssClasses={cssClasses} visible={bindAs(visible$, v => v, false)}>
+      {chip}
+    </box>
+  ) as Gtk.Box
   const sessionWidgets = new Map<string, Gtk.Widget>()
 
-  subscribeTo(container, attentionMode$, (attentionMode, box) => {
+  subscribeTo(chip, attentionMode$, (attentionMode, box) => {
     box.remove_css_class('agent-attention')
     if (attentionMode === 'prompt') box.add_css_class('agent-attention')
   })
 
-  subscribeTo(container, sessions$, (sessions, box) => {
+  subscribeTo(chip, sessions$, (sessions, box) => {
     for (const [sessionId, status] of sessions) {
       if (status.isSubagent) continue
       if (!sessionWidgets.has(sessionId)) {
@@ -413,7 +449,7 @@ export const AgentWidgets = (props: WidgetProps) => {
     }
   })
 
-  subscribeTo(container, usage$, (usage, box) => {
+  subscribeTo(chip, usage$, (usage, box) => {
     updateUsageFill(usage.fiveHourUsagePct)
     box.tooltipText = usage.fiveHourResetsAt > 0
       ? `5h: ${Math.round(usage.fiveHourUsagePct)}% · 7d: ${Math.round(usage.sevenDayUsagePct)}%`
