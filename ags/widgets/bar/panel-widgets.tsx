@@ -56,10 +56,16 @@ export const PanelButton = (props: PanelButtonProps) => {
   return button
 }
 
-export const PanelButtonGroup = (props: { children: GObject.Object[] }) => {
+type PanelButtonGroupProps = WidgetProps & {
+  children: GObject.Object[]
+  expandDirection?: 'left' | 'right'
+  revealWhen?: Observable<boolean>
+}
+
+export const PanelButtonGroup = (props: PanelButtonGroupProps) => {
   const widgets = props.children
   widgets.forEach(b => {
-    if (b instanceof Gtk.Widget) {
+    if (b instanceof Gtk.Button || b instanceof Gtk.MenuButton) {
       b.add_css_class('flat')
       b.add_css_class('circular')
       b.add_css_class('panel-widget')
@@ -67,7 +73,7 @@ export const PanelButtonGroup = (props: { children: GObject.Object[] }) => {
   })
 
   const hovered = new BehaviorSubject(false)
-  const revealed = combineLatest(
+  const revealInputs = [
     hovered,
     ...widgets.map(w => {
       if (w instanceof Gtk.MenuButton) {
@@ -75,7 +81,10 @@ export const PanelButtonGroup = (props: { children: GObject.Object[] }) => {
       }
       return of(false)
     }),
-  ).pipe(
+  ]
+  if (props.revealWhen) revealInputs.push(props.revealWhen)
+
+  const revealed = combineLatest(revealInputs).pipe(
     map(conditions => conditions.reduce((p, c) => p || c)),
     tap({
       next: r =>
@@ -95,15 +104,19 @@ export const PanelButtonGroup = (props: { children: GObject.Object[] }) => {
       <box cssClasses={['button-subgroup']}>{widgets}</box>
     </revealer>
   ) as Gtk.Revealer
+  const expandDirection = props.expandDirection ?? 'left'
+  const cssClasses = (props.cssClasses ?? []).concat([
+    `button-subgroup-expand-${expandDirection}`,
+  ])
 
   return (
-    <box>
+    <box cssClasses={cssClasses}>
       <Gtk.EventControllerMotion
         onEnter={() => hovered.next(true)}
         onLeave={() => hovered.next(false)}
       />
-      {group}
-      {main}
+      {expandDirection === 'right' ? main : group}
+      {expandDirection === 'right' ? group : main}
     </box>
   )
 }

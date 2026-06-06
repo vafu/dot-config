@@ -13,8 +13,7 @@ import {
 } from './indicators'
 import { BluetoothStatus } from './bt_status'
 import { WindowTitle } from './windowtitle'
-import { AgentWidgets } from './agent'
-import { LocusProjectWidget } from './locus'
+import { ProjectsWidget } from './locus'
 import { AudioVolumeIndicator } from './audio_route'
 
 export default (gdkmonitor: Gdk.Monitor) => {
@@ -35,11 +34,10 @@ export default (gdkmonitor: Gdk.Monitor) => {
       <centerbox>
         {/** left **/}
         <box $type="start">
-          <LocusProjectWidget cssClasses={['barblock']} />
+          <ProjectsWidget cssClasses={['barblock']} monitor={gdkmonitor} />
           {/**  
           <PomodoroWidget cssClasses={['barblock']} />
           **/}
-          <AgentWidgets cssClasses={['barblock']} />
         </box>
 
         {/** center **/}

@@ -4,9 +4,14 @@
   animation: agent-attention-pulse 1s ease-in-out infinite alternate;
 }
 
+.agent-usage-chip {
+  border-radius: 12px;
+}
+
 .agent-widget {
   border-radius: 12px;
-  transition: background-color 300ms;
+  opacity: 0.42;
+  transition: background-color 180ms, opacity 180ms, outline-color 180ms;
 
   .agent-inner {
     padding: 0 4px;
@@ -26,26 +31,19 @@
   }
 
   &.attention {
-    background-color: transparent;
+    background-color: color-mix(in srgb, #{$sys_danger} 12%, #{$bg});
+    opacity: 1;
   }
 
   &.selected {
-    background-color: color-mix(in srgb, #{$ws_active} 14%, #{$bg});
-    outline: 1px solid color-mix(in srgb, #{$ws_active} 28%, transparent);
-    outline-offset: 0;
-  }
-
-  &.task-complete {
-    materialicon {
-      color: #{$sys_warn};
-    }
+    opacity: 1;
   }
 
   &.no-session {
     opacity: 0.5;
   }
 
-  &.idle materialicon:first-child {
+  &.selected.idle materialicon:first-child {
     color: #{$sys_ok};
   }
 

@@ -75,8 +75,17 @@ function attentionLabel(status: AgentStatus): string {
   return ` · ${labels.join(', ')}`
 }
 
-const AgentWidget = (sessionId: string, subagentCount$: Observable<number>) => {
+type AgentWidgetOptions = {
+  highlightSelected?: boolean
+}
+
+export const AgentWidget = (
+  sessionId: string,
+  subagentCount$: Observable<number>,
+  options: AgentWidgetOptions = {},
+) => {
   const { sessions$, respondToElicitation } = getAgentService()
+  const highlightSelected = options.highlightSelected ?? true
   const agentSessionNode = `agent-session:${sessionId}`
 
   const status$ = sessions$.pipe(
@@ -261,6 +270,11 @@ const AgentWidget = (sessionId: string, subagentCount$: Observable<number>) => {
   })
 
   subscribeTo(widget, selected$, (selected, w) => {
+    if (!highlightSelected) {
+      w.remove_css_class('selected')
+      return
+    }
+
     if (selected) w.add_css_class('selected')
     else w.remove_css_class('selected')
   })
@@ -360,7 +374,7 @@ function updateUsageFill(pct: number) {
 
 export const AgentWidgets = (props: WidgetProps) => {
   const { sessions$ } = getAgentService()
-  const cssClasses = (props.cssClasses ?? []).concat(['agent-usage-fill'])
+  const cssClasses = props.cssClasses ?? []
 
   const visible$ = sessions$.pipe(
     map(sessions => [...sessions.values()].some(status => !status.isSubagent)),
@@ -400,15 +414,20 @@ export const AgentWidgets = (props: WidgetProps) => {
     ),
   )
 
-  const container = (<box cssClasses={cssClasses} visible={bindAs(visible$, v => v, false)} />) as Gtk.Box
+  const chip = (<box cssClasses={['agent-usage-chip', 'agent-usage-fill']} />) as Gtk.Box
+  const container = (
+    <box cssClasses={cssClasses} visible={bindAs(visible$, v => v, false)}>
+      {chip}
+    </box>
+  ) as Gtk.Box
   const sessionWidgets = new Map<string, Gtk.Widget>()
 
-  subscribeTo(container, attentionMode$, (attentionMode, box) => {
+  subscribeTo(chip, attentionMode$, (attentionMode, box) => {
     box.remove_css_class('agent-attention')
     if (attentionMode === 'prompt') box.add_css_class('agent-attention')
   })
 
-  subscribeTo(container, sessions$, (sessions, box) => {
+  subscribeTo(chip, sessions$, (sessions, box) => {
     for (const [sessionId, status] of sessions) {
       if (status.isSubagent) continue
       if (!sessionWidgets.has(sessionId)) {
@@ -430,7 +449,7 @@ export const AgentWidgets = (props: WidgetProps) => {
     }
   })
 
-  subscribeTo(container, usage$, (usage, box) => {
+  subscribeTo(chip, usage$, (usage, box) => {
     updateUsageFill(usage.fiveHourUsagePct)
     box.tooltipText = usage.fiveHourResetsAt > 0
       ? `5h: ${Math.round(usage.fiveHourUsagePct)}% · 7d: ${Math.round(usage.sevenDayUsagePct)}%`
