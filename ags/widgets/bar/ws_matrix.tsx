@@ -13,7 +13,8 @@ export const WSMatrix = (props: { monitor: Gdk.Monitor } & WidgetProps) => {
     orientation: Gtk.Orientation.VERTICAL,
     allow_mouse_drag: false,
     allow_scroll_wheel: false,
-    hexpand: true,
+    hexpand: false,
+    halign: Gtk.Align.CENTER,
     cssClasses: (props.cssClasses ?? []).concat(['ws-carousel']),
   })
 
@@ -46,7 +47,7 @@ export const WSMatrix = (props: { monitor: Gdk.Monitor } & WidgetProps) => {
     })
   })
 
-  return <overlay>
+  return <overlay hexpand={false} halign={Gtk.Align.CENTER}>
     {carousel}
   </overlay>
 }

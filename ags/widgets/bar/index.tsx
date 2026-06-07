@@ -12,7 +12,6 @@ import {
   WifiIndicator,
 } from './indicators'
 import { BluetoothStatus } from './bt_status'
-import { WindowTitle } from './windowtitle'
 import { ProjectsWidget } from './locus'
 import { AudioVolumeIndicator } from './audio_route'
 import { BzBusWidget } from './bzbus'
@@ -35,7 +34,7 @@ export default (gdkmonitor: Gdk.Monitor) => {
       <centerbox>
         {/** left **/}
         <box $type="start">
-          <ProjectsWidget cssClasses={['barblock']} monitor={gdkmonitor} />
+          <ProjectsWidget monitor={gdkmonitor} />
           {/**  
           <PomodoroWidget cssClasses={['barblock']} />
           **/}
@@ -43,14 +42,12 @@ export default (gdkmonitor: Gdk.Monitor) => {
 
         {/** center **/}
         <box
-          cssClasses={['barblock']}
-          hexpand={true}
-          homogeneous={true}
+          halign={Gtk.Align.CENTER}
           $type="center"
         >
-          <WSMatrix monitor={gdkmonitor} />
-          <WindowTitle />
-          <box />
+          <box cssClasses={['barblock', 'workspace-center-block']} halign={Gtk.Align.CENTER}>
+            <WSMatrix monitor={gdkmonitor} />
+          </box>
         </box>
 
         {/** right **/}

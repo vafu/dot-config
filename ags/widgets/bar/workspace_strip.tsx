@@ -245,8 +245,8 @@ export const WorkspaceStrip = (
     }
 
     const normalizedViewportOffset = viewportOffset / screenWidth
-    const widgetStartOffset = normalizedViewportOffset - scale / 2
-    const widgetEndOffset = normalizedViewportOffset + scale / 2
+    const widgetStartOffset = normalizedViewportOffset - (scale - 1) / 2
+    const widgetEndOffset = widgetStartOffset + scale
 
     let hasContentLeft = false
     let hasContentRight = false
