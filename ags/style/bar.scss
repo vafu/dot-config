@@ -71,15 +71,22 @@ $outline-offset: $label-margin * 0.5;
   $agent-layer: color-mix(in srgb, #{$fg} 5%, #{$bg});
 
   background-color: #{$bg};
-  transition: background-color 180ms;
+  transition: background-color 180ms, outline-color 180ms;
   border-radius: 12px;
+  outline: 1px solid transparent;
+  outline-offset: 0;
   margin-top: 4px;
 
   @include elevation-1;
 
   &.current-workspace {
-    outline: 1px solid color-mix(in srgb, #{$fg} 18%, transparent);
-    outline-offset: 0;
+    outline-color: color-mix(in srgb, #{$fg} 55%, transparent);
+
+    .button-subgroup-main.opened,
+    .button-subgroup,
+    .projects-title {
+      background-color: transparent;
+    }
   }
 
   .projects-collapsed-icon {
