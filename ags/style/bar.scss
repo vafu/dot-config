@@ -401,3 +401,46 @@ levelindicator {
     outline-offset: $outline-offset * 0.5;
   }
 }
+
+.bzbus-widget {
+  min-height: 28px;
+  padding: 0 8px;
+
+  materialicon {
+    margin-right: 4px;
+  }
+
+  .bzbus-status {
+    font-weight: 700;
+  }
+
+  &.idle {
+    opacity: 0.58;
+  }
+
+  &.offline {
+    color: color-mix(in srgb, #{$fg} 60%, #{$bg});
+  }
+
+  &.running materialicon {
+    animation: bzbus-spin 1.2s linear infinite;
+  }
+
+  &.failed {
+    color: color-mix(in srgb, #ff5f57 78%, #{$fg});
+  }
+
+  &.finished {
+    color: color-mix(in srgb, #8bd450 74%, #{$fg});
+  }
+}
+
+@keyframes bzbus-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}

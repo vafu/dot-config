@@ -15,6 +15,7 @@ import { BluetoothStatus } from './bt_status'
 import { WindowTitle } from './windowtitle'
 import { ProjectsWidget } from './locus'
 import { AudioVolumeIndicator } from './audio_route'
+import { BzBusWidget } from './bzbus'
 
 export default (gdkmonitor: Gdk.Monitor) => {
   return (
@@ -54,6 +55,7 @@ export default (gdkmonitor: Gdk.Monitor) => {
 
         {/** right **/}
         <box $type="end">
+          <BzBusWidget cssClasses={['barblock']} />
           <MPRISWidget cssClasses={['barblock']} />
           <SysStats cssClasses={['barblock']} />
           <box cssClasses={['barblock']}>
