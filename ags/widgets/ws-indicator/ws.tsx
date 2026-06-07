@@ -61,7 +61,7 @@ class WSDot extends Gtk.Label {
   }
 
   bindTo(ws: LocusWorkspace) {
-    this.set_text(ws.wsId.toString())
+    this.set_text(ws.externalId.toString())
     this.setClassWatcher(ws.active, 'focused')
     this.setClassWatcher(ws.occupied, 'occupied')
     this.setClassWatcher(ws.urgent, 'urgent')

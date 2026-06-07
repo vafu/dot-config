@@ -19,7 +19,10 @@ open_project() {
 
 
 p() {
-  open_project "$HOME/proj" $1
+  open_project "$HOME/proj" "$1" || return
+  if command -v proj >/dev/null 2>&1; then
+    proj set_current || true
+  fi
 }
 
 c() {
@@ -27,7 +30,7 @@ c() {
 }
 
 pe() {
-  p $1
+  p "$1" || return
   e
 }
 

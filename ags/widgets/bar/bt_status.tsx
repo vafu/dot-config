@@ -229,7 +229,6 @@ export const BluetoothStatus = () => {
           />
         </overlay>
       </button>
-
       <BtDeviceBattery
         matcher={t => t === BluetoothDeviceTypes.INPUT_KEYBOARD}
       />

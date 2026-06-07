@@ -111,16 +111,16 @@ export const AgentWidget = (
   )
 
   const state$ = status$.pipe(map(s => s.state), distinctUntilChanged())
-  const projectIcon$ = locus.resolvedProperty$(
-    agentSessionNode,
-    ['agent-session', 'app-instance', 'workspace', 'project'],
-    'display-icon',
-  ).pipe(
+  const projectIcon$ = locus.agentSessionWorkspaceProjectProperty$(agentSessionNode, 'display-icon').pipe(
     map(icon => icon || 'smart_toy'),
     distinctUntilChanged(),
     shareReplay(1),
   )
-  const projectBranch$ = locus.agentSessionProjectProperty$(agentSessionNode, 'branch').pipe(
+  const projectBranch$ = combineLatest([
+    locus.agentSessionWorkspaceProjectProperty$(agentSessionNode, 'branch'),
+    locus.agentSessionProjectProperty$(agentSessionNode, 'branch'),
+  ]).pipe(
+    map(([workspaceBranch, directBranch]) => workspaceBranch || directBranch),
     map(branch => branch.trim()),
     distinctUntilChanged(),
     shareReplay(1),

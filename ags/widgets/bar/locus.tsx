@@ -41,7 +41,7 @@ type ProjectAggregate = {
 
 type WorkspaceProject = {
   project: string
-  workspaceIndex: number
+  sortIndex: number
 }
 
 const sameArray = (left: string[], right: string[]) =>
@@ -179,11 +179,17 @@ const sessionProjects$ = sessionIds$.pipe(
     if (sessionIds.length === 0) return of(new Map<string, string>())
 
     return combineLatest(
-      sessionIds.map(sessionId =>
-        locus.agentSessionProjectString$(`agent-session:${sessionId}`).pipe(
-          map(project => [sessionId, project] as const),
+      sessionIds.map(sessionId => {
+        const agentSessionNode = `agent-session:${sessionId}`
+        return combineLatest([
+          locus.agentSessionWorkspaceProjectString$(agentSessionNode),
+          locus.agentSessionProjectString$(agentSessionNode),
+        ]).pipe(
+          map(([workspaceProject, directProject]) =>
+            [sessionId, workspaceProject || directProject] as const
+          ),
         )
-      ),
+      }),
     ).pipe(
       map(entries => new Map<string, string>(entries)),
     )
@@ -216,18 +222,18 @@ const workspaceProjects$ = (monitor: Gdk.Monitor) => workspacesOnMonitor$(monito
       workspaces.map(workspace =>
         combineLatest([
           locus.targets$(workspace.subject, 'project'),
-          locus.numberProperty$(workspace.subject, 'index', workspace.wsId),
+          workspace.sortIndex,
         ]).pipe(
-          map(([projects, workspaceIndex]) => ({
+          map(([projects, sortIndex]) => ({
             project: projects[0] ?? '',
-            workspaceIndex: workspaceIndex > 0 ? workspaceIndex : workspace.wsId,
+            sortIndex,
           })),
         ),
       ),
     ).pipe(
       map(projects => projects
         .filter(item => !!item.project)
-        .sort((left, right) => left.workspaceIndex - right.workspaceIndex)),
+        .sort((left, right) => left.sortIndex - right.sortIndex)),
     )
   }),
   map(projects => {
@@ -241,7 +247,7 @@ const workspaceProjects$ = (monitor: Gdk.Monitor) => workspacesOnMonitor$(monito
     left.length === right.length
     && left.every((value, index) =>
       value.project === right[index].project
-      && value.workspaceIndex === right[index].workspaceIndex,
+      && value.sortIndex === right[index].sortIndex,
     ),
   ),
   shareReplay(1),
