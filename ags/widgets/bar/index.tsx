@@ -34,7 +34,7 @@ export default (gdkmonitor: Gdk.Monitor) => {
       <centerbox>
         {/** left **/}
         <box $type="start">
-          <ProjectsWidget cssClasses={['barblock']} monitor={gdkmonitor} />
+          <ProjectsWidget monitor={gdkmonitor} />
           {/**  
           <PomodoroWidget cssClasses={['barblock']} />
           **/}
