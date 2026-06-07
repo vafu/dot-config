@@ -478,12 +478,14 @@ export const ProjectsWidget = (props: WidgetProps & { monitor: Gdk.Monitor }) =>
   const list = (
     <box
       cssClasses={['projects-list']}
+      halign={Gtk.Align.CENTER}
       spacing={4}
     />
   ) as Gtk.Box
   const container = (
     <box
       cssClasses={(props.cssClasses ?? []).concat(['projects-widget'])}
+      halign={Gtk.Align.CENTER}
       visible={bindAs(projectIds, ids => ids.length > 0, false)}
     >
       {list}

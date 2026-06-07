@@ -22,6 +22,10 @@ $outline-offset: $label-margin * 0.5;
 
     @include elevation-1;
   }
+
+  .workspace-center-block {
+    min-width: 0;
+  }
 }
 
 .panel-widget {
@@ -282,8 +286,6 @@ $outline-offset: $label-margin * 0.5;
 
 .ws-carousel {
   color: #{$ws_empty};
-
-  margin: 0 8px;
 
   .selected {
     padding: 1px 0;
