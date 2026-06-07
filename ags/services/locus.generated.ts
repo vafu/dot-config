@@ -90,16 +90,16 @@ export const locusSchema = {
     },
     "window": {
       properties: {
-        "external-id": { required: false },
+        "id": { required: false },
         "source": { required: false },
       },
     },
     "workspace": {
       properties: {
         "active": { required: false },
-        "external-id": { required: false },
         "focused": { required: false },
-        "idx": { required: false },
+        "id": { required: false },
+        "index": { required: false },
         "name": { required: false },
         "source": { required: false },
         "urgent": { required: false },
@@ -205,8 +205,8 @@ export type PropertyKeyByKind = {
   "context": never;
   "output": "connector" | "source";
   "project": "branch" | "display-icon" | "display-main" | "display-secondary" | "icon" | "name" | "notebook_path" | "path" | "subproj" | "task" | "worktree" | "worktree-path";
-  "window": "external-id" | "source";
-  "workspace": "active" | "external-id" | "focused" | "idx" | "name" | "source" | "urgent";
+  "window": "id" | "source";
+  "workspace": "active" | "focused" | "id" | "index" | "name" | "source" | "urgent";
 };
 
 export type PropertyKey = PropertyKeyByKind[NodeKind];

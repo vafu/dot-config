@@ -144,13 +144,13 @@ locus_watch_agent_session_project_name() {
   locus_watch_path_prop "$source" 'name' 'session-project'
 }
 
-locus_agent_session_project_notebook_scope() {
-  locus_agent_session_project_prop "$1" 'notebook_scope'
+locus_agent_session_project_notebook_path() {
+  locus_agent_session_project_prop "$1" 'notebook_path'
 }
 
-locus_watch_agent_session_project_notebook_scope() {
-  local source="${1:?usage: locus_watch_agent_session_project_notebook_scope <source>}"
-  locus_watch_path_prop "$source" 'notebook_scope' 'session-project'
+locus_watch_agent_session_project_notebook_path() {
+  local source="${1:?usage: locus_watch_agent_session_project_notebook_path <source>}"
+  locus_watch_path_prop "$source" 'notebook_path' 'session-project'
 }
 
 locus_agent_session_project_path() {
@@ -245,15 +245,6 @@ locus_watch_agent_session_workspace_active() {
   locus_watch_path_prop "$source" 'active' 'agent-session' 'app-instance' 'workspace'
 }
 
-locus_agent_session_workspace_external_id() {
-  locus_agent_session_workspace_prop "$1" 'external-id'
-}
-
-locus_watch_agent_session_workspace_external_id() {
-  local source="${1:?usage: locus_watch_agent_session_workspace_external_id <source>}"
-  locus_watch_path_prop "$source" 'external-id' 'agent-session' 'app-instance' 'workspace'
-}
-
 locus_agent_session_workspace_focused() {
   locus_agent_session_workspace_prop "$1" 'focused'
 }
@@ -263,13 +254,22 @@ locus_watch_agent_session_workspace_focused() {
   locus_watch_path_prop "$source" 'focused' 'agent-session' 'app-instance' 'workspace'
 }
 
-locus_agent_session_workspace_idx() {
-  locus_agent_session_workspace_prop "$1" 'idx'
+locus_agent_session_workspace_id() {
+  locus_agent_session_workspace_prop "$1" 'id'
 }
 
-locus_watch_agent_session_workspace_idx() {
-  local source="${1:?usage: locus_watch_agent_session_workspace_idx <source>}"
-  locus_watch_path_prop "$source" 'idx' 'agent-session' 'app-instance' 'workspace'
+locus_watch_agent_session_workspace_id() {
+  local source="${1:?usage: locus_watch_agent_session_workspace_id <source>}"
+  locus_watch_path_prop "$source" 'id' 'agent-session' 'app-instance' 'workspace'
+}
+
+locus_agent_session_workspace_index() {
+  locus_agent_session_workspace_prop "$1" 'index'
+}
+
+locus_watch_agent_session_workspace_index() {
+  local source="${1:?usage: locus_watch_agent_session_workspace_index <source>}"
+  locus_watch_path_prop "$source" 'index' 'agent-session' 'app-instance' 'workspace'
 }
 
 locus_agent_session_workspace_name() {
@@ -297,6 +297,152 @@ locus_agent_session_workspace_urgent() {
 locus_watch_agent_session_workspace_urgent() {
   local source="${1:?usage: locus_watch_agent_session_workspace_urgent <source>}"
   locus_watch_path_prop "$source" 'urgent' 'agent-session' 'app-instance' 'workspace'
+}
+
+locus_agent_session_workspace_project() {
+  local source="${1:?usage: locus_agent_session_workspace_project <source>}"
+  "$LOCUSCTL" resolve "$source" 'agent-session' 'app-instance' 'workspace' 'project'
+}
+
+locus_agent_session_workspace_project_all() {
+  local source="${1:?usage: locus_agent_session_workspace_project_all <source>}"
+  "$LOCUSCTL" resolve-all "$source" 'agent-session' 'app-instance' 'workspace' 'project'
+}
+
+locus_agent_session_workspace_project_prop() {
+  local source="${1:?usage: locus_agent_session_workspace_project_prop <source> <key>}"
+  local key="${2:?usage: locus_agent_session_workspace_project_prop <source> <key>}"
+  local subject
+  subject=$("$LOCUSCTL" resolve "$source" 'agent-session' 'app-instance' 'workspace' 'project') || return
+  [ -n "$subject" ] || return 1
+  "$LOCUSCTL" prop get "$subject" "$key"
+}
+
+locus_agent_session_workspace_project_props() {
+  local source="${1:?usage: locus_agent_session_workspace_project_props <source>}"
+  local subject
+  subject=$("$LOCUSCTL" resolve "$source" 'agent-session' 'app-instance' 'workspace' 'project') || return
+  [ -n "$subject" ] || return 1
+  "$LOCUSCTL" prop list "$subject"
+}
+
+locus_watch_agent_session_workspace_project() {
+  local source="${1:?usage: locus_watch_agent_session_workspace_project <source>}"
+  locus_watch_path "$source" 'agent-session' 'app-instance' 'workspace' 'project'
+}
+
+locus_watch_agent_session_workspace_project_prop() {
+  local source="${1:?usage: locus_watch_agent_session_workspace_project_prop <source> <key>}"
+  local key="${2:?usage: locus_watch_agent_session_workspace_project_prop <source> <key>}"
+  locus_watch_path_prop "$source" "$key" 'agent-session' 'app-instance' 'workspace' 'project'
+}
+
+locus_agent_session_workspace_project_branch() {
+  locus_agent_session_workspace_project_prop "$1" 'branch'
+}
+
+locus_watch_agent_session_workspace_project_branch() {
+  local source="${1:?usage: locus_watch_agent_session_workspace_project_branch <source>}"
+  locus_watch_path_prop "$source" 'branch' 'agent-session' 'app-instance' 'workspace' 'project'
+}
+
+locus_agent_session_workspace_project_display_icon() {
+  locus_agent_session_workspace_project_prop "$1" 'display-icon'
+}
+
+locus_watch_agent_session_workspace_project_display_icon() {
+  local source="${1:?usage: locus_watch_agent_session_workspace_project_display_icon <source>}"
+  locus_watch_path_prop "$source" 'display-icon' 'agent-session' 'app-instance' 'workspace' 'project'
+}
+
+locus_agent_session_workspace_project_display_main() {
+  locus_agent_session_workspace_project_prop "$1" 'display-main'
+}
+
+locus_watch_agent_session_workspace_project_display_main() {
+  local source="${1:?usage: locus_watch_agent_session_workspace_project_display_main <source>}"
+  locus_watch_path_prop "$source" 'display-main' 'agent-session' 'app-instance' 'workspace' 'project'
+}
+
+locus_agent_session_workspace_project_display_secondary() {
+  locus_agent_session_workspace_project_prop "$1" 'display-secondary'
+}
+
+locus_watch_agent_session_workspace_project_display_secondary() {
+  local source="${1:?usage: locus_watch_agent_session_workspace_project_display_secondary <source>}"
+  locus_watch_path_prop "$source" 'display-secondary' 'agent-session' 'app-instance' 'workspace' 'project'
+}
+
+locus_agent_session_workspace_project_icon() {
+  locus_agent_session_workspace_project_prop "$1" 'icon'
+}
+
+locus_watch_agent_session_workspace_project_icon() {
+  local source="${1:?usage: locus_watch_agent_session_workspace_project_icon <source>}"
+  locus_watch_path_prop "$source" 'icon' 'agent-session' 'app-instance' 'workspace' 'project'
+}
+
+locus_agent_session_workspace_project_name() {
+  locus_agent_session_workspace_project_prop "$1" 'name'
+}
+
+locus_watch_agent_session_workspace_project_name() {
+  local source="${1:?usage: locus_watch_agent_session_workspace_project_name <source>}"
+  locus_watch_path_prop "$source" 'name' 'agent-session' 'app-instance' 'workspace' 'project'
+}
+
+locus_agent_session_workspace_project_notebook_path() {
+  locus_agent_session_workspace_project_prop "$1" 'notebook_path'
+}
+
+locus_watch_agent_session_workspace_project_notebook_path() {
+  local source="${1:?usage: locus_watch_agent_session_workspace_project_notebook_path <source>}"
+  locus_watch_path_prop "$source" 'notebook_path' 'agent-session' 'app-instance' 'workspace' 'project'
+}
+
+locus_agent_session_workspace_project_path() {
+  locus_agent_session_workspace_project_prop "$1" 'path'
+}
+
+locus_watch_agent_session_workspace_project_path() {
+  local source="${1:?usage: locus_watch_agent_session_workspace_project_path <source>}"
+  locus_watch_path_prop "$source" 'path' 'agent-session' 'app-instance' 'workspace' 'project'
+}
+
+locus_agent_session_workspace_project_subproj() {
+  locus_agent_session_workspace_project_prop "$1" 'subproj'
+}
+
+locus_watch_agent_session_workspace_project_subproj() {
+  local source="${1:?usage: locus_watch_agent_session_workspace_project_subproj <source>}"
+  locus_watch_path_prop "$source" 'subproj' 'agent-session' 'app-instance' 'workspace' 'project'
+}
+
+locus_agent_session_workspace_project_task() {
+  locus_agent_session_workspace_project_prop "$1" 'task'
+}
+
+locus_watch_agent_session_workspace_project_task() {
+  local source="${1:?usage: locus_watch_agent_session_workspace_project_task <source>}"
+  locus_watch_path_prop "$source" 'task' 'agent-session' 'app-instance' 'workspace' 'project'
+}
+
+locus_agent_session_workspace_project_worktree() {
+  locus_agent_session_workspace_project_prop "$1" 'worktree'
+}
+
+locus_watch_agent_session_workspace_project_worktree() {
+  local source="${1:?usage: locus_watch_agent_session_workspace_project_worktree <source>}"
+  locus_watch_path_prop "$source" 'worktree' 'agent-session' 'app-instance' 'workspace' 'project'
+}
+
+locus_agent_session_workspace_project_worktree_path() {
+  locus_agent_session_workspace_project_prop "$1" 'worktree-path'
+}
+
+locus_watch_agent_session_workspace_project_worktree_path() {
+  local source="${1:?usage: locus_watch_agent_session_workspace_project_worktree_path <source>}"
+  locus_watch_path_prop "$source" 'worktree-path' 'agent-session' 'app-instance' 'workspace' 'project'
 }
 
 locus_selected_agent_session() {
@@ -483,12 +629,12 @@ locus_watch_selected_project_name() {
   locus_watch_path_prop 'context:selected' 'name' 'workspace' 'project'
 }
 
-locus_selected_project_notebook_scope() {
-  locus_selected_project_prop 'notebook_scope'
+locus_selected_project_notebook_path() {
+  locus_selected_project_prop 'notebook_path'
 }
 
-locus_watch_selected_project_notebook_scope() {
-  locus_watch_path_prop 'context:selected' 'notebook_scope' 'workspace' 'project'
+locus_watch_selected_project_notebook_path() {
+  locus_watch_path_prop 'context:selected' 'notebook_path' 'workspace' 'project'
 }
 
 locus_selected_project_path() {
@@ -563,12 +709,12 @@ locus_watch_selected_window_prop() {
   locus_watch_path_prop 'context:selected' "$key" 'window'
 }
 
-locus_selected_window_external_id() {
-  locus_selected_window_prop 'external-id'
+locus_selected_window_id() {
+  locus_selected_window_prop 'id'
 }
 
-locus_watch_selected_window_external_id() {
-  locus_watch_path_prop 'context:selected' 'external-id' 'window'
+locus_watch_selected_window_id() {
+  locus_watch_path_prop 'context:selected' 'id' 'window'
 }
 
 locus_selected_window_source() {
@@ -619,14 +765,6 @@ locus_watch_selected_workspace_active() {
   locus_watch_path_prop 'context:selected' 'active' 'workspace'
 }
 
-locus_selected_workspace_external_id() {
-  locus_selected_workspace_prop 'external-id'
-}
-
-locus_watch_selected_workspace_external_id() {
-  locus_watch_path_prop 'context:selected' 'external-id' 'workspace'
-}
-
 locus_selected_workspace_focused() {
   locus_selected_workspace_prop 'focused'
 }
@@ -635,12 +773,20 @@ locus_watch_selected_workspace_focused() {
   locus_watch_path_prop 'context:selected' 'focused' 'workspace'
 }
 
-locus_selected_workspace_idx() {
-  locus_selected_workspace_prop 'idx'
+locus_selected_workspace_id() {
+  locus_selected_workspace_prop 'id'
 }
 
-locus_watch_selected_workspace_idx() {
-  locus_watch_path_prop 'context:selected' 'idx' 'workspace'
+locus_watch_selected_workspace_id() {
+  locus_watch_path_prop 'context:selected' 'id' 'workspace'
+}
+
+locus_selected_workspace_index() {
+  locus_selected_workspace_prop 'index'
+}
+
+locus_watch_selected_workspace_index() {
+  locus_watch_path_prop 'context:selected' 'index' 'workspace'
 }
 
 locus_selected_workspace_name() {

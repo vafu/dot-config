@@ -7,7 +7,9 @@ usage() {
   cat >&2 <<'EOF'
 Usage:
   proj init [--force] [path]
-  proj publish [path]
+  proj set_current [path]
+  proj update [path]
+  proj publish [path] (compat)
   proj clear [workspace]
   proj root [path]
   proj metadata <key> [path]
@@ -269,12 +271,9 @@ cmd_init() {
   printf '%s\n' "$file"
 }
 
-cmd_publish() {
-  local root workspace subject file name key value branch worktree_path worktree branch_description scope_tag scope saw_notebook_scope project_icon project_publish_icon
+cmd_project_mutations() {
+  local root="$1" subject file name key value branch worktree_path worktree branch_description scope_tag scope saw_notebook_scope project_icon project_publish_icon
   local -a mutations
-  root="$(project_root_for_path "${1:-$PWD}")" || return 0
-  workspace="$(selected_workspace || true)"
-  [[ "$workspace" == workspace:* ]] || return 0
 
   subject="project:$root"
   file="$(metadata_file "$root")"
@@ -333,8 +332,29 @@ cmd_publish() {
   else
     mutations+=("remove-property"$'\t'"$subject"$'\t'"branch-description"$'\t')
   fi
-  mutations+=("set-link"$'\t'"$workspace"$'\t'"project"$'\t'"$subject")
-  printf '%s\n' "${mutations[@]}" | locusctl apply >/dev/null
+  printf "%s\n" "${mutations[@]}"
+}
+
+cmd_update() {
+  local root
+  root="$(project_root_for_path "${1:-$PWD}")" || return 0
+  cmd_project_mutations "$root" | locusctl apply >/dev/null
+}
+
+cmd_set_current() {
+  local root workspace
+  root="$(project_root_for_path "${1:-$PWD}")" || return 0
+  workspace="$(selected_workspace || true)"
+  [[ "$workspace" == workspace:* ]] || return 0
+
+  {
+    cmd_project_mutations "$root"
+    printf "%s\t%s\t%s\t%s\n" set-link "$workspace" project "project:$root"
+  } | locusctl apply >/dev/null
+}
+
+cmd_publish() {
+  cmd_set_current "$@"
 }
 
 cmd_clear() {
@@ -365,6 +385,14 @@ case "${1:-}" in
   init)
     shift
     cmd_init "$@"
+    ;;
+  set_current|set-current)
+    shift
+    cmd_set_current "$@"
+    ;;
+  update)
+    shift
+    cmd_update "$@"
     ;;
   publish)
     shift

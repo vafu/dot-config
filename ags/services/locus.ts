@@ -76,7 +76,7 @@ export function workspaceSubject(subjectOrId: string | number) {
   return `workspace:${subjectOrId}`
 }
 
-export function workspaceId(subject: string) {
+export function workspaceExternalId(subject: string) {
   const identity = subject.replace(/^workspace:/, '')
   return Number(identity.split('/').at(-1)) || 0
 }
@@ -150,8 +150,9 @@ export class LocusWorkspace extends GObject.Object {
     GObject.registerClass(this)
   }
 
-  wsId: number
+  externalId: number
   subject: string
+  sortIndex: Observable<number>
   name: Observable<string>
   tabs: Observable<LocusTab[]>
   selectedTab: Observable<LocusTab>
@@ -164,7 +165,12 @@ export class LocusWorkspace extends GObject.Object {
     super()
     const subject = workspaceSubject(subjectOrId)
     this.subject = subject
-    this.wsId = workspaceId(subject)
+    this.externalId = workspaceExternalId(subject)
+    this.sortIndex = locus.numberProperty$(subject, 'index', this.externalId).pipe(
+      map(index => index > 0 ? index : this.externalId),
+      distinctUntilChanged(),
+      shareReplay(1),
+    )
 
     this.name = locus.property$(subject, 'name').pipe(shareReplay(1))
     this.active = locus.selectedWorkspaceString$().pipe(
@@ -339,13 +345,28 @@ export const activeMonitor$ = locus.selectedOutputProperty$('connector').pipe(
 )
 
 export const activeWorkspace$ = locus.selectedWorkspaceString$().pipe(
-  filter(subject => workspaceId(subject) > 0),
+  filter(subject => workspaceExternalId(subject) > 0),
   map(workspace$),
   shareReplay(1),
 )
 
 export const workspacesOnMonitor$ = (monitor: Gdk.Monitor) => locus.sources$(`output:${monitor.connector}`, 'output').pipe(
-  map(subjects => subjects.filter(subject => subject.startsWith('workspace:')).sort((left, right) => workspaceId(left) - workspaceId(right))),
+  map(subjects => subjects.filter(subject => subject.startsWith('workspace:'))),
+  switchMap(subjects => {
+    if (subjects.length === 0) return of([] as string[])
+    return combineLatest(subjects.map(subject =>
+      workspace$(subject).sortIndex.pipe(
+        map(sortIndex => ({
+          subject,
+          sortIndex,
+        })),
+      ),
+    )).pipe(
+      map(items => items
+        .sort((left, right) => left.sortIndex - right.sortIndex || workspaceExternalId(left.subject) - workspaceExternalId(right.subject))
+        .map(item => item.subject)),
+    )
+  }),
   distinctUntilChanged(sameArray),
   map(subjects => subjects.map(workspace$)),
   shareReplay(1),
@@ -358,7 +379,7 @@ export const activeWorkspaceForMonitor$ = (monitor: Gdk.Monitor) => combineLates
   map(([selected, monitorWorkspaces]) => {
     return monitorWorkspaces.find(workspace => workspace.subject === selected) ?? workspace$(selected)
   }),
-  filter(workspace => workspace.wsId > 0),
+  filter(workspace => workspace.externalId > 0),
   distinctUntilChanged(),
   shareReplay(1),
 )

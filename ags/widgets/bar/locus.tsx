@@ -41,7 +41,7 @@ type ProjectAggregate = {
 
 type WorkspaceProject = {
   project: string
-  workspaceIndex: number
+  sortIndex: number
 }
 
 const sameArray = (left: string[], right: string[]) =>
@@ -222,18 +222,18 @@ const workspaceProjects$ = (monitor: Gdk.Monitor) => workspacesOnMonitor$(monito
       workspaces.map(workspace =>
         combineLatest([
           locus.targets$(workspace.subject, 'project'),
-          locus.numberProperty$(workspace.subject, 'index', workspace.wsId),
+          workspace.sortIndex,
         ]).pipe(
-          map(([projects, workspaceIndex]) => ({
+          map(([projects, sortIndex]) => ({
             project: projects[0] ?? '',
-            workspaceIndex: workspaceIndex > 0 ? workspaceIndex : workspace.wsId,
+            sortIndex,
           })),
         ),
       ),
     ).pipe(
       map(projects => projects
         .filter(item => !!item.project)
-        .sort((left, right) => left.workspaceIndex - right.workspaceIndex)),
+        .sort((left, right) => left.sortIndex - right.sortIndex)),
     )
   }),
   map(projects => {
@@ -247,7 +247,7 @@ const workspaceProjects$ = (monitor: Gdk.Monitor) => workspacesOnMonitor$(monito
     left.length === right.length
     && left.every((value, index) =>
       value.project === right[index].project
-      && value.workspaceIndex === right[index].workspaceIndex,
+      && value.sortIndex === right[index].sortIndex,
     ),
   ),
   shareReplay(1),
