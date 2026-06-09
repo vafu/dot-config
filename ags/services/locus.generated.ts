@@ -253,7 +253,17 @@ export type LinkSetSignal = { type: 'link-set'; source: NodeId; relation: Relati
 export type PropertyChangedSignal = { type: 'property-changed'; subject: NodeId; key: PropertyKey; value: string };
 export type PropertyRemovedSignal = { type: 'property-removed'; subject: NodeId; key: PropertyKey };
 export type ResolveChangedSignal = { type: 'resolve-changed'; source: NodeId; path: Relation[]; target: OptionalNodeId };
+export type ResolveAllChangedSignal = { type: 'resolve-all-changed'; source: NodeId; path: Relation[]; commands: NodeListDiffCommand[] };
+export type SourcesChangedSignal = { type: 'sources-changed'; target: NodeId; relation: Relation; commands: NodeListDiffCommand[] };
+export type TargetsChangedSignal = { type: 'targets-changed'; source: NodeId; relation: Relation; commands: NodeListDiffCommand[] };
+export type FindSubjectsChangedSignal = { type: 'find-subjects-changed'; key: PropertyKey; value: string; commands: NodeListDiffCommand[] };
 export type WatchPropertiesUpdatedSignal = { type: 'watch-properties-updated'; changed: Record<string, string>; removed: string[] };
+export type NodeListDiffCommand =
+  | { type: 'reset'; nodes: NodeId[] }
+  | { type: 'node-added'; node: NodeId; index: number }
+  | { type: 'node-removed'; node: NodeId; index: number };
+
+type NodeListDiffCommandTuple = [string, NodeId, number, NodeId[]];
 
 const BUS_NAME = 'io.github.Locus';
 const ROOT_PATH = '/io/github/Locus';
@@ -274,6 +284,20 @@ function unpackVariant(value: any): any {
 
 export function samePath(left: readonly string[], right: readonly string[]): boolean {
   return left.length === right.length && left.every((part, index) => part === right[index]);
+}
+
+function nodeListCommands(commands: NodeListDiffCommandTuple[]): NodeListDiffCommand[] {
+  return commands.map(([type, node, index, nodes]) => {
+    switch (type) {
+      case 'reset':
+        return { type, nodes };
+      case 'node-added':
+      case 'node-removed':
+        return { type, node, index };
+      default:
+        throw new Error(`unknown node-list diff command: ${type}`);
+    }
+  });
 }
 
 export function path(name: NamedPath): { from: NodeId; path: Relation[]; many: boolean } {
@@ -378,6 +402,10 @@ export class LocusDbusClient {
     return this.callRead('FindSubjects', new GLib.Variant('(ss)', [key, value]), '(as)', ([subjects]) => subjects as NodeId[]);
   }
 
+  subscribeFindSubjects(key: PropertyKey, value: string): Promise<NodeListDiffCommand[]> {
+    return this.callRead('SubscribeFindSubjects', new GLib.Variant('(ss)', [key, value]), '(a(ssuas))', ([commands]) => nodeListCommands(commands as NodeListDiffCommandTuple[]));
+  }
+
   async resolve(source: NodeId, relations: Relation[]): Promise<OptionalNodeId> {
     return none(await this.callResolve('Resolve', new GLib.Variant('(sas)', [source, relations]), '(s)', ([target]) => target as string));
   }
@@ -396,6 +424,15 @@ export class LocusDbusClient {
     return this.resolveAll(source ?? spec.from, spec.path);
   }
 
+  subscribeResolveAll(source: NodeId, relations: Relation[]): Promise<NodeListDiffCommand[]> {
+    return this.callResolve('SubscribeResolveAll', new GLib.Variant('(sas)', [source, relations]), '(a(ssuas))', ([commands]) => nodeListCommands(commands as NodeListDiffCommandTuple[]));
+  }
+
+  subscribeResolveAllPath(name: NamedPath, source?: NodeId): Promise<NodeListDiffCommand[]> {
+    const spec = path(name);
+    return this.subscribeResolveAll(source ?? spec.from, spec.path);
+  }
+
   async subscribeResolve(source: NodeId, relations: Relation[]): Promise<OptionalNodeId> {
     return none(await this.callResolve('SubscribeResolve', new GLib.Variant('(sas)', [source, relations]), '(s)', ([target]) => target as string));
   }
@@ -403,6 +440,14 @@ export class LocusDbusClient {
   subscribePath(name: NamedPath, source?: NodeId): Promise<OptionalNodeId> {
     const spec = path(name);
     return this.subscribeResolve(source ?? spec.from, spec.path);
+  }
+
+  subscribeSources(target: NodeId, relation: Relation): Promise<NodeListDiffCommand[]> {
+    return this.callRead('SubscribeSources', new GLib.Variant('(ss)', [target, relation]), '(a(ssuas))', ([commands]) => nodeListCommands(commands as NodeListDiffCommandTuple[]));
+  }
+
+  subscribeTargets(source: NodeId, relation: Relation): Promise<NodeListDiffCommand[]> {
+    return this.callRead('SubscribeTargets', new GLib.Variant('(ss)', [source, relation]), '(a(ssuas))', ([commands]) => nodeListCommands(commands as NodeListDiffCommandTuple[]));
   }
 
   async watchNode(source: NodeId, relations: Relation[]): Promise<LocusWatch> {
@@ -454,6 +499,34 @@ export class LocusDbusClient {
     return this.subscribeSignal(GRAPH_RESOLVE_IFACE, 'ResolveChanged', null, source ?? null, params => {
       const [changedSource, changedPath, target] = params.deepUnpack() as [NodeId, Relation[], string];
       handler({ type: 'resolve-changed', source: changedSource, path: changedPath, target: none(target) });
+    });
+  }
+
+  onResolveAllChanged(handler: (signal: ResolveAllChangedSignal) => void, source?: NodeId): Unsubscribe {
+    return this.subscribeSignal(GRAPH_RESOLVE_IFACE, 'ResolveAllChanged', null, source ?? null, params => {
+      const [changedSource, changedPath, commands] = params.deepUnpack() as [NodeId, Relation[], NodeListDiffCommandTuple[]];
+      handler({ type: 'resolve-all-changed', source: changedSource, path: changedPath, commands: nodeListCommands(commands) });
+    });
+  }
+
+  onSourcesChanged(handler: (signal: SourcesChangedSignal) => void, target?: NodeId): Unsubscribe {
+    return this.subscribeSignal(GRAPH_READ_IFACE, 'SourcesChanged', null, target ?? null, params => {
+      const [changedTarget, relation, commands] = params.deepUnpack() as [NodeId, Relation, NodeListDiffCommandTuple[]];
+      handler({ type: 'sources-changed', target: changedTarget, relation, commands: nodeListCommands(commands) });
+    });
+  }
+
+  onTargetsChanged(handler: (signal: TargetsChangedSignal) => void, source?: NodeId): Unsubscribe {
+    return this.subscribeSignal(GRAPH_READ_IFACE, 'TargetsChanged', null, source ?? null, params => {
+      const [changedSource, relation, commands] = params.deepUnpack() as [NodeId, Relation, NodeListDiffCommandTuple[]];
+      handler({ type: 'targets-changed', source: changedSource, relation, commands: nodeListCommands(commands) });
+    });
+  }
+
+  onFindSubjectsChanged(handler: (signal: FindSubjectsChangedSignal) => void, key?: PropertyKey): Unsubscribe {
+    return this.subscribeSignal(GRAPH_READ_IFACE, 'FindSubjectsChanged', null, key ?? null, params => {
+      const [changedKey, value, commands] = params.deepUnpack() as [PropertyKey, string, NodeListDiffCommandTuple[]];
+      handler({ type: 'find-subjects-changed', key: changedKey, value, commands: nodeListCommands(commands) });
     });
   }
 
@@ -678,6 +751,21 @@ export class LocusObservableAdapterBase {
     return cached;
   }
 
+  pathAllDiff$(name: NamedPath, source?: NodeId): Observable<NodeListDiffCommand[]> {
+    const spec = path(name);
+    const resolvedSource = source ?? spec.from;
+    return new Observable<NodeListDiffCommand[]>(subscriber => {
+      this.client.subscribeResolveAll(resolvedSource, spec.path)
+        .then(commands => subscriber.next(commands))
+        .catch(error => subscriber.error(error));
+      return this.client.onResolveAllChanged(signal => {
+        if (signal.source === resolvedSource && samePath(signal.path, spec.path)) {
+          subscriber.next(signal.commands);
+        }
+      }, resolvedSource);
+    });
+  }
+
   pathString$(name: NamedPath, source?: NodeId): Observable<string> {
     return this.path$(name, source).pipe(
       map(present),
@@ -809,6 +897,17 @@ export class LocusObservableAdapterBase {
     return cached;
   }
 
+  findSubjectsDiff$(key: string, value: string): Observable<NodeListDiffCommand[]> {
+    return new Observable<NodeListDiffCommand[]>(subscriber => {
+      this.client.subscribeFindSubjects(key as PropertyKey, value)
+        .then(commands => subscriber.next(commands))
+        .catch(error => subscriber.error(error));
+      return this.client.onFindSubjectsChanged(signal => {
+        if (signal.key === key && signal.value === value) subscriber.next(signal.commands);
+      }, key as PropertyKey);
+    });
+  }
+
   pathProperties$(name: NamedPath, source?: NodeId): Observable<Record<string, string>> {
     const spec = path(name);
     const resolvedSource = source ?? spec.from;
@@ -885,6 +984,17 @@ export class LocusObservableAdapterBase {
     return cached;
   }
 
+  sourcesDiff$(target: NodeId, relation: string): Observable<NodeListDiffCommand[]> {
+    return new Observable<NodeListDiffCommand[]>(subscriber => {
+      this.client.subscribeSources(target, relation as Relation)
+        .then(commands => subscriber.next(commands))
+        .catch(error => subscriber.error(error));
+      return this.client.onSourcesChanged(signal => {
+        if (signal.target === target && signal.relation === relation) subscriber.next(signal.commands);
+      }, target);
+    });
+  }
+
   targets$(source: NodeId, relation: string): Observable<NodeId[]> {
     const key = cacheKey(['targets', source, relation]);
     let cached = this.targetsCache.get(key);
@@ -919,6 +1029,17 @@ export class LocusObservableAdapterBase {
       this.targetsCache.set(key, cached);
     }
     return cached;
+  }
+
+  targetsDiff$(source: NodeId, relation: string): Observable<NodeListDiffCommand[]> {
+    return new Observable<NodeListDiffCommand[]>(subscriber => {
+      this.client.subscribeTargets(source, relation as Relation)
+        .then(commands => subscriber.next(commands))
+        .catch(error => subscriber.error(error));
+      return this.client.onTargetsChanged(signal => {
+        if (signal.source === source && signal.relation === relation) subscriber.next(signal.commands);
+      }, source);
+    });
   }
 }
 export class LocusObservableAdapter extends LocusObservableAdapterBase {

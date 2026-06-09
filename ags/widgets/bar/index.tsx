@@ -1,7 +1,6 @@
 import { Astal, Gdk, Gtk } from 'ags/gtk4'
 import { MPRISWidget } from './mpris'
 import { PomodoroWidget } from './pomodoro'
-import { WSMatrix } from './ws_matrix'
 import { Tray } from './tray'
 import {
   SysStats,
@@ -12,8 +11,9 @@ import {
   WifiIndicator,
 } from './indicators'
 import { BluetoothStatus } from './bt_status'
-import { ProjectsWidget } from './locus'
+import { WorkspacesWidget } from './locus'
 import { AudioVolumeIndicator } from './audio_route'
+import { WorkspaceWindowIndicators } from './window_indicators'
 import { BzBusWidget } from './bzbus'
 
 export default (gdkmonitor: Gdk.Monitor) => {
@@ -34,7 +34,7 @@ export default (gdkmonitor: Gdk.Monitor) => {
       <centerbox>
         {/** left **/}
         <box $type="start">
-          <ProjectsWidget monitor={gdkmonitor} />
+          <WorkspacesWidget monitor={gdkmonitor} />
           {/**  
           <PomodoroWidget cssClasses={['barblock']} />
           **/}
@@ -47,9 +47,7 @@ export default (gdkmonitor: Gdk.Monitor) => {
           halign={Gtk.Align.CENTER}
           $type="center"
         >
-          <box cssClasses={['barblock', 'workspace-center-block']} halign={Gtk.Align.CENTER}>
-            <WSMatrix monitor={gdkmonitor} />
-          </box>
+          <WorkspaceWindowIndicators monitor={gdkmonitor} />
         </box>
 
         {/** right **/}

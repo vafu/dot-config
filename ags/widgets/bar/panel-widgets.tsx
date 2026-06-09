@@ -3,7 +3,7 @@ import { Gtk } from 'ags/gtk4'
 import { MaterialIcon } from 'widgets/materialicon'
 import { LevelIndicator, RenderStyle } from 'widgets/circularstatus'
 import { BehaviorSubject, combineLatest, map, Observable, of, tap } from 'rxjs'
-import { binding, fromConnectable } from 'rxbinding'
+import { binding, fromConnectable, subscribeTo } from 'rxbinding'
 import { WidgetProps } from 'widgets'
 import GObject from 'gnim/gobject'
 
@@ -119,6 +119,77 @@ export const PanelButtonGroup = (props: PanelButtonGroupProps) => {
       {expandDirection === 'right' ? group : main}
     </box>
   )
+}
+
+type MaybeObservable<T> = T | Observable<T>
+
+type BadgeProps = {
+  label: MaybeObservable<string>
+  visible?: MaybeObservable<boolean>
+  cssClasses?: MaybeObservable<string[]>
+  halign?: Gtk.Align
+  valign?: Gtk.Align
+}
+
+type BadgedProps = WidgetProps & {
+  child: Gtk.Widget
+  badges: BadgeProps[]
+}
+
+function isObservable<T>(value: MaybeObservable<T> | undefined): value is Observable<T> {
+  return !!value && typeof (value as Observable<T>).subscribe === 'function'
+}
+
+function applyValue<T>(
+  widget: Gtk.Widget,
+  value: MaybeObservable<T> | undefined,
+  fallback: T,
+  apply: (value: T) => void,
+) {
+  if (isObservable(value)) {
+    subscribeTo(widget, value, apply)
+    return
+  }
+  apply(value ?? fallback)
+}
+
+function syncStyleClasses(widget: Gtk.Widget, previous: Set<string>, next: string[]) {
+  for (const cssClass of previous) {
+    widget.remove_css_class(cssClass)
+  }
+
+  previous.clear()
+  for (const cssClass of next) {
+    widget.add_css_class(cssClass)
+    previous.add(cssClass)
+  }
+}
+
+export const Badged = (props: BadgedProps) => {
+  const overlay = new Gtk.Overlay({
+    cssClasses: (props.cssClasses ?? []).concat(['barblock-badge-layer']),
+  })
+  overlay.set_child(props.child)
+
+  for (const badgeProps of props.badges) {
+    const badge = new Gtk.Label({
+      halign: badgeProps.halign ?? Gtk.Align.END,
+      valign: badgeProps.valign ?? Gtk.Align.START,
+    })
+    badge.add_css_class('barblock-badge')
+
+    applyValue(badge, badgeProps.label, '', label => badge.set_label(label))
+    applyValue(badge, badgeProps.visible, true, visible => badge.set_visible(visible))
+
+    const dynamicClasses = new Set<string>()
+    applyValue(badge, badgeProps.cssClasses, [], cssClasses => {
+      syncStyleClasses(badge, dynamicClasses, cssClasses)
+    })
+
+    overlay.add_overlay(badge)
+  }
+
+  return overlay
 }
 
 const STYLE: Partial<RenderStyle> = {
