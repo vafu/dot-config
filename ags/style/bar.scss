@@ -28,6 +28,50 @@ $outline-offset: $label-margin * 0.5;
   }
 }
 
+.workspace-window-indicators {
+  min-height: 32px;
+}
+
+.workspace-window-list {
+  min-height: 32px;
+}
+
+.workspace-window-tile {
+  min-height: 28px;
+  border-radius: 12px;
+  padding: 0 8px;
+  margin-top: 4px;
+  background-color: #{$bg};
+  opacity: 1;
+  transition:
+    background-color 160ms,
+    opacity 160ms,
+    outline-color 160ms;
+
+  @include elevation-1;
+
+  image {
+    -gtk-icon-size: 18px;
+  }
+
+  &:not(.active):not(.urgent) {
+    opacity: 0.74;
+  }
+
+  &.active {
+    background-color: color-mix(in srgb, #{$ws_active} 24%, #{$bg});
+    outline: 1px solid color-mix(in srgb, #{$ws_active} 72%, #{$fg});
+    outline-offset: 0;
+    opacity: 1;
+  }
+
+  &.urgent {
+    background-color: color-mix(in srgb, #{$sys_danger} 20%, #{$bg});
+    outline: 1px solid color-mix(in srgb, #{$sys_danger} 55%, transparent);
+    opacity: 1;
+  }
+}
+
 .panel-widget {
   margin: 0 4px;
 }

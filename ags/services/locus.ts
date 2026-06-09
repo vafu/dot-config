@@ -7,6 +7,7 @@ import { locus } from './locus.generated'
 
 export interface LocusTab {
   workspace: LocusWorkspace
+  subject: string
   title: Observable<string>
   icon: Observable<string>
   width: Observable<number>
@@ -248,6 +249,7 @@ export class LocusWorkspace extends GObject.Object {
               ...tile,
               tab: {
                 workspace: this,
+                subject: tile.window,
                 title: of(''),
                 icon: windowIcon$(tile.window),
                 width: of(widthValue),
