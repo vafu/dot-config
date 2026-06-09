@@ -180,15 +180,22 @@ $outline-offset: $label-margin * 0.5;
   $agent-layer: color-mix(in srgb, #{$fg} 5%, #{$bg});
 
   background-color: #{$bg};
-  transition: background-color 180ms;
+  transition: background-color 180ms, outline-color 180ms;
   border-radius: 12px;
+  outline: 1px solid transparent;
+  outline-offset: 0;
   margin-top: 4px;
 
   @include elevation-1;
 
   &.current-workspace {
-    outline: 1px solid color-mix(in srgb, #{$fg} 18%, transparent);
-    outline-offset: 0;
+    outline-color: color-mix(in srgb, #{$fg} 55%, transparent);
+
+    .button-subgroup-main.opened,
+    .button-subgroup,
+    .projects-title {
+      background-color: transparent;
+    }
   }
 
   .projects-collapsed-icon {
@@ -514,5 +521,48 @@ levelindicator {
     background-color: #{$ws_urgent};
     outline: $outline-width * 0.5 solid #{$ws_urgent};
     outline-offset: $outline-offset * 0.5;
+  }
+}
+
+.bzbus-widget {
+  min-height: 28px;
+  padding: 0 8px;
+
+  materialicon {
+    margin-right: 4px;
+  }
+
+  .bzbus-status {
+    font-weight: 700;
+  }
+
+  &.idle {
+    opacity: 0.58;
+  }
+
+  &.offline {
+    color: color-mix(in srgb, #{$fg} 60%, #{$bg});
+  }
+
+  &.running materialicon {
+    animation: bzbus-spin 1.2s linear infinite;
+  }
+
+  &.failed {
+    color: color-mix(in srgb, #ff5f57 78%, #{$fg});
+  }
+
+  &.finished {
+    color: color-mix(in srgb, #8bd450 74%, #{$fg});
+  }
+}
+
+@keyframes bzbus-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
   }
 }

@@ -7,6 +7,8 @@
 }:
 
 {
+  fonts.fontconfig.enable = true;
+
   home = {
     inherit username;
 
@@ -39,6 +41,7 @@
       loupe
       nautilus
       neovim
+      nerd-fonts._0xproto
       nerd-fonts.fira-code
       ninja
       nodejs
@@ -78,6 +81,7 @@
     sessionVariables = {
       ELECTRON_OZONE_PLATFORM_HINT = "auto";
       NIXOS_OZONE_WL = "1";
+      XCURSOR_PATH = "${config.home.homeDirectory}/.icons:${config.home.homeDirectory}/.local/share/icons:/usr/share/icons";
     };
   };
 
