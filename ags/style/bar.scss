@@ -40,6 +40,7 @@ $outline-offset: $label-margin * 0.5;
 .workspace-window-frame {
   border-radius: 12px;
   margin-top: 4px;
+  background-color: #{$bg};
 }
 
 .workspace-window-frame.workspace-window-agent {
@@ -79,7 +80,7 @@ $outline-offset: $label-margin * 0.5;
   }
 
   &.active {
-    background-color: color-mix(in srgb, #{$ws_active} 24%, #{$bg});
+    background-color: #{$bg};
     outline: 1px solid color-mix(in srgb, #{$ws_active} 72%, #{$fg});
     outline-offset: 0;
     opacity: 1;

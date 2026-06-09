@@ -92,7 +92,15 @@ type Aggregate = {
   hasComplete: boolean
 }
 
+type AgentWindowData = {
+  sessionId: string
+  status?: AgentStatus
+  substatusCount: number
+  projectIcon: string
+}
+
 const providers = new Map<string, WorkspaceStatusProvider>()
+const agentWindowDataStreams = new Map<string, Observable<AgentWindowData | null>>()
 const { sessions$ } = getAgentService()
 
 const sameArray = (left: string[], right: string[]) =>
@@ -248,42 +256,50 @@ function workspaceIdsForOutput$(connector: string) {
   )
 }
 
+function agentWindowData$(windowSubject: string): Observable<AgentWindowData | null> {
+  let stream = agentWindowDataStreams.get(windowSubject)
+  if (!stream) {
+    stream = locus.windowAgentSessionString$(windowSubject).pipe(
+      startWith(''),
+      distinctUntilChanged(),
+      switchMap(agentNode => {
+        if (!agentNode) return of(null)
+
+        const sessionId = agentNode.replace(/^agent-session:/, '')
+        return combineLatest([
+          sessions$,
+          locus.targets$(agentNode, 'subagent-session').pipe(
+            map(children => children.length),
+            startWith(0),
+          ),
+          locus.agentSessionWorkspaceProjectProperty$(agentNode, 'display-icon').pipe(startWith('')),
+        ]).pipe(
+          map(([sessions, substatusCount, projectIcon]) => ({
+            sessionId,
+            status: sessions.get(sessionId),
+            substatusCount,
+            projectIcon,
+          })),
+        )
+      }),
+      shareReplay({ bufferSize: 1, refCount: false }),
+    )
+    agentWindowDataStreams.set(windowSubject, stream)
+  }
+  return stream
+}
+
 function workspaceWindows$(workspaceId: string): Observable<WorkspaceWindowIndicatorModel[]> {
   return workspace$(workspaceId).tabs.pipe(
     switchMap(tabs => {
       if (tabs.length === 0) return of([] as WorkspaceWindowIndicatorModel[])
 
       return combineLatest(tabs.map(tab => {
-        const agentData$ = locus.windowAgentSessionString$(tab.subject).pipe(
-          startWith(''),
-          distinctUntilChanged(),
-          switchMap(agentNode => {
-            if (!agentNode) return of(null)
-
-            const sessionId = agentNode.replace(/^agent-session:/, '')
-            return combineLatest([
-              sessions$,
-              locus.targets$(agentNode, 'subagent-session').pipe(
-                map(children => children.length),
-                startWith(0),
-              ),
-              locus.agentSessionWorkspaceProjectProperty$(agentNode, 'display-icon').pipe(startWith('')),
-            ]).pipe(
-              map(([sessions, substatusCount, projectIcon]) => ({
-                sessionId,
-                status: sessions.get(sessionId),
-                substatusCount,
-                projectIcon,
-              })),
-            )
-          }),
-        )
-
         return combineLatest([
           tab.icon.pipe(startWith('')),
           tab.isActive.pipe(startWith(false)),
           locus.booleanProperty$(tab.subject, 'urgent').pipe(startWith(false)),
-          agentData$,
+          agentWindowData$(tab.subject),
         ]).pipe(
           map(([icon, active, urgent, agentData]) => {
             const base = {

@@ -1,6 +1,6 @@
 import Gio from 'gi://Gio?version=2.0'
 import { Gdk, Gtk } from 'ags/gtk4'
-import { map } from 'rxjs'
+import { distinctUntilChanged, map } from 'rxjs'
 import { subscribeTo } from 'rxbinding'
 import {
   WorkspaceModel,
@@ -54,6 +54,14 @@ const sameRenderedWindow = (
       left.contextPct === right.contextPct
       && left.substatusCount === right.substatusCount
     ))
+
+const sameRenderedWorkspace = (left: WorkspaceModel | null, right: WorkspaceModel | null) =>
+  left?.key === right?.key
+  && (left?.windows.length ?? 0) === (right?.windows.length ?? 0)
+  && (left?.windows ?? []).every((window, index) => {
+    const other = right?.windows[index]
+    return !!other && sameRenderedWindow(window, other)
+  })
 
 const setImageIcon = (image: Gtk.Image, icon: string) => {
   if (!icon) {
@@ -115,6 +123,13 @@ const WindowTile = (initial: WorkspaceWindowIndicatorModel) => {
   content.append(plainImage)
   content.append(agentInner)
 
+  const surface = new Gtk.Box({
+    halign: Gtk.Align.CENTER,
+    valign: Gtk.Align.CENTER,
+    cssClasses: [],
+  })
+  surface.append(content)
+
   const agentBadge = new Gtk.Label({
     visible: false,
     halign: Gtk.Align.END,
@@ -128,7 +143,7 @@ const WindowTile = (initial: WorkspaceWindowIndicatorModel) => {
     valign: Gtk.Align.CENTER,
     cssClasses: [],
   })
-  widget.set_child(content)
+  widget.set_child(surface)
   widget.add_overlay(agentBadge)
 
   let currentModel: WorkspaceWindowIndicatorModel | null = null
@@ -146,7 +161,7 @@ const WindowTile = (initial: WorkspaceWindowIndicatorModel) => {
     if (currentModel && sameRenderedWindow(currentModel, model)) return
 
     currentFrameClasses = syncClasses(widget, currentFrameClasses, frameClasses(model))
-    currentSurfaceClasses = syncClasses(content, currentSurfaceClasses, windowClasses(model))
+    currentSurfaceClasses = syncClasses(surface, currentSurfaceClasses, windowClasses(model))
 
     if (currentTooltip !== model.tooltip) {
       widget.set_tooltip_text(model.tooltip)
@@ -208,6 +223,7 @@ export const WorkspaceWindowIndicators = (
   const provider = WorkspaceStatusProvider.forMonitor(props.monitor)
   const activeWorkspace$ = provider.models$.pipe(
     map(models => models.find(model => model.active) ?? models[0] ?? null),
+    distinctUntilChanged(sameRenderedWorkspace),
   )
   const list = new Gtk.Box({
     spacing: 4,
@@ -223,9 +239,11 @@ export const WorkspaceWindowIndicators = (
   container.append(list)
 
   const widgets = new Map<string, Gtk.Widget>()
+  let currentOrder: string[] = []
 
   subscribeTo(list, activeWorkspace$, (model, box) => {
     const windows = model?.windows ?? []
+    const nextOrder = windows.map(window => window.id)
     const liveIds = new Set(windows.map(window => window.id))
 
     for (const [id, widget] of [...widgets.entries()]) {
@@ -235,7 +253,6 @@ export const WorkspaceWindowIndicators = (
       }
     }
 
-    let previous: Gtk.Widget | null = null
     for (const window of windows) {
       let widget = widgets.get(window.id)
       if (!widget) {
@@ -244,13 +261,20 @@ export const WorkspaceWindowIndicators = (
       } else {
         widget['updateWindowIndicator']?.(window)
       }
+    }
 
-      if (widget.get_parent() === box) {
-        box.reorder_child_after(widget, previous)
-      } else {
-        box.insert_child_after(widget, previous)
+    if (!sameArray(currentOrder, nextOrder)) {
+      let previous: Gtk.Widget | null = null
+      for (const window of windows) {
+        const widget = widgets.get(window.id)!
+        if (widget.get_parent() === box) {
+          box.reorder_child_after(widget, previous)
+        } else {
+          box.insert_child_after(widget, previous)
+        }
+        previous = widget
       }
-      previous = widget
+      currentOrder = nextOrder
     }
   })
 
