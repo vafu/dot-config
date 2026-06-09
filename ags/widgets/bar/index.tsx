@@ -45,9 +45,7 @@ export default (gdkmonitor: Gdk.Monitor) => {
           halign={Gtk.Align.CENTER}
           $type="center"
         >
-          <box cssClasses={['workspace-center-block']} halign={Gtk.Align.CENTER}>
-            <WorkspaceWindowIndicators monitor={gdkmonitor} />
-          </box>
+          <WorkspaceWindowIndicators monitor={gdkmonitor} />
         </box>
 
         {/** right **/}

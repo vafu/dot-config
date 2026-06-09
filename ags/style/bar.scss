@@ -22,14 +22,6 @@ $outline-offset: $label-margin * 0.5;
 
     @include elevation-1;
   }
-
-  .workspace-center-block {
-    min-width: 0;
-  }
-}
-
-.workspace-window-indicators {
-  min-height: 32px;
 }
 
 .barblock-badge {
@@ -48,11 +40,6 @@ $outline-offset: $label-margin * 0.5;
 .barblock-badge.workspace-number-badge {
   background-color: color-mix(in srgb, #{$fg} 16%, #{$bg});
   color: color-mix(in srgb, #{$fg} 72%, transparent);
-}
-
-.workspace-window-list {
-  min-height: 32px;
-  margin-right: 2px;
 }
 
 .workspace-window-frame {
@@ -77,7 +64,6 @@ $outline-offset: $label-margin * 0.5;
 }
 
 .workspace-window-tile {
-  min-height: 28px;
   border-radius: 12px;
   padding: 0 8px;
   background-color: #{$bg};
@@ -88,10 +74,6 @@ $outline-offset: $label-margin * 0.5;
     outline-color 160ms;
 
   @include elevation-1;
-
-  image {
-    -gtk-icon-size: 18px;
-  }
 
   &:not(.active):not(.urgent) {
     opacity: 0.74;

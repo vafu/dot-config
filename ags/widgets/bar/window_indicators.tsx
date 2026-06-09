@@ -96,7 +96,6 @@ const syncClasses = (
 
 const WindowTile = (initial: WorkspaceWindowIndicatorModel) => {
   const plainImage = new Gtk.Image({
-    pixelSize: 18,
     halign: Gtk.Align.CENTER,
     valign: Gtk.Align.CENTER,
   })
@@ -117,7 +116,8 @@ const WindowTile = (initial: WorkspaceWindowIndicatorModel) => {
 
   const content = new Gtk.Box({
     halign: Gtk.Align.CENTER,
-    valign: Gtk.Align.CENTER,
+    valign: Gtk.Align.FILL,
+    vexpand: true,
     cssClasses: ['workspace-window-content'],
   })
   content.append(plainImage)
@@ -125,7 +125,8 @@ const WindowTile = (initial: WorkspaceWindowIndicatorModel) => {
 
   const surface = new Gtk.Box({
     halign: Gtk.Align.CENTER,
-    valign: Gtk.Align.CENTER,
+    valign: Gtk.Align.FILL,
+    vexpand: true,
     cssClasses: [],
   })
   surface.append(content)
@@ -140,7 +141,8 @@ const WindowTile = (initial: WorkspaceWindowIndicatorModel) => {
   const widget = new Gtk.Overlay({
     tooltipText: initial.id,
     halign: Gtk.Align.CENTER,
-    valign: Gtk.Align.CENTER,
+    valign: Gtk.Align.FILL,
+    vexpand: true,
     cssClasses: [],
   })
   widget.set_child(surface)
@@ -228,15 +230,10 @@ export const WorkspaceWindowIndicators = (
   const list = new Gtk.Box({
     spacing: 4,
     halign: Gtk.Align.CENTER,
-    valign: Gtk.Align.CENTER,
-    cssClasses: ['workspace-window-list'],
+    valign: Gtk.Align.FILL,
+    vexpand: true,
+    cssClasses: (props.cssClasses ?? []).concat(['workspace-window-list']),
   })
-  const container = new Gtk.Box({
-    halign: Gtk.Align.CENTER,
-    valign: Gtk.Align.CENTER,
-    cssClasses: (props.cssClasses ?? []).concat(['workspace-window-indicators']),
-  })
-  container.append(list)
 
   const widgets = new Map<string, Gtk.Widget>()
   let currentOrder: string[] = []
@@ -278,5 +275,5 @@ export const WorkspaceWindowIndicators = (
     }
   })
 
-  return container
+  return list
 }
