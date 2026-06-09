@@ -13,11 +13,12 @@ import { bindAs, subscribeTo } from 'rxbinding'
 import { getAgentService, AgentStatus } from 'services/agent'
 import { firstProjectName, workspacesOnMonitor$ } from 'services/locus'
 import { locus } from 'services/locus.generated'
+import { hintsMode$ } from 'services/hints'
 import { WorkspaceModel, WorkspaceStatusProvider } from 'services/workspace-status-provider'
 import { MaterialIcon } from 'widgets/materialicon'
 import { WidgetProps } from 'widgets'
 import { AgentWidget } from './agent'
-import { PanelButtonGroup } from './panel-widgets'
+import { Badged, PanelButtonGroup } from './panel-widgets'
 
 type SimpleProjectChipProps = WidgetProps & {
   icon$: Observable<string>
@@ -585,13 +586,23 @@ const WorkspaceEntryWidget = (
     .filter(child => child.kind === 'agent-session')
     .map(child => AgentWidget(child.id, provider.childSubstatusCount$(child.id)))
   const revealed$ = new BehaviorSubject(initial.active)
+  const workspaceNumber$ = new BehaviorSubject(`${initial.sortIndex}`)
 
-  const widget = PanelButtonGroup({
+  const group = PanelButtonGroup({
     cssClasses: initial.cssClasses,
     expandDirection: 'right',
     revealWhen: revealed$,
     children: [rootButton, titleBox, ...agentWidgets],
   }) as Gtk.Box
+
+  const widget = Badged({
+    child: group,
+    badges: [{
+      label: workspaceNumber$,
+      visible: hintsMode$,
+      cssClasses: ['workspace-number-badge'],
+    }],
+  })
 
   const syncClasses = (model: WorkspaceModel) => {
     for (const cssClass of [
@@ -601,11 +612,11 @@ const WorkspaceEntryWidget = (
       'has-working',
       'has-complete',
     ]) {
-      widget.remove_css_class(cssClass)
+      group.remove_css_class(cssClass)
     }
 
     for (const cssClass of model.cssClasses) {
-      widget.add_css_class(cssClass)
+      group.add_css_class(cssClass)
     }
   }
 
@@ -614,6 +625,7 @@ const WorkspaceEntryWidget = (
     syncClasses(model)
     rootButton.set_tooltip_text(model.tooltip)
     icon.icon = model.collapsedIcon
+    workspaceNumber$.next(`${model.sortIndex}`)
     primary.set_label(model.primaryText)
     secondary.set_label(model.secondaryText)
     delimiter.set_visible(model.secondaryVisible)

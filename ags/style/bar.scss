@@ -32,6 +32,24 @@ $outline-offset: $label-margin * 0.5;
   min-height: 32px;
 }
 
+.barblock-badge {
+  min-width: 12px;
+  min-height: 12px;
+  margin-top: 2px;
+  margin-right: -4px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background-color: color-mix(in srgb, #{$accent_color} 74%, #{$bg});
+  color: #{$bg};
+  font-size: 7pt;
+  font-weight: 700;
+}
+
+.barblock-badge.workspace-number-badge {
+  background-color: color-mix(in srgb, #{$fg} 16%, #{$bg});
+  color: color-mix(in srgb, #{$fg} 72%, transparent);
+}
+
 .workspace-window-list {
   min-height: 32px;
   margin-right: 2px;

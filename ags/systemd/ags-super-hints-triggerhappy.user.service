@@ -1,0 +1,14 @@
+[Unit]
+Description=AGS Super-key hints trigger
+After=graphical-session.target
+
+[Service]
+Type=notify
+ExecStartPre=/home/v47/.config/ags/scripts/super-hints-trigger reset
+ExecStart=/usr/bin/thd --triggers /home/v47/.config/ags/triggerhappy/super-hints.conf --deviceglob /dev/input/event*
+ExecStopPost=/home/v47/.config/ags/scripts/super-hints-trigger reset
+Restart=on-failure
+RestartSec=1s
+
+[Install]
+WantedBy=default.target
