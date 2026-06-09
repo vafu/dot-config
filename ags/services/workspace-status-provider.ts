@@ -24,6 +24,7 @@ export type WorkspaceWindowIndicatorBase = {
   width: number
   height: number
   cssClasses: string[]
+  tooltip: string
 }
 
 export type WindowExtras =
@@ -31,7 +32,12 @@ export type WindowExtras =
   | {
       type: 'agent'
       sessionId: string
+      agentName: string
+      agentNickname: string
+      modelName: string
+      cwd: string
       state: string
+      contextPct: number
       requiresAttention: boolean
       taskComplete: boolean
       substatusCount: number
@@ -111,7 +117,21 @@ const sameWindow = (left: WorkspaceWindowIndicatorModel, right: WorkspaceWindowI
   && left.width === right.width
   && left.height === right.height
   && sameArray(left.cssClasses, right.cssClasses)
+  && left.tooltip === right.tooltip
   && left.type === right.type
+  && (left.type !== 'agent' || right.type !== 'agent'
+    || (
+      left.sessionId === right.sessionId
+      && left.agentName === right.agentName
+      && left.agentNickname === right.agentNickname
+      && left.modelName === right.modelName
+      && left.cwd === right.cwd
+      && left.state === right.state
+      && left.contextPct === right.contextPct
+      && left.requiresAttention === right.requiresAttention
+      && left.taskComplete === right.taskComplete
+      && left.substatusCount === right.substatusCount
+    ))
 
 const sameWindows = (left: WorkspaceWindowIndicatorModel[], right: WorkspaceWindowIndicatorModel[]) =>
   left.length === right.length
@@ -196,6 +216,13 @@ const projectTooltip = (
   return [`${workspaceName} (${workspaceId})`, project, ...metadata, ...agentLines].join('\n')
 }
 
+const agentWindowTooltip = (status: AgentStatus, sessionId: string, substatusCount: number) => {
+  const name = status.agentNickname || status.agentName || sessionId
+  const state = status.taskComplete ? 'complete' : status.state
+  const subagents = substatusCount > 0 ? ` · ${substatusCount} subagent${substatusCount === 1 ? '' : 's'}` : ''
+  return `${name} · ${status.modelName || 'idle'} · ${state} · ${Math.round(status.contextPct)}%${subagents}`
+}
+
 function applyNodeListDiff(current: string[], commands: NodeListDiffCommand[]) {
   let next = [...current]
   for (const command of commands) {
@@ -226,30 +253,96 @@ function workspaceWindows$(workspaceId: string): Observable<WorkspaceWindowIndic
     switchMap(tabs => {
       if (tabs.length === 0) return of([] as WorkspaceWindowIndicatorModel[])
 
-      return combineLatest(tabs.map(tab =>
-        combineLatest([
+      return combineLatest(tabs.map(tab => {
+        const agentData$ = locus.windowAgentSessionString$(tab.subject).pipe(
+          startWith(''),
+          distinctUntilChanged(),
+          switchMap(agentNode => {
+            if (!agentNode) return of(null)
+
+            const sessionId = agentNode.replace(/^agent-session:/, '')
+            return combineLatest([
+              sessions$,
+              locus.targets$(agentNode, 'subagent-session').pipe(
+                map(children => children.length),
+                startWith(0),
+              ),
+              locus.agentSessionWorkspaceProjectProperty$(agentNode, 'display-icon').pipe(startWith('')),
+            ]).pipe(
+              map(([sessions, substatusCount, projectIcon]) => ({
+                sessionId,
+                status: sessions.get(sessionId),
+                substatusCount,
+                projectIcon,
+              })),
+            )
+          }),
+        )
+
+        return combineLatest([
           tab.icon.pipe(startWith('')),
           tab.isActive.pipe(startWith(false)),
           locus.booleanProperty$(tab.subject, 'urgent').pipe(startWith(false)),
+          agentData$,
         ]).pipe(
-          map(([icon, active, urgent]) => ({
-            id: tab.subject,
-            icon,
-            active,
-            urgent,
-            x: tab.xValue,
-            y: tab.yValue,
-            width: tab.widthValue,
-            height: tab.heightValue,
-            cssClasses: [
+          map(([icon, active, urgent, agentData]) => {
+            const base = {
+              id: tab.subject,
+              icon,
+              active,
+              urgent,
+              x: tab.xValue,
+              y: tab.yValue,
+              width: tab.widthValue,
+              height: tab.heightValue,
+            }
+            const baseClasses = [
               'workspace-window-indicator',
               active ? 'active' : '',
               urgent ? 'urgent' : '',
-            ].filter(Boolean),
-            type: 'plain',
-          } as WorkspaceWindowIndicatorModel)),
-        ),
-      ))
+            ].filter(Boolean)
+
+            if (!agentData?.status) {
+              return {
+                ...base,
+                cssClasses: baseClasses,
+                tooltip: tab.subject,
+                type: 'plain',
+              } as WorkspaceWindowIndicatorModel
+            }
+
+            const { sessionId, status, substatusCount, projectIcon } = agentData
+            const agentUrgent = urgent || status.requiresAttention
+
+            return {
+              ...base,
+              icon: projectIcon || icon || 'smart_toy',
+              urgent: agentUrgent,
+              cssClasses: [
+                'workspace-window-indicator',
+                active ? 'active' : '',
+                agentUrgent ? 'urgent' : '',
+                'agent-window',
+                status.state,
+                status.requiresAttention ? 'attention' : '',
+                status.taskComplete ? 'task-complete' : '',
+              ].filter(Boolean),
+              tooltip: agentWindowTooltip(status, sessionId, substatusCount),
+              type: 'agent',
+              sessionId,
+              agentName: status.agentName,
+              agentNickname: status.agentNickname,
+              modelName: status.modelName,
+              cwd: status.cwd,
+              state: status.state,
+              contextPct: status.contextPct,
+              requiresAttention: status.requiresAttention,
+              taskComplete: status.taskComplete,
+              substatusCount,
+            } as WorkspaceWindowIndicatorModel
+          }),
+        )
+      }))
     }),
     map(windows => [...windows].sort((left, right) =>
       left.x - right.x
@@ -377,11 +470,7 @@ function workspaceModel$(workspaceId: string): Observable<WorkspaceModel> {
             tooltip: projectTooltip(workspaceId, workspaceName, project, projectProperties, agents),
             windows,
             windowSummary: summary,
-            children: agents.map(agent => ({
-              id: agent.sessionId,
-              kind: 'agent-session',
-              cssClasses: [],
-            })),
+            children: [],
           }
         }),
       )
