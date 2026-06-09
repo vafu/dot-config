@@ -9,6 +9,7 @@ import { Observable, distinctUntilChanged, map, shareReplay, switchMap } from 'r
 export type NodeKind =
   | "agent-session"
   | "app-instance"
+  | "build-invocation"
   | "context"
   | "output"
   | "project"
@@ -60,6 +61,36 @@ export const locusSchema = {
       properties: {
         "icon": { required: false },
         "name": { required: false },
+      },
+    },
+    "build-invocation": {
+      properties: {
+        "actions-completed": { required: false },
+        "actions-failed": { required: false },
+        "bazel-version": { required: false },
+        "build-id": { required: false },
+        "command-name": { required: false },
+        "component": { required: false },
+        "cwd": { required: false },
+        "ended-at-unix-ms": { required: false },
+        "first-observed-at-unix-ms": { required: false },
+        "id": { required: true },
+        "kind": { required: true },
+        "last-observed-sequence-number": { required: false },
+        "outcome": { required: false },
+        "progress-completed": { required: false },
+        "progress-total": { required: false },
+        "running-actions": { required: false },
+        "server-pid": { required: false },
+        "source": { required: false },
+        "started-at-unix-ms": { required: false },
+        "status": { required: false },
+        "targets-failed": { required: false },
+        "targets-total": { required: false },
+        "tests-failed": { required: false },
+        "tests-total": { required: false },
+        "total-actions": { required: false },
+        "workspace-dir": { required: false },
       },
     },
     "context": {
@@ -202,6 +233,7 @@ export const locusSchema = {
 export type PropertyKeyByKind = {
   "agent-session": "cwd" | "id" | "model";
   "app-instance": "icon" | "name";
+  "build-invocation": "actions-completed" | "actions-failed" | "bazel-version" | "build-id" | "command-name" | "component" | "cwd" | "ended-at-unix-ms" | "first-observed-at-unix-ms" | "id" | "kind" | "last-observed-sequence-number" | "outcome" | "progress-completed" | "progress-total" | "running-actions" | "server-pid" | "source" | "started-at-unix-ms" | "status" | "targets-failed" | "targets-total" | "tests-failed" | "tests-total" | "total-actions" | "workspace-dir";
   "context": never;
   "output": "connector" | "source";
   "project": "branch" | "display-icon" | "display-main" | "display-secondary" | "icon" | "name" | "notebook_path" | "path" | "subproj" | "task" | "worktree" | "worktree-path";

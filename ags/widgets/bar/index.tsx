@@ -38,6 +38,8 @@ export default (gdkmonitor: Gdk.Monitor) => {
           {/**  
           <PomodoroWidget cssClasses={['barblock']} />
           **/}
+
+          <BzBusWidget cssClasses={['barblock']} />
         </box>
 
         {/** center **/}
@@ -52,7 +54,6 @@ export default (gdkmonitor: Gdk.Monitor) => {
 
         {/** right **/}
         <box $type="end">
-          <BzBusWidget cssClasses={['barblock']} />
           <MPRISWidget cssClasses={['barblock']} />
           <SysStats cssClasses={['barblock']} />
           <box cssClasses={['barblock']}>

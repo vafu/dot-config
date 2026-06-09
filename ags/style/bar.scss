@@ -440,11 +440,11 @@ levelindicator {
   }
 
   &.failed {
-    color: color-mix(in srgb, #ff5f57 78%, #{$fg});
+    color: color-mix(in srgb, #{$ws_urgent} 78%, #{$fg});
   }
 
   &.finished {
-    color: color-mix(in srgb, #8bd450 74%, #{$fg});
+    color: color-mix(in srgb, #{$sys_ok} 74%, #{$fg});
   }
 }
 

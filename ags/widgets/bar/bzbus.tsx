@@ -2,17 +2,22 @@ import { Gtk } from 'ags/gtk4'
 import { getBzBusService, BzBusFailure, BzBusInvocation, BzBusState } from 'services/bzbus'
 import { MaterialIcon } from 'widgets/materialicon'
 import { WidgetProps } from 'widgets'
+import { distinctUntilChanged, map } from 'rxjs'
 import { bindAs } from 'rxbinding'
 
 const bzbus = getBzBusService()
 const liveState$ = bzbus.state$
+const compactStatus$ = liveState$.pipe(map(statusText), distinctUntilChanged())
+const icon$ = liveState$.pipe(map(iconFor), distinctUntilChanged())
+const tooltip$ = liveState$.pipe(map(tooltipFor), distinctUntilChanged())
+const classes$ = liveState$.pipe(map(state => classesFor(state)), distinctUntilChanged((a, b) => a.join(' ') === b.join(' ')))
 
 function statusText(state: BzBusState): string {
   const invocation = state.latest
   if (!state.connected) return 'offline'
   if (!invocation) return 'idle'
 
-  const elapsed = elapsedText(invocation)
+  const elapsed = compactElapsedText(invocation)
   const work = workText(invocation)
   const failures = failureCount(invocation)
   const failurePart = failures > 0 ? ` · ${failures}!` : ''
@@ -91,6 +96,17 @@ function elapsedText(invocation: BzBusInvocation): string {
   if (invocation.startedAtUnixMs <= 0) return 'unknown'
   const end = invocation.endedAtUnixMs > 0 ? invocation.endedAtUnixMs : Date.now()
   return durationText(end - invocation.startedAtUnixMs)
+}
+
+function compactElapsedText(invocation: BzBusInvocation): string {
+  if (invocation.startedAtUnixMs <= 0) return 'unknown'
+  const end = invocation.endedAtUnixMs > 0 ? invocation.endedAtUnixMs : Date.now()
+  const totalSeconds = Math.max(0, Math.floor((end - invocation.startedAtUnixMs) / 1000))
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  if (hours > 0) return `${hours}h ${minutes}m`
+  if (minutes > 0) return `${minutes}m`
+  return '<1m'
 }
 
 function durationText(ms: number): string {
@@ -198,16 +214,16 @@ function classesFor(state: BzBusState): string[] {
 
 export const BzBusWidget = (props: WidgetProps) => (
   <box
-    cssClasses={bindAs(liveState$, state => (props.cssClasses ?? []).concat(classesFor(state)), (props.cssClasses ?? []).concat(['bzbus-widget', 'idle']))}
-    tooltipText={bindAs(liveState$, tooltipFor, 'bzbus')}
+    cssClasses={bindAs(classes$, classes => (props.cssClasses ?? []).concat(classes), (props.cssClasses ?? []).concat(['bzbus-widget', 'idle']))}
+    tooltipText={bindAs(tooltip$, tooltip => tooltip, 'bzbus')}
   >
     <MaterialIcon
-      icon={bindAs(liveState$, iconFor, 'construction')}
+      icon={bindAs(icon$, icon => icon, 'construction')}
       tinted={false}
     />
     <label
       cssClasses={['bzbus-status']}
-      label={bindAs(liveState$, statusText, 'idle')}
+      label={bindAs(compactStatus$, status => status, 'idle')}
     />
   </box>
 ) as Gtk.Widget
