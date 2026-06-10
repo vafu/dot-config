@@ -25,7 +25,7 @@ const player = fromConnectable(mpris, 'players').pipe(
       a.find(p => p.can_play),
   ),
   filter(p => !!p),
-  shareReplay(1),
+  shareReplay({ bufferSize: 1, refCount: true }),
 )
 
 export const MPRISWidget = (props: WidgetProps) => {
@@ -39,7 +39,7 @@ export const MPRISWidget = (props: WidgetProps) => {
       ),
     ),
     startWith(''),
-    shareReplay(1),
+    shareReplay({ bufferSize: 1, refCount: true }),
   )
 
   const playerStateCss = player.pipe(

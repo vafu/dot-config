@@ -24,7 +24,7 @@ export function queryBatteryStats(address: string): Observable<BatteryStatus> {
   if (cached) return cached
   const n = defer(() => queryUpower(address)).pipe(
     switchIfEmpty(defer(() => queryBluez(address))),
-    shareReplay(1)
+    shareReplay({ bufferSize: 1, refCount: true })
   )
   deviceMap.set(address, n)
   return n

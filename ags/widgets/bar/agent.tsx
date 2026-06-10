@@ -1,11 +1,10 @@
-import { Gdk, Gtk } from 'ags/gtk4'
+import { Gtk } from 'ags/gtk4'
 import { getAgentService, AgentStatus } from 'services/agent'
 import { locus } from 'services/locus.generated'
 import { LevelIndicator } from 'widgets/circularstatus'
 import { MaterialIcon } from 'widgets/materialicon'
 import { bindAs, subscribeTo } from 'rxbinding'
 import { Observable, combineLatest, map, distinctUntilChanged, shareReplay } from 'rxjs'
-import { WidgetProps } from 'widgets'
 
 const CONTEXT_STAGES = [
   { level: 0, class: 'normal' },
@@ -107,14 +106,14 @@ export const AgentWidget = (
       pendingSignature(a) === pendingSignature(b) &&
       a.sessionName === b.sessionName
     ),
-    shareReplay(1),
+    shareReplay({ bufferSize: 1, refCount: true }),
   )
 
   const state$ = status$.pipe(map(s => s.state), distinctUntilChanged())
   const projectIcon$ = locus.agentSessionWorkspaceProjectProperty$(agentSessionNode, 'display-icon').pipe(
     map(icon => icon || 'smart_toy'),
     distinctUntilChanged(),
-    shareReplay(1),
+    shareReplay({ bufferSize: 1, refCount: true }),
   )
   const projectBranch$ = combineLatest([
     locus.agentSessionWorkspaceProjectProperty$(agentSessionNode, 'branch'),
@@ -123,7 +122,7 @@ export const AgentWidget = (
     map(([workspaceBranch, directBranch]) => workspaceBranch || directBranch),
     map(branch => branch.trim()),
     distinctUntilChanged(),
-    shareReplay(1),
+    shareReplay({ bufferSize: 1, refCount: true }),
   )
   const contextPct$ = status$.pipe(map(s => s.contextPct), distinctUntilChanged())
   const selected$ = locus.selectedAgentSessionString$().pipe(
@@ -341,120 +340,4 @@ export const AgentWidget = (
   })
 
   return widget
-}
-
-// -- Usage fill: background gradient as progress bar --
-
-function usageColor(pct: number): string {
-  if (pct >= 90) return 'rgba(230,64,51,0.18)'    // red
-  if (pct >= 75) return 'rgba(230,153,25,0.18)'   // orange
-  if (pct >= 50) return 'rgba(217,204,38,0.15)'   // yellow
-  return 'rgba(102,191,102,0.15)'                  // green
-}
-
-const usageFillProvider = new Gtk.CssProvider()
-Gtk.StyleContext.add_provider_for_display(
-  Gdk.Display.get_default()!,
-  usageFillProvider,
-  Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
-)
-
-function updateUsageFill(pct: number) {
-  if (pct <= 0) {
-    usageFillProvider.load_from_string('.agent-usage-fill { background-image: none; }')
-    return
-  }
-  const color = usageColor(pct)
-  usageFillProvider.load_from_string(
-    `.agent-usage-fill { background-image: linear-gradient(to right, ${color} ${pct}%, transparent ${pct}%); }`
-  )
-}
-
-// -- AgentWidgets with usage fill background --
-
-export const AgentWidgets = (props: WidgetProps) => {
-  const { sessions$ } = getAgentService()
-  const cssClasses = props.cssClasses ?? []
-
-  const visible$ = sessions$.pipe(
-    map(sessions => [...sessions.values()].some(status => !status.isSubagent)),
-    distinctUntilChanged(),
-  )
-
-  const attentionMode$ = sessions$.pipe(
-    map(sessions => {
-      const statuses = [...sessions.values()]
-      if (statuses.some(hasPromptAttention)) return 'prompt'
-      if (statuses.some(status => status.requiresAttention)) return 'passive'
-      return 'none'
-    }),
-    distinctUntilChanged(),
-  )
-
-  const usage$ = sessions$.pipe(
-    map(sessions => {
-      let best = { fiveHourUsagePct: 0, fiveHourResetsAt: 0, sevenDayUsagePct: 0, sevenDayResetsAt: 0 }
-      for (const s of sessions.values()) {
-        if (s.fiveHourResetsAt > best.fiveHourResetsAt) {
-          best = {
-            fiveHourUsagePct: s.fiveHourUsagePct,
-            fiveHourResetsAt: s.fiveHourResetsAt,
-            sevenDayUsagePct: s.sevenDayUsagePct,
-            sevenDayResetsAt: s.sevenDayResetsAt,
-          }
-        }
-      }
-      return best
-    }),
-    distinctUntilChanged((a, b) =>
-      a.fiveHourUsagePct === b.fiveHourUsagePct &&
-      a.fiveHourResetsAt === b.fiveHourResetsAt &&
-      a.sevenDayUsagePct === b.sevenDayUsagePct &&
-      a.sevenDayResetsAt === b.sevenDayResetsAt
-    ),
-  )
-
-  const chip = (<box cssClasses={['agent-usage-chip', 'agent-usage-fill']} />) as Gtk.Box
-  const container = (
-    <box cssClasses={cssClasses} visible={bindAs(visible$, v => v, false)}>
-      {chip}
-    </box>
-  ) as Gtk.Box
-  const sessionWidgets = new Map<string, Gtk.Widget>()
-
-  subscribeTo(chip, attentionMode$, (attentionMode, box) => {
-    box.remove_css_class('agent-attention')
-    if (attentionMode === 'prompt') box.add_css_class('agent-attention')
-  })
-
-  subscribeTo(chip, sessions$, (sessions, box) => {
-    for (const [sessionId, status] of sessions) {
-      if (status.isSubagent) continue
-      if (!sessionWidgets.has(sessionId)) {
-        const subagentCount$ = locus.targets$(`agent-session:${sessionId}`, 'subagent-session').pipe(
-          map(children => children.length),
-          distinctUntilChanged(),
-          shareReplay(1),
-        )
-        const w = AgentWidget(sessionId, subagentCount$)
-        sessionWidgets.set(sessionId, w)
-        box.append(w)
-      }
-    }
-    for (const [sessionId, w] of [...sessionWidgets]) {
-      if (!sessions.has(sessionId) || sessions.get(sessionId)?.isSubagent) {
-        box.remove(w)
-        sessionWidgets.delete(sessionId)
-      }
-    }
-  })
-
-  subscribeTo(chip, usage$, (usage, box) => {
-    updateUsageFill(usage.fiveHourUsagePct)
-    box.tooltipText = usage.fiveHourResetsAt > 0
-      ? `5h: ${Math.round(usage.fiveHourUsagePct)}% · 7d: ${Math.round(usage.sevenDayUsagePct)}%`
-      : ''
-  })
-
-  return container
 }

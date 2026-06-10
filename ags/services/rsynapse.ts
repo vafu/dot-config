@@ -2,7 +2,7 @@ import GLib from 'gi://GLib?version=2.0'
 import GObject from 'gi://GObject?version=2.0'
 import Gio from 'gi://Gio?version=2.0'
 import { BehaviorSubject, Observable } from 'rxjs'
-import { distinctUntilChanged, switchMap } from 'rxjs/operators'
+import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators'
 
 export interface RsynapseService {
   results: Observable<RsynapseResult[]>
@@ -108,6 +108,7 @@ const RsynapseIface = `
 
 // A factory function that creates a proxy object from the XML interface.
 const RsynapseProxy = Gio.DBusProxy.makeProxyWrapper(RsynapseIface)
+const MAX_RESULTS = 10
 
 // The main function to get an instance of our service wrapper.
 const initRsynapse = (): RsynapseService => {
@@ -131,6 +132,7 @@ const initRsynapse = (): RsynapseService => {
   querySubject
     .pipe(
       distinctUntilChanged(), // Don't search if the query hasn't changed
+      debounceTime(80),
       switchMap(async query => {
         // Cancel previous requests and run a new one
         if (query.trim() === '') {
@@ -151,7 +153,7 @@ const initRsynapse = (): RsynapseService => {
 
           // GJS unpacks a D-Bus array of structs into a JS array of arrays.
           // We need to map this to our desired array of objects.
-          const results: RsynapseResult[] = unpackedResults.map(
+          const results: RsynapseResult[] = unpackedResults.slice(0, MAX_RESULTS).map(
             (item: string[]) =>
               new RsynapseResult({
                 id: item[0],

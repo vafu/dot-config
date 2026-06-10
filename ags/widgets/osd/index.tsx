@@ -4,7 +4,7 @@ import { Hidden, OnScreenProgress } from './OSD'
 import { binding, fromConnectable, asObservable } from 'rxbinding'
 import Brightness from 'services/brightness'
 import AstalWp from 'gi://AstalWp?version=0.1'
-import { catchError, combineLatest, delay, map, merge, NEVER, of, switchMap } from 'rxjs'
+import { catchError, combineLatest, delay, map, merge, NEVER, of, shareReplay, switchMap } from 'rxjs'
 import { Accessor } from 'gnim'
 import { logNext } from 'commons/rx'
 const service = Brightness.get_default()
@@ -36,6 +36,7 @@ const audio = fromConnectable(AstalWp.get_default()!!, 'default_speaker').pipe(
 export default function OSD(monitor: Accessor<Gdk.Monitor>) {
   const source = merge(audio, brightness).pipe(
     switchMap(s => merge(of(s), of(Hidden).pipe(delay(1000)))),
+    shareReplay({ bufferSize: 1, refCount: true }),
   )
 
   const visible = source.pipe(
@@ -68,7 +69,6 @@ export default function OSD(monitor: Accessor<Gdk.Monitor>) {
     </window>
   )
 }
-
 
 
 

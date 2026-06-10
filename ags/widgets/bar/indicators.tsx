@@ -5,24 +5,24 @@ import { interval, map, shareReplay, startWith } from 'rxjs'
 import AstalBattery from 'gi://AstalBattery?version=0.1'
 import AstalNetwork from 'gi://AstalNetwork?version=0.1'
 import AstalPowerProfiles from 'gi://AstalPowerProfiles?version=0.1'
-import AstalWp from 'gi://AstalWp?version=0.1'
 import {
   bindAs,
   fromConnectable,
-  fromJsonProcess,
   binding,
   bindString,
   fromChain,
 } from 'rxbinding'
 import { execPeriodically } from 'rxbinding/util'
-import { MaterialIcon } from 'widgets/materialicon'
 import { WidgetProps } from 'widgets'
 
-const CPU = execPeriodically(3000, 'bash scripts/cpu.sh').pipe(
-  map(v => parseInt(v)),
-)
-const RAM = execPeriodically(3000, 'bash scripts/ram.sh').pipe(
-  map(v => parseInt(v)),
+type SysStatsSnapshot = {
+  cpu: number
+  ram: number
+}
+
+const sysStats = execPeriodically(3000, 'bash scripts/sysstats.sh').pipe(
+  map(v => JSON.parse(v) as SysStatsSnapshot),
+  shareReplay({ bufferSize: 1, refCount: true }),
 )
 
 const stages = [
@@ -37,8 +37,8 @@ export const SysStats = (props: WidgetProps) => (
   <DualIndicator
     icon="memory"
     stages={stages}
-    left={binding(CPU, 0)}
-    right={binding(RAM, 0)}
+    left={binding(sysStats.pipe(map(stats => stats.cpu)), 0)}
+    right={binding(sysStats.pipe(map(stats => stats.ram)), 0)}
     levelsVisible={true}
     cssClasses={props.cssClasses}
   />
@@ -55,7 +55,7 @@ const time = interval(1000).pipe(
     if (!clock || !date) throw new Error('Failed to format time')
     return { clock, date }
   }),
-  shareReplay(1),
+  shareReplay({ bufferSize: 1, refCount: true }),
 )
 
 export const DateTime = (props: WidgetProps) => (
@@ -99,15 +99,6 @@ export const PowerProfilesIndicator = () => (
     cssClasses={['panel-button', 'flat', 'circular']}
     onClicked={cycleProfiles}
   />
-)
-
-// Muted
-const isMuted = fromChain(
-  fromConnectable(AstalWp.get_default()!!, 'default_speaker'),
-  'mute',
-)
-export const MutedIndicator = () => (
-  <image iconName="audio-volume-muted" visible={binding(isMuted, false)} />
 )
 
 // ETH
@@ -169,35 +160,3 @@ export const WifiIndicator = () => (
     icon={binding(fromConnectable(wifi, 'iconName'), '')}
   />
 )
-
-// Swaync
-type SwayncStatus = {
-  count: number
-  dnd: boolean
-  visible: boolean
-  inhibited: boolean
-}
-
-const isDndEnabled = fromJsonProcess<SwayncStatus>('swaync-client -s').pipe(
-  map(s => s.dnd),
-)
-export const DndIndicator = () => (
-  <MaterialIcon
-    icon="do_not_disturb_on"
-    style={{
-      fill: false,
-      size: 24,
-    }}
-    visible={binding(isDndEnabled, false)}
-  />
-)
-
-
-
-
-
-
-
-
-
-

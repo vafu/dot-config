@@ -2,15 +2,26 @@ import { Gtk } from 'ags/gtk4'
 import { getBzBusService, BzBusFailure, BzBusInvocation, BzBusState } from 'services/bzbus'
 import { MaterialIcon } from 'widgets/materialicon'
 import { WidgetProps } from 'widgets'
-import { distinctUntilChanged, map } from 'rxjs'
 import { bindAs } from 'rxbinding'
+import { distinctUntilChanged, map, shareReplay } from 'rxjs'
 
 const bzbus = getBzBusService()
 const liveState$ = bzbus.state$
-const compactStatus$ = liveState$.pipe(map(statusText), distinctUntilChanged())
-const icon$ = liveState$.pipe(map(iconFor), distinctUntilChanged())
-const tooltip$ = liveState$.pipe(map(tooltipFor), distinctUntilChanged())
-const classes$ = liveState$.pipe(map(state => classesFor(state)), distinctUntilChanged((a, b) => a.join(' ') === b.join(' ')))
+
+type BzBusView = {
+  classes: string[]
+  tooltip: string
+  icon: string
+  label: string
+}
+
+function sameView(left: BzBusView, right: BzBusView) {
+  return left.tooltip === right.tooltip
+    && left.icon === right.icon
+    && left.label === right.label
+    && left.classes.length === right.classes.length
+    && left.classes.every((cssClass, index) => cssClass === right.classes[index])
+}
 
 function statusText(state: BzBusState): string {
   const invocation = state.latest
@@ -212,18 +223,32 @@ function classesFor(state: BzBusState): string[] {
   return classes.concat(['running'])
 }
 
-export const BzBusWidget = (props: WidgetProps) => (
-  <box
-    cssClasses={bindAs(classes$, classes => (props.cssClasses ?? []).concat(classes), (props.cssClasses ?? []).concat(['bzbus-widget', 'idle']))}
-    tooltipText={bindAs(tooltip$, tooltip => tooltip, 'bzbus')}
-  >
-    <MaterialIcon
-      icon={bindAs(icon$, icon => icon, 'construction')}
-      tinted={false}
-    />
-    <label
-      cssClasses={['bzbus-status']}
-      label={bindAs(compactStatus$, status => status, 'idle')}
-    />
-  </box>
-) as Gtk.Widget
+export const BzBusWidget = (props: WidgetProps) => {
+  const initialClasses = (props.cssClasses ?? []).concat(['bzbus-widget', 'idle'])
+  const view$ = liveState$.pipe(
+    map(state => ({
+      classes: (props.cssClasses ?? []).concat(classesFor(state)),
+      tooltip: tooltipFor(state),
+      icon: iconFor(state),
+      label: statusText(state),
+    })),
+    distinctUntilChanged(sameView),
+    shareReplay({ bufferSize: 1, refCount: true }),
+  )
+
+  return (
+    <box
+      cssClasses={bindAs(view$, view => view.classes, initialClasses)}
+      tooltipText={bindAs(view$, view => view.tooltip, 'bzbus')}
+    >
+      <MaterialIcon
+        icon={bindAs(view$, view => view.icon, 'construction')}
+        tinted={false}
+      />
+      <label
+        cssClasses={['bzbus-status']}
+        label={bindAs(view$, view => view.label, 'idle')}
+      />
+    </box>
+  ) as Gtk.Widget
+}

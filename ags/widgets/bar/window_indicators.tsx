@@ -25,15 +25,10 @@ const sameArray = (left: string[], right: string[]) =>
   left.length === right.length
   && left.every((value, index) => value === right[index])
 
-const windowClasses = (model: WorkspaceWindowIndicatorModel) =>
-  model.cssClasses.concat([
-    'workspace-window-tile',
-    `workspace-window-${model.type}`,
-  ])
-
-const frameClasses = (model: WorkspaceWindowIndicatorModel) =>
+const rootClasses = (model: WorkspaceWindowIndicatorModel) =>
   model.cssClasses.concat([
     'workspace-window-frame',
+    'workspace-window-tile',
     `workspace-window-${model.type}`,
   ])
 
@@ -47,8 +42,7 @@ const sameRenderedWindow = (
   && left.urgent === right.urgent
   && left.tooltip === right.tooltip
   && left.type === right.type
-  && sameArray(windowClasses(left), windowClasses(right))
-  && sameArray(frameClasses(left), frameClasses(right))
+  && sameArray(rootClasses(left), rootClasses(right))
   && (left.type !== 'agent' || right.type !== 'agent'
     || (
       left.contextPct === right.contextPct
@@ -66,6 +60,11 @@ const sameRenderedWorkspace = (left: WorkspaceModel | null, right: WorkspaceMode
 const setImageIcon = (image: Gtk.Image, icon: string) => {
   if (!icon) {
     image.set_from_icon_name('application-x-executable-symbolic')
+    return
+  }
+
+  if (!icon.startsWith('/') && !icon.startsWith('~') && !icon.includes('/')) {
+    image.set_from_icon_name(icon)
     return
   }
 
@@ -123,14 +122,6 @@ const WindowTile = (initial: WorkspaceWindowIndicatorModel) => {
   content.append(plainImage)
   content.append(agentInner)
 
-  const surface = new Gtk.Box({
-    halign: Gtk.Align.CENTER,
-    valign: Gtk.Align.FILL,
-    vexpand: true,
-    cssClasses: [],
-  })
-  surface.append(content)
-
   const agentBadge = new Gtk.Label({
     visible: false,
     halign: Gtk.Align.END,
@@ -145,12 +136,11 @@ const WindowTile = (initial: WorkspaceWindowIndicatorModel) => {
     vexpand: true,
     cssClasses: [],
   })
-  widget.set_child(surface)
+  widget.set_child(content)
   widget.add_overlay(agentBadge)
 
   let currentModel: WorkspaceWindowIndicatorModel | null = null
-  let currentFrameClasses = new Set<string>()
-  let currentSurfaceClasses = new Set<string>()
+  let currentRootClasses = new Set<string>()
   let currentType = ''
   let currentPlainIcon = ''
   let currentAgentIcon = ''
@@ -162,8 +152,7 @@ const WindowTile = (initial: WorkspaceWindowIndicatorModel) => {
   const update = (model: WorkspaceWindowIndicatorModel) => {
     if (currentModel && sameRenderedWindow(currentModel, model)) return
 
-    currentFrameClasses = syncClasses(widget, currentFrameClasses, frameClasses(model))
-    currentSurfaceClasses = syncClasses(surface, currentSurfaceClasses, windowClasses(model))
+    currentRootClasses = syncClasses(widget, currentRootClasses, rootClasses(model))
 
     if (currentTooltip !== model.tooltip) {
       widget.set_tooltip_text(model.tooltip)

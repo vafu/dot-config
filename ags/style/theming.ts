@@ -31,7 +31,7 @@ function preparePomodoro() {
     }),
     startWith('@theme_bg_color'),
     map(r => `@define-color bg ${r};`),
-    shareReplay(1),
+    shareReplay({ bufferSize: 1, refCount: true }),
   )
 
   pomodoro_color_css.subscribe(d => {

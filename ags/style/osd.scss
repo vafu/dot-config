@@ -1,8 +1,7 @@
 @import 'common.scss';
 
 window.OSD {
-  padding: 10px;
-  box.OSD {
+  box.osd-shell {
     @include elevation-2;
     border-radius: 24px;
     background-color: #{$osd_bg};

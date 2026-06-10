@@ -1,19 +1,15 @@
 import { Gdk, Gtk } from 'ags/gtk4'
 import { Observable } from 'rxjs'
+import { subscribeTo } from 'rxbinding'
 import { getRsynapseService, RsynapseResult } from 'services/rsynapse'
-import { SearchEntry } from 'widgets'
 import rsynapseUi, { selection } from 'widgets/rsynapse'
 
 const rsynapse = getRsynapseService()
 
 export const RsynapseSearch = (props: { revealed: Observable<boolean> }) => {
-  return <SearchEntry
+  return <Gtk.SearchEntry
     css_classes={['rsynapse-search']}
     $={(self) => {
-      const focus = new Gtk.EventControllerFocus()
-      focus.connect('leave', () => rsynapseUi.hide())
-      // self.add_controller(focus)
-
       const shortcuts = new Gtk.ShortcutController()
       shortcuts.add_shortcut(
         Gtk.Shortcut.new(
@@ -29,7 +25,7 @@ export const RsynapseSearch = (props: { revealed: Observable<boolean> }) => {
       )
       self.add_controller(shortcuts)
 
-      props.revealed.subscribe((visible) => {
+      subscribeTo(self, props.revealed, visible => {
         if (visible) self.grab_focus()
       })
 

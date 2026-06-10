@@ -7,7 +7,6 @@ import OSD from 'widgets/osd'
 import { binding } from 'rxbinding'
 import { diffs } from 'commons/rx'
 import { Rsynapse } from 'widgets/rsynapse'
-import { TodoPopup } from 'widgets/todo/input'
 import { AgentApprovalOverlay } from 'widgets/agent-approvals/overlay'
 import approvalsUi from 'widgets/agent-approvals'
 import { handleRequest } from 'services/requests'
@@ -38,7 +37,6 @@ app.start({
       createRoot(() => {
         OSD(binding(activeMonitor$, initialMonitor))
         Rsynapse(binding(activeMonitor$, initialMonitor))
-        TodoPopup(binding(activeMonitor$, initialMonitor))
         AgentApprovalOverlay(binding(activeMonitor$, initialMonitor))
       })
     })
@@ -129,7 +127,7 @@ function setupForMonitor(
 }
 
 function setupPomodoro() {
-  const state = getPomodoroService().state.pipe(shareReplay(1))
+  const state = getPomodoroService().state.pipe(shareReplay({ bufferSize: 1, refCount: true }))
   state
     .pipe(
       map(s => s.state),

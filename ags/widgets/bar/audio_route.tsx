@@ -105,7 +105,7 @@ const speakers = new Observable<AstalWp.Endpoint[]>(subscriber => {
   ]
 
   return () => signalIds.forEach(id => audio.disconnect(id))
-}).pipe(shareReplay(1))
+}).pipe(shareReplay({ bufferSize: 1, refCount: true }))
 
 const defaultSpeaker = fromConnectable(audio, 'default_speaker')
 export const defaultSpeakerTypeIcon = defaultSpeaker.pipe(map(sinkTypeIcon))
@@ -191,24 +191,6 @@ export const AudioRoutePopover = () => {
   ) as Gtk.Widget)
 
   return popover
-}
-
-export const AudioRouteSelector = () => {
-  const popover = AudioRoutePopover()
-
-  return (
-    <menubutton
-      popover={popover}
-      tooltipText={bindAs(defaultSpeakerDescription, d => d, 'Audio Output')}
-      cssClasses={['flat', 'circular', 'panel-widget']}
-    >
-      <MaterialIcon
-        icon={binding(defaultSpeakerTypeIcon, 'speaker')}
-        tinted={false}
-        style={{ size: 24, fill: false }}
-      />
-    </menubutton>
-  )
 }
 
 export const AudioVolumeIndicator = () => (

@@ -170,27 +170,27 @@ export class LocusWorkspace extends GObject.Object {
     this.sortIndex = locus.numberProperty$(subject, 'index', this.externalId).pipe(
       map(index => index > 0 ? index : this.externalId),
       distinctUntilChanged(),
-      shareReplay(1),
+      shareReplay({ bufferSize: 1, refCount: true }),
     )
 
-    this.name = locus.property$(subject, 'name').pipe(shareReplay(1))
+    this.name = locus.property$(subject, 'name').pipe(shareReplay({ bufferSize: 1, refCount: true }))
     this.active = locus.selectedWorkspaceString$().pipe(
       map(selected => selected === subject),
       distinctUntilChanged(),
-      shareReplay(1),
+      shareReplay({ bufferSize: 1, refCount: true }),
     )
     this.urgent = locus.booleanProperty$(subject, 'urgent')
 
     const windowSubjects$ = locus.sources$(subject, 'workspace').pipe(
       map(subjects => subjects.filter(subject => subject.startsWith('window:')).sort()),
       distinctUntilChanged(sameArray),
-      shareReplay(1),
+      shareReplay({ bufferSize: 1, refCount: true }),
     )
 
     this.occupied = windowSubjects$.pipe(
       map(subjects => subjects.length > 0),
       distinctUntilChanged(),
-      shareReplay(1),
+      shareReplay({ bufferSize: 1, refCount: true }),
     )
 
     const selectedColumn$ = combineLatest([locus.selectedWindowString$(), this.active]).pipe(
@@ -199,7 +199,7 @@ export class LocusWorkspace extends GObject.Object {
         return locus.numberProperty$(selected, 'column', 0)
       }),
       distinctUntilChanged(),
-      shareReplay(1),
+      shareReplay({ bufferSize: 1, refCount: true }),
     )
 
     const columnTabs$ = windowSubjects$.pipe(
@@ -273,13 +273,13 @@ export class LocusWorkspace extends GObject.Object {
           })
       }),
       distinctUntilChanged(sameColumnTabs),
-      shareReplay(1),
+      shareReplay({ bufferSize: 1, refCount: true }),
     )
 
     this.tabs = columnTabs$.pipe(
       map(items => items.map(item => item.tab)),
       startWith([]),
-      shareReplay(1),
+      shareReplay({ bufferSize: 1, refCount: true }),
     )
 
     this.selectedTab = combineLatest([columnTabs$, selectedColumn$]).pipe(
@@ -288,7 +288,7 @@ export class LocusWorkspace extends GObject.Object {
       ),
       filter(tab => tab != null),
       distinctUntilChanged(),
-      shareReplay(1),
+      shareReplay({ bufferSize: 1, refCount: true }),
     )
 
     this.viewportOffset = combineLatest([columnTabs$, selectedColumn$]).pipe(
@@ -299,7 +299,7 @@ export class LocusWorkspace extends GObject.Object {
       map(state => state.viewportOffsetPx),
       distinctUntilChanged(),
       startWith(0),
-      shareReplay(1),
+      shareReplay({ bufferSize: 1, refCount: true }),
     )
   }
 }
@@ -321,7 +321,7 @@ export const windowIcon$ = (window: string) =>
       )
     }),
     distinctUntilChanged(),
-    shareReplay(1),
+    shareReplay({ bufferSize: 1, refCount: true }),
   )
 
 export const workspace$ = (subjectOrId: string | number) => {
@@ -333,23 +333,23 @@ export const workspace$ = (subjectOrId: string | number) => {
 export const selectedWindowIcon$ = locus.selectedWindowString$().pipe(
   switchMap(window => windowIcon$(window)),
   distinctUntilChanged(),
-  shareReplay(1),
+  shareReplay({ bufferSize: 1, refCount: true }),
 )
 
-export const monitors$ = new BehaviorSubject<Gdk.Monitor[]>(monitors()).pipe(shareReplay(1))
+export const monitors$ = new BehaviorSubject<Gdk.Monitor[]>(monitors()).pipe(shareReplay({ bufferSize: 1, refCount: true }))
 
 export const activeMonitor$ = locus.selectedOutputProperty$('connector').pipe(
   distinctUntilChanged(),
   map(monitorByConnector),
   filter(monitor => monitor != null),
   distinctUntilChanged(),
-  shareReplay(1),
+  shareReplay({ bufferSize: 1, refCount: true }),
 )
 
 export const activeWorkspace$ = locus.selectedWorkspaceString$().pipe(
   filter(subject => workspaceExternalId(subject) > 0),
   map(workspace$),
-  shareReplay(1),
+  shareReplay({ bufferSize: 1, refCount: true }),
 )
 
 export const workspacesOnMonitor$ = (monitor: Gdk.Monitor) => locus.sources$(`output:${monitor.connector}`, 'output').pipe(
@@ -371,7 +371,7 @@ export const workspacesOnMonitor$ = (monitor: Gdk.Monitor) => locus.sources$(`ou
   }),
   distinctUntilChanged(sameArray),
   map(subjects => subjects.map(workspace$)),
-  shareReplay(1),
+  shareReplay({ bufferSize: 1, refCount: true }),
 )
 
 export const activeWorkspaceForMonitor$ = (monitor: Gdk.Monitor) => combineLatest([
@@ -383,5 +383,5 @@ export const activeWorkspaceForMonitor$ = (monitor: Gdk.Monitor) => combineLates
   }),
   filter(workspace => workspace.externalId > 0),
   distinctUntilChanged(),
-  shareReplay(1),
+  shareReplay({ bufferSize: 1, refCount: true }),
 )

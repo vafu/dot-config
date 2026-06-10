@@ -1,6 +1,5 @@
 import { Astal, Gdk, Gtk } from 'ags/gtk4'
 import { MPRISWidget } from './mpris'
-import { PomodoroWidget } from './pomodoro'
 import { Tray } from './tray'
 import {
   SysStats,
@@ -35,10 +34,6 @@ export default (gdkmonitor: Gdk.Monitor) => {
         {/** left **/}
         <box $type="start">
           <WorkspacesWidget monitor={gdkmonitor} />
-          {/**  
-          <PomodoroWidget cssClasses={['barblock']} />
-          **/}
-
           <BzBusWidget cssClasses={['barblock']} />
         </box>
 

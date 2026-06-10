@@ -62,7 +62,7 @@ export const getPomodoroService: () => Pomodoro = () => {
     })
     return () => pomodoro.disconnect(connection)
   }).pipe(
-    shareReplay(1)
+    shareReplay({ bufferSize: 1, refCount: true })
   )
 
   pomodoroService = {

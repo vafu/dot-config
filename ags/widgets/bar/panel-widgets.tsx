@@ -15,11 +15,13 @@ type SubgroupProps = (Gtk.Box.ConstructorProps)
 export const Subgroup = (props: SubgroupProps) => {
   const { css_classes, children, revealWhen, ...boxprops } = props
 
+  const widgets = [...children]
+  const main = widgets.at(-1) as Gtk.Widget
+  const secondary = widgets.slice(0, -1)
+
   const box = new Gtk.Box({
     ...boxprops
   })
-
-  const main = children.pop() as Gtk.Widget
 
   const revealer = new Gtk.Revealer({
     child: box,
@@ -32,7 +34,7 @@ export const Subgroup = (props: SubgroupProps) => {
     revealer.connect("destroy", s.unsubscribe)
   }
 
-  children.forEach(w => box.append(w as Gtk.Widget))
+  secondary.forEach(w => box.append(w as Gtk.Widget))
 
   return <box css_classes={css_classes}>
     <Gtk.EventControllerMotion
@@ -63,7 +65,7 @@ type PanelButtonGroupProps = WidgetProps & {
 }
 
 export const PanelButtonGroup = (props: PanelButtonGroupProps) => {
-  const widgets = props.children
+  const widgets = [...props.children]
   widgets.forEach(b => {
     if (b instanceof Gtk.Button || b instanceof Gtk.MenuButton) {
       b.add_css_class('flat')
@@ -92,16 +94,16 @@ export const PanelButtonGroup = (props: PanelButtonGroupProps) => {
     }),
   )
 
-  const main = (
-    <box cssClasses={['button-subgroup-main']}>{widgets.shift()}</box>
-  ) as Gtk.Widget
+  const [primary, ...secondary] = widgets
+  const main = primary as Gtk.Widget
+  main.add_css_class('button-subgroup-main')
 
   const group = (
     <revealer
       transition_type={Gtk.RevealerTransitionType.SLIDE_RIGHT}
       revealChild={binding(revealed, false)}
     >
-      <box cssClasses={['button-subgroup']}>{widgets}</box>
+      <box cssClasses={['button-subgroup']}>{secondary}</box>
     </revealer>
   ) as Gtk.Revealer
   const expandDirection = props.expandDirection ?? 'left'
@@ -167,7 +169,7 @@ function syncStyleClasses(widget: Gtk.Widget, previous: Set<string>, next: strin
 
 export const Badged = (props: BadgedProps) => {
   const overlay = new Gtk.Overlay({
-    cssClasses: (props.cssClasses ?? []).concat(['barblock-badge-layer']),
+    cssClasses: props.cssClasses ?? [],
   })
   overlay.set_child(props.child)
 

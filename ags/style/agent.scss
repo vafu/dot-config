@@ -1,13 +1,5 @@
 @import 'common.scss';
 
-.agent-attention {
-  animation: agent-attention-pulse 1s ease-in-out infinite alternate;
-}
-
-.agent-usage-chip {
-  border-radius: 12px;
-}
-
 .agent-widget {
   border-radius: 12px;
   opacity: 0.42;
@@ -121,11 +113,6 @@
 @keyframes agent-tool-scale {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(0.7); }
-}
-
-@keyframes agent-attention-pulse {
-  from { background-color: color-mix(in srgb, #{$sys_danger} 20%, #{$bg}); }
-  to { background-color: color-mix(in srgb, #{$sys_danger} 50%, #{$bg}); }
 }
 
 @keyframes agent-attention-passive-icon-pulse {

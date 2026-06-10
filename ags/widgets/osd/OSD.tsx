@@ -1,7 +1,6 @@
 import { Gtk } from 'ags/gtk4'
 import { bindAs, bindProp } from 'rxbinding'
 import { filter, Observable, shareReplay } from 'rxjs'
-import { createRoot } from 'gnim/jsx/scope'
 
 export type Level = {
   type: 'level'
@@ -17,16 +16,16 @@ export const Hidden = { type: 'hidden' }
 export type State = typeof Hidden | Level
 
 export function OnScreenProgress({ states }: { states: Observable<State> }) {
-  const state = states.pipe(shareReplay(1))
+  const state = states.pipe(shareReplay({ bufferSize: 1, refCount: true }))
 
   const levels = state.pipe(filter(v => v.type == 'level')) as Observable<Level>
 
-  return createRoot(() => (
+  return (
     <revealer
       revealChild={bindAs(state, s => s != Hidden, false)}
       transitionType={Gtk.RevealerTransitionType.CROSSFADE}
     >
-      <box cssClasses={['OSD']} orientation={Gtk.Orientation.VERTICAL}>
+      <box cssClasses={['osd-shell']} orientation={Gtk.Orientation.VERTICAL}>
         <image
           iconName={bindProp(levels, 'iconName', '')}
           iconSize={Gtk.IconSize.LARGE}
@@ -38,5 +37,5 @@ export function OnScreenProgress({ states }: { states: Observable<State> }) {
         />
       </box>
     </revealer>
-  ))
+  )
 }

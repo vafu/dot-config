@@ -34,7 +34,7 @@ export function fromConnectable<T extends GObject.Object, P extends keyof T>(
     )
   return asObservable(createBinding(object, property)).pipe(
     filter(p => p != null),
-    shareReplay(1),
+    shareReplay({ bufferSize: 1, refCount: true }),
   )
 }
 
@@ -71,7 +71,7 @@ export function bindAs<T, R>(
     map(mapper),
     distinctUntilChanged(),
     tap({ next: v => (value = v) }),
-    shareReplay(1),
+    shareReplay({ bufferSize: 1, refCount: true }),
   )
 
   const get = (): R => {
@@ -95,7 +95,7 @@ export function binding<T>(
   let value: T | typeof empty = initial
   const shared = observable.pipe(
     tap({ next: v => (value = v) }),
-    shareReplay(1),
+    shareReplay({ bufferSize: 1, refCount: true }),
   )
 
   const get = (): T => {
@@ -122,7 +122,6 @@ export function fromChain<T extends GObject.Object, P extends keyof T>(
 ): Observable<T[P]> {
   return observable.pipe(switchMap(obj => fromConnectable(obj, prop)))
 }
-
 
 
 

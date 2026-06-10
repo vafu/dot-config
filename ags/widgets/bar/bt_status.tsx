@@ -21,7 +21,6 @@ import {
 } from 'rxjs'
 import { MaterialIcon } from 'widgets/materialicon'
 import { Gtk } from 'ags/gtk4'
-import { ActionRow, ListBox } from 'widgets/adw'
 import {
   DualIndicator,
   IconIndicator,
@@ -34,7 +33,7 @@ import { createBinding, With, For } from 'gnim'
 
 const btDevices = fromConnectable(AstalBluetooth.get_default(), 'devices').pipe(
   debounceTime(200),
-  shareReplay(1),
+  shareReplay({ bufferSize: 1, refCount: true }),
 )
 
 function BtDeviceBattery(props: {
@@ -49,11 +48,11 @@ function BtDeviceBattery(props: {
         .filter(d => props.matcher(d.type)),
     ),
     filter(d => d != null && d.length > 0),
-    shareReplay(1),
+    shareReplay({ bufferSize: 1, refCount: true }),
   )
   const device = devices.pipe(
     map(a => a[0]),
-    shareReplay(1),
+    shareReplay({ bufferSize: 1, refCount: true }),
   )
 
   const connected = device.pipe(
@@ -75,56 +74,51 @@ function BtDeviceBattery(props: {
   )
 
   const indicator = (
-    <box
-      tooltipText={bindAs(device, d => d.device.name, '')}
-      halign={Gtk.Align.CENTER}
-    >
-      <With value={binding(chargeType, 'none' as const)}>
-        {(type) => {
-          switch (type) {
-            case 'single':
-              const battery = charge.pipe(
-                filter(v => v.type === 'single'),
-                map(v => v.primary),
-              )
-              return SingleIndicator({
-                levelVisible: levelVisible,
-                level: binding(battery, 0),
-                stages: stages,
-                ...iconIndicatorProps,
-              })
+    <With value={binding(chargeType, 'none' as const)}>
+      {(type) => {
+        switch (type) {
+          case 'single':
+            const battery = charge.pipe(
+              filter(v => v.type === 'single'),
+              map(v => v.primary),
+            )
+            return SingleIndicator({
+              levelVisible: levelVisible,
+              level: binding(battery, 0),
+              stages: stages,
+              ...iconIndicatorProps,
+            })
 
-            case 'dual':
-              const left = charge.pipe(
-                filter(v => v.type === 'dual'),
-                map(v => v.primary),
-              )
-              const right = charge.pipe(
-                filter(v => v.type === 'dual'),
-                map(v => v.secondary),
-              )
+          case 'dual':
+            const left = charge.pipe(
+              filter(v => v.type === 'dual'),
+              map(v => v.primary),
+            )
+            const right = charge.pipe(
+              filter(v => v.type === 'dual'),
+              map(v => v.secondary),
+            )
 
-              return DualIndicator({
-                left: binding(left, 0),
-                right: binding(right, 0),
-                levelsVisible: levelVisible,
-                stages: stages,
-                ...iconIndicatorProps,
-              })
+            return DualIndicator({
+              left: binding(left, 0),
+              right: binding(right, 0),
+              levelsVisible: levelVisible,
+              stages: stages,
+              ...iconIndicatorProps,
+            })
 
-            case 'none':
-              return IconIndicator(iconIndicatorProps)
-          }
-        }}
-      </With>
-    </box>
+          case 'none':
+            return IconIndicator(iconIndicatorProps)
+        }
+      }}
+    </With>
   )
 
   const devicesForView = devices.pipe(
     distinctUntilChanged(
       (a, b) =>
-        a.map(d => d.device.address + d.device.connected) ==
-        b.map(d => d.device.address + d.device.connected),
+        a.map(d => d.device.address + d.device.connected).join('\0') ==
+        b.map(d => d.device.address + d.device.connected).join('\0'),
     ),
   )
   const popover = new Gtk.Popover({
@@ -171,7 +165,14 @@ function BtDeviceBattery(props: {
     ) as Gtk.Widget,
   })
 
-  return <menubutton popover={popover}>{indicator}</menubutton>
+  return (
+    <menubutton
+      popover={popover}
+      tooltipText={bindAs(device, d => d.device.name, '')}
+    >
+      {indicator}
+    </menubutton>
+  )
 }
 
 type BtStatus =
@@ -254,9 +255,6 @@ export const BluetoothStatus = () => {
     </PanelButtonGroup>
   )
 }
-
-
-
 
 
 

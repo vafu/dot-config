@@ -4,13 +4,12 @@ import { Astal, Gdk, Gtk } from 'ags/gtk4'
 import Adw from 'gi://Adw?version=1'
 import GtkSource from 'gi://GtkSource?version=5'
 import GLib from 'gi://GLib?version=2.0'
-import { bindAs, binding } from 'rxbinding'
+import { bindAs, binding, subscribeTo } from 'rxbinding'
 import { getAgentService, AgentStatus } from 'services/agent'
 import { locus } from 'services/locus.generated'
 import approvalsUi from 'widgets/agent-approvals'
 import { MaterialIcon } from 'widgets/materialicon'
 import { combineLatest, map, distinctUntilChanged } from 'rxjs'
-import { parsePatch } from 'diff'
 
 type PendingApproval = {
   sessionId: string
@@ -195,193 +194,8 @@ function nativeDiffStyleScheme(widget: Gtk.Widget) {
   return manager.get_scheme(nativeDiffSchemeId)
 }
 
-function diffPathFromHeader(line: string) {
-  const path = line.replace(/^(---|\+\+\+)\s+/, '').trim()
-  if (!path || path === '/dev/null') return ''
-  return path.replace(/^[ab]\//, '')
-}
-
-function diffPathFromPatchHeader(line: string) {
-  return line.replace(/^\*\*\* (Add|Update|Delete) File:\s+/, '').trim()
-}
-
-function prettyDiffPath(path: string | undefined) {
-  if (!path) return 'unknown'
-  return path.replace(/^[ab]\//, '')
-}
-
-function diffHunkHeader(hunk: any) {
-  const oldLines = hunk.oldLines === 1 ? '' : `,${hunk.oldLines}`
-  const newLines = hunk.newLines === 1 ? '' : `,${hunk.newLines}`
-  return `@@ -${hunk.oldStart}${oldLines} +${hunk.newStart}${newLines} @@`
-}
-
-function makeDiffHeaderRow(line: string, kind: string) {
-  return new Gtk.Label({
-    label: line,
-    xalign: 0,
-    selectable: true,
-    cssClasses: [
-      'agent-approval-detail',
-      'agent-approval-detail-monospace',
-      'agent-approval-diff-row',
-      kind,
-    ],
-  })
-}
-
-function makeDiffCodeRow(line: string, sign: string, language: any | null) {
-  const buffer = new GtkSource.Buffer()
-
-  if (language) buffer.set_language(language)
-  buffer.set_highlight_syntax(true)
-  buffer.set_text(line || ' ', -1)
-
-  const view = new GtkSource.View({
-    buffer,
-    editable: false,
-    cursorVisible: false,
-    monospace: true,
-    hexpand: true,
-    backgroundPattern: GtkSource.BackgroundPatternType.NONE,
-    canFocus: false,
-    focusable: false,
-    showLineNumbers: false,
-    showLineMarks: false,
-    wrapMode: Gtk.WrapMode.NONE,
-    pixelsAboveLines: 0,
-    pixelsBelowLines: 0,
-    pixelsInsideWrap: 0,
-    topMargin: 0,
-    bottomMargin: 0,
-    leftMargin: 0,
-    rightMargin: 0,
-    cssClasses: [
-      'agent-approval-detail',
-      'agent-approval-detail-monospace',
-      'agent-approval-diff-code-view',
-    ],
-  })
-  const scheme = nativeDiffStyleScheme(view)
-  if (scheme) buffer.set_style_scheme(scheme)
-
-  const rowKind =
-    sign === '+'
-      ? 'agent-approval-diff-added'
-      : sign === '-'
-        ? 'agent-approval-diff-removed'
-        : 'agent-approval-diff-context'
-  const row = new Gtk.Box({
-    orientation: Gtk.Orientation.HORIZONTAL,
-    spacing: 0,
-    hexpand: true,
-    cssClasses: ['agent-approval-diff-row', rowKind],
-  })
-  row.append(new Gtk.Label({
-    label: sign || ' ',
-    xalign: 0.5,
-    cssClasses: [
-      'agent-approval-detail',
-      'agent-approval-detail-monospace',
-      'agent-approval-diff-sign',
-    ],
-  }))
-  row.append(view)
-  return row
-}
-
-function makeParsedDiffDetailView(diffText: string) {
-  let files: any[] = []
-  try {
-    files = parsePatch(diffText)
-  } catch (error) {
-    return null
-  }
-  if (files.length === 0) return null
-  if (!files.some(file => (file.hunks ?? []).some((hunk: any) => (hunk.lines ?? []).length > 0))) {
-    return null
-  }
-
-  const languageManager = GtkSource.LanguageManager.get_default()
-  const container = new Gtk.Box({
-    orientation: Gtk.Orientation.VERTICAL,
-    spacing: 0,
-    cssClasses: ['agent-approval-diff-renderer'],
-  })
-
-  for (const file of files) {
-    const oldPath = prettyDiffPath(file.oldFileName)
-    const newPath = prettyDiffPath(file.newFileName)
-    const language = languageManager.guess_language(newPath !== '/dev/null' ? newPath : oldPath, null)
-    container.append(makeDiffHeaderRow(`--- ${oldPath}${file.oldHeader ? `\t${file.oldHeader}` : ''}`, 'agent-approval-diff-file'))
-    container.append(makeDiffHeaderRow(`+++ ${newPath}${file.newHeader ? `\t${file.newHeader}` : ''}`, 'agent-approval-diff-file'))
-
-    for (const hunk of file.hunks ?? []) {
-      container.append(makeDiffHeaderRow(diffHunkHeader(hunk), 'agent-approval-diff-hunk'))
-      for (const line of hunk.lines ?? []) {
-        if (line.startsWith('+')) {
-          container.append(makeDiffCodeRow(line.slice(1), '+', language))
-        } else if (line.startsWith('-')) {
-          container.append(makeDiffCodeRow(line.slice(1), '-', language))
-        } else if (line.startsWith(' ')) {
-          container.append(makeDiffCodeRow(line.slice(1), ' ', language))
-        } else if (line.startsWith('\\')) {
-          container.append(makeDiffHeaderRow(line, 'agent-approval-diff-meta'))
-        }
-      }
-    }
-  }
-
-  return container
-}
-
-function makeFallbackDiffDetailView(diffText: string) {
-  const languageManager = GtkSource.LanguageManager.get_default()
-  const container = new Gtk.Box({
-    orientation: Gtk.Orientation.VERTICAL,
-    spacing: 0,
-    cssClasses: ['agent-approval-diff-renderer'],
-  })
-  let currentPath = ''
-  let currentLanguage: any | null = null
-
-  const setCurrentPath = (path: string) => {
-    if (!path) return
-    currentPath = path
-    currentLanguage = languageManager.guess_language(currentPath, null)
-  }
-
-  for (const line of diffText.split('\n')) {
-    if (line.startsWith('+++ ')) {
-      setCurrentPath(diffPathFromHeader(line))
-      container.append(makeDiffHeaderRow(line, 'agent-approval-diff-file'))
-    } else if (line.startsWith('--- ')) {
-      const path = diffPathFromHeader(line)
-      if (!currentPath) setCurrentPath(path)
-      container.append(makeDiffHeaderRow(line, 'agent-approval-diff-file'))
-    } else if (/^\*\*\* (Add|Update|Delete) File:/.test(line)) {
-      setCurrentPath(diffPathFromPatchHeader(line))
-      container.append(makeDiffHeaderRow(line, 'agent-approval-diff-file'))
-    } else if (line.startsWith('diff ') || line.startsWith('index ') || line.startsWith('*** Begin Patch') || line.startsWith('*** End Patch')) {
-      container.append(makeDiffHeaderRow(line, 'agent-approval-diff-file'))
-    } else if (line.startsWith('@@')) {
-      container.append(makeDiffHeaderRow(line, 'agent-approval-diff-hunk'))
-    } else if (line.startsWith('+')) {
-      container.append(makeDiffCodeRow(line.slice(1), '+', currentLanguage))
-    } else if (line.startsWith('-')) {
-      container.append(makeDiffCodeRow(line.slice(1), '-', currentLanguage))
-    } else if (line.startsWith(' ')) {
-      container.append(makeDiffCodeRow(line.slice(1), ' ', currentLanguage))
-    } else if (line.length > 0) {
-      container.append(makeDiffHeaderRow(line, 'agent-approval-diff-meta'))
-    }
-  }
-
-  return container
-}
-
 function makeDiffDetailView(diffText: string) {
-  return makeParsedDiffDetailView(diffText) ?? makeFallbackDiffDetailView(diffText)
+  return makeSourceDetailView(diffText, 'diff')
 }
 
 function makeSourceDetailView(text: string, languageId: string) {
@@ -399,7 +213,7 @@ function makeSourceDetailView(text: string, languageId: string) {
     cursorVisible: false,
     monospace: true,
     hexpand: true,
-    heightRequest: Math.min(320, Math.max(28, lineCount * 22)),
+    heightRequest: Math.min(344, Math.max(28, lineCount * 22) + 24),
     backgroundPattern: GtkSource.BackgroundPatternType.NONE,
     showLineNumbers: false,
     showLineMarks: false,
@@ -407,14 +221,14 @@ function makeSourceDetailView(text: string, languageId: string) {
     pixelsAboveLines: 0,
     pixelsBelowLines: 0,
     pixelsInsideWrap: 0,
-    topMargin: 0,
-    bottomMargin: 0,
-    leftMargin: 0,
-    rightMargin: 0,
+    topMargin: 12,
+    bottomMargin: 12,
+    leftMargin: 12,
+    rightMargin: 12,
     cssClasses: [
       'agent-approval-detail',
+      'agent-approval-detail-surface',
       'agent-approval-detail-monospace',
-      'agent-approval-source-view',
     ],
   })
   const scheme = nativeDiffStyleScheme(view)
@@ -454,27 +268,19 @@ function makeOptionButton(
     answer()
   })
   button.connect('notify::has-focus', () => {
-    if (button.has_focus()) select(idx)
+    if (button.has_focus) select(idx)
   })
   if (idx === selected()) button.add_css_class('selected')
   return button
 }
 
-function makeDetailBlock(request: PendingApproval): Gtk.Widget | null {
+function makeDetailView(request: PendingApproval): Gtk.Widget | null {
   if (!request.detailText) return null
   if (request.detailKind === 'diff') {
-    return (
-      <box orientation={Gtk.Orientation.VERTICAL} spacing={6} cssClasses={['agent-approval-detail-block', 'agent-approval-diff-block']}>
-        {makeDiffDetailView(request.detailText)}
-      </box>
-    ) as Gtk.Widget
+    return makeDiffDetailView(request.detailText)
   }
   if (request.detailKind === 'command') {
-    return (
-      <box orientation={Gtk.Orientation.VERTICAL} spacing={6} cssClasses={['agent-approval-detail-block', 'agent-approval-source-block']}>
-        {makeSourceDetailView(request.detailText, 'sh')}
-      </box>
-    ) as Gtk.Widget
+    return makeSourceDetailView(request.detailText, 'sh')
   }
 
   const isStructured = ['diff', 'command', 'json'].includes(request.detailKind)
@@ -483,21 +289,18 @@ function makeDetailBlock(request: PendingApproval): Gtk.Widget | null {
     cursorVisible: false,
     monospace: isStructured,
     wrapMode: isStructured ? Gtk.WrapMode.NONE : Gtk.WrapMode.WORD_CHAR,
-    topMargin: 0,
-    bottomMargin: 0,
-    leftMargin: 0,
-    rightMargin: 0,
+    topMargin: 12,
+    bottomMargin: 12,
+    leftMargin: 12,
+    rightMargin: 12,
     cssClasses: [
       'agent-approval-detail',
+      'agent-approval-detail-surface',
       isStructured ? 'agent-approval-detail-monospace' : 'agent-approval-detail-text',
     ],
   })
   detailView.get_buffer().set_text(request.detailText, -1)
-  return (
-    <box orientation={Gtk.Orientation.VERTICAL} spacing={6} cssClasses={['agent-approval-detail-block']}>
-      {detailView}
-    </box>
-  ) as Gtk.Widget
+  return detailView
 }
 
 export function AgentApprovalOverlay(monitor: Accessor<Gdk.Monitor>) {
@@ -602,11 +405,10 @@ export function AgentApprovalOverlay(monitor: Accessor<Gdk.Monitor>) {
         map(([workspaceIcon, directIcon]) => workspaceIcon || directIcon || 'smart_toy'),
         distinctUntilChanged(),
       )
-      const detailBlock = makeDetailBlock(request)
+      const detailView = makeDetailView(request)
       const contentBox = new Gtk.Box({
         orientation: Gtk.Orientation.VERTICAL,
         spacing: 12,
-        cssClasses: ['agent-approval-content'],
       })
       contentBox.append(new Gtk.Label({
         label: request.prompt,
@@ -615,19 +417,19 @@ export function AgentApprovalOverlay(monitor: Accessor<Gdk.Monitor>) {
         maxWidthChars: 92,
         cssClasses: ['agent-approval-prompt'],
       }))
-      if (detailBlock) contentBox.append(detailBlock)
+      if (detailView) contentBox.append(detailView)
       const contentScroll = new Gtk.ScrolledWindow({
         hscrollbarPolicy: Gtk.PolicyType.AUTOMATIC,
         vscrollbarPolicy: Gtk.PolicyType.AUTOMATIC,
-        propagateNaturalHeight: true,
+        propagateNaturalHeight: false,
         maxContentHeight: 620,
+        vexpand: true,
         child: contentBox,
         cssClasses: ['agent-approval-content-scroll'],
       })
       const optionBox = new Gtk.Box({
         orientation: Gtk.Orientation.VERTICAL,
         spacing: 8,
-        cssClasses: ['agent-approval-options'],
       })
 
       options.forEach((option, idx) => {
@@ -647,11 +449,11 @@ export function AgentApprovalOverlay(monitor: Accessor<Gdk.Monitor>) {
       })
 
       const card = (
-        <box
+          <box
           orientation={Gtk.Orientation.VERTICAL}
           spacing={16}
-          widthRequest={900}
-          vexpand={false}
+          hexpand={true}
+          vexpand={true}
           valign={Gtk.Align.CENTER}
           cssClasses={['agent-approval-card']}
         >
@@ -728,30 +530,27 @@ export function AgentApprovalOverlay(monitor: Accessor<Gdk.Monitor>) {
   })
   body.add_controller(keyController)
 
-  sessions$
+  subscribeTo(body, sessions$
     .pipe(
       map(s => [...s.entries()]
         .flatMap(([id, status]) => requestsForSession(id, status))
         .map(request => approvalSignature(request))
         .join('\n')),
       distinctUntilChanged(),
-    )
-    .subscribe(() => {
-      if (approvalsUi.active.value) rebuild()
-    })
+    ), () => {
+    if (approvalsUi.active.value) rebuild()
+  })
 
-  approvalsUi.active.subscribe(active => {
+  subscribeTo(body, approvalsUi.active, active => {
     if (active) {
       rebuild()
       body.grab_focus()
     }
   })
 
-  approvalsUi.targetSession
-    .pipe(distinctUntilChanged())
-    .subscribe(() => {
-      if (approvalsUi.active.value) scrollToTarget()
-    })
+  subscribeTo(body, approvalsUi.targetSession.pipe(distinctUntilChanged()), () => {
+    if (approvalsUi.active.value) scrollToTarget()
+  })
 
   return (
     <window
