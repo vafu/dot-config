@@ -40,10 +40,19 @@ export interface BzBusActionSummary {
   runners: BzBusRunner[]
 }
 
+export interface BzBusWorker {
+  mnemonic: string
+  processId: number
+  status: string
+  memoryKb: number
+  actionsExecuted: number
+}
+
 export interface BzBusWorkerSummary {
   total: number
   killedDueToMemoryPressure: number
   peakMemoryKb: number
+  workers: BzBusWorker[]
 }
 
 export interface BzBusNetwork {
@@ -120,9 +129,10 @@ export interface BzBusService {
 
 const DEFAULT_TIMING: BzBusTiming = { cpuMs: 0, wallMs: 0, analysisMs: 0, executionMs: 0 }
 const DEFAULT_ACTION_SUMMARY: BzBusActionSummary = { actionsCreated: 0, actionsExecuted: 0, topMnemonics: [], runners: [] }
-const DEFAULT_WORKER_SUMMARY: BzBusWorkerSummary = { total: 0, killedDueToMemoryPressure: 0, peakMemoryKb: 0 }
+const DEFAULT_WORKER_SUMMARY: BzBusWorkerSummary = { total: 0, killedDueToMemoryPressure: 0, peakMemoryKb: 0, workers: [] }
 const DEFAULT_NETWORK: BzBusNetwork = { bytesSent: 0, bytesRecv: 0, peakBytesSentPerSec: 0, peakBytesRecvPerSec: 0 }
 const DEFAULT_BUILD_PROGRESS: BzBusBuildProgress = { completed: 0, total: 0, actions: 0, running: 0, line: '' }
+const ACTIVE_STALE_MS = 2 * 60 * 60 * 1000
 
 const DEFAULT_STATE: BzBusState = {
   connected: false,
@@ -142,22 +152,110 @@ function stringProperty(properties: Record<string, string>, key: string): string
   return properties[key] ?? ''
 }
 
+function jsonProperty<T>(properties: Record<string, string>, key: string, fallback: T): T {
+  const value = properties[key]
+  if (!value) return fallback
+
+  try {
+    return JSON.parse(value) as T
+  } catch (error) {
+    console.warn(`invalid bzbus ${key}: ${error}`)
+    return fallback
+  }
+}
+
+function stringArrayProperty(properties: Record<string, string>, key: string): string[] {
+  const values = jsonProperty<unknown>(properties, key, [])
+  if (!Array.isArray(values)) return []
+  return values.filter((value): value is string => typeof value === 'string')
+}
+
+function stringRecordProperty(properties: Record<string, string>, key: string): Record<string, string> {
+  const values = jsonProperty<unknown>(properties, key, {})
+  if (!values || typeof values !== 'object' || Array.isArray(values)) return {}
+
+  return Object.fromEntries(
+    Object.entries(values).map(([entryKey, value]) => [entryKey, String(value)]),
+  )
+}
+
+function failuresProperty(properties: Record<string, string>): BzBusFailure[] {
+  const failures = jsonProperty<unknown>(properties, 'failures-json', [])
+  if (!Array.isArray(failures)) return []
+
+  return failures
+    .filter((failure): failure is Record<string, unknown> => !!failure && typeof failure === 'object' && !Array.isArray(failure))
+    .map(failure => ({
+      kind: String(failure.kind ?? ''),
+      label: String(failure.label ?? ''),
+      mnemonic: String(failure.mnemonic ?? ''),
+      exitCode: Number(failure.exit_code ?? failure.exitCode ?? 0) || 0,
+      message: String(failure.message ?? ''),
+      stdout: String(failure.stdout ?? ''),
+      stderr: String(failure.stderr ?? ''),
+    }))
+}
+
+function actionMnemonicsProperty(properties: Record<string, string>): BzBusActionMnemonic[] {
+  const mnemonics = jsonProperty<unknown>(properties, 'top-action-mnemonics-json', [])
+  if (!Array.isArray(mnemonics)) return []
+
+  return mnemonics
+    .filter((mnemonic): mnemonic is Record<string, unknown> => !!mnemonic && typeof mnemonic === 'object' && !Array.isArray(mnemonic))
+    .map(mnemonic => ({
+      mnemonic: String(mnemonic.mnemonic ?? ''),
+      actionsExecuted: Number(mnemonic.actions_executed ?? mnemonic.actionsExecuted ?? 0) || 0,
+    }))
+}
+
+function runnersProperty(properties: Record<string, string>): BzBusRunner[] {
+  const runners = jsonProperty<unknown>(properties, 'action-runners-json', [])
+  if (!Array.isArray(runners)) return []
+
+  return runners
+    .filter((runner): runner is Record<string, unknown> => !!runner && typeof runner === 'object' && !Array.isArray(runner))
+    .map(runner => ({
+      name: String(runner.name ?? ''),
+      count: Number(runner.count ?? 0) || 0,
+      execKind: String(runner.exec_kind ?? runner.execKind ?? ''),
+    }))
+}
+
+function workersProperty(properties: Record<string, string>): BzBusWorker[] {
+  const workers = jsonProperty<unknown>(properties, 'workers-json', [])
+  if (!Array.isArray(workers)) return []
+
+  return workers
+    .filter((worker): worker is Record<string, unknown> => !!worker && typeof worker === 'object' && !Array.isArray(worker))
+    .map(worker => ({
+      mnemonic: String(worker.mnemonic ?? ''),
+      processId: Number(worker.process_id ?? worker.processId ?? 0) || 0,
+      status: String(worker.status ?? ''),
+      memoryKb: Number(worker.memory_kb ?? worker.memoryKb ?? 0) || 0,
+      actionsExecuted: Number(worker.actions_executed ?? worker.actionsExecuted ?? 0) || 0,
+    }))
+}
+
 function idFromSubject(subject: string): string {
   return subject.startsWith(BUILD_SUBJECT_PREFIX) ? subject.slice(BUILD_SUBJECT_PREFIX.length) : subject
 }
 
 function invocationFromProperties(subject: string, properties: Record<string, string>): BzBusInvocation {
   const actionsCompleted = numberProperty(properties, 'actions-completed')
+  const actionsExecuted = numberProperty(properties, 'actions-executed') || actionsCompleted
   const totalActions = numberProperty(properties, 'total-actions')
   const progressCompleted = numberProperty(properties, 'progress-completed')
   const progressTotal = numberProperty(properties, 'progress-total')
   const runningActions = numberProperty(properties, 'running-actions')
+  const progressActions = numberProperty(properties, 'progress-actions') || actionsCompleted
+  const workers = workersProperty(properties)
+  const buildMetadata = stringRecordProperty(properties, 'build-metadata-json')
 
   return {
     id: stringProperty(properties, 'id') || idFromSubject(subject),
     buildId: stringProperty(properties, 'build-id'),
     component: stringProperty(properties, 'component'),
-    command: [],
+    command: stringArrayProperty(properties, 'command-json'),
     commandName: stringProperty(properties, 'command-name'),
     cwd: stringProperty(properties, 'cwd'),
     workspaceDir: stringProperty(properties, 'workspace-dir'),
@@ -165,19 +263,19 @@ function invocationFromProperties(subject: string, properties: Record<string, st
     serverPid: numberProperty(properties, 'server-pid'),
     status: stringProperty(properties, 'status') || 'unknown',
     outcome: stringProperty(properties, 'outcome') || 'unknown',
-    exitCode: 0,
-    exitCodeName: '',
+    exitCode: numberProperty(properties, 'exit-code'),
+    exitCodeName: stringProperty(properties, 'exit-code-name'),
     startedAtUnixMs: numberProperty(properties, 'started-at-unix-ms'),
     endedAtUnixMs: numberProperty(properties, 'ended-at-unix-ms'),
     lastSequenceNumber: numberProperty(properties, 'last-observed-sequence-number'),
-    recentStdout: '',
-    recentStderr: '',
+    recentStdout: stringProperty(properties, 'recent-stdout'),
+    recentStderr: stringProperty(properties, 'recent-stderr'),
     buildProgress: {
       completed: progressCompleted,
       total: progressTotal,
-      actions: actionsCompleted,
+      actions: progressActions,
       running: runningActions,
-      line: '',
+      line: stringProperty(properties, 'progress-line'),
     },
     targetsTotal: numberProperty(properties, 'targets-total'),
     targetsFailed: numberProperty(properties, 'targets-failed'),
@@ -185,22 +283,50 @@ function invocationFromProperties(subject: string, properties: Record<string, st
     testsFailed: numberProperty(properties, 'tests-failed'),
     actionsTotal: actionsCompleted,
     actionsFailed: numberProperty(properties, 'actions-failed'),
-    failedTargets: [],
-    failedTests: [],
-    failures: [],
-    timing: DEFAULT_TIMING,
-    actionSummary: {
-      ...DEFAULT_ACTION_SUMMARY,
-      actionsCreated: totalActions,
-      actionsExecuted: actionsCompleted,
+    failedTargets: stringArrayProperty(properties, 'failed-targets-json'),
+    failedTests: stringArrayProperty(properties, 'failed-tests-json'),
+    failures: failuresProperty(properties),
+    timing: {
+      cpuMs: numberProperty(properties, 'timing-cpu-ms'),
+      wallMs: numberProperty(properties, 'timing-wall-ms'),
+      analysisMs: numberProperty(properties, 'timing-analysis-ms'),
+      executionMs: numberProperty(properties, 'timing-execution-ms'),
     },
-    workerSummary: DEFAULT_WORKER_SUMMARY,
-    network: DEFAULT_NETWORK,
-    metadata: { ...properties },
+    actionSummary: {
+      actionsCreated: totalActions,
+      actionsExecuted,
+      topMnemonics: actionMnemonicsProperty(properties),
+      runners: runnersProperty(properties),
+    },
+    workerSummary: {
+      total: numberProperty(properties, 'workers-total') || workers.length,
+      killedDueToMemoryPressure: numberProperty(properties, 'workers-killed-due-to-memory-pressure'),
+      peakMemoryKb: numberProperty(properties, 'workers-peak-memory-kb'),
+      workers,
+    },
+    network: {
+      bytesSent: numberProperty(properties, 'network-bytes-sent'),
+      bytesRecv: numberProperty(properties, 'network-bytes-recv'),
+      peakBytesSentPerSec: numberProperty(properties, 'network-peak-bytes-sent-per-sec'),
+      peakBytesRecvPerSec: numberProperty(properties, 'network-peak-bytes-recv-per-sec'),
+    },
+    metadata: { ...buildMetadata, ...properties },
   }
 }
 
+function lastObservedTime(invocation: BzBusInvocation): number {
+  const firstObserved = numberProperty(invocation.metadata, 'first-observed-at-unix-ms')
+  const lastObserved = numberProperty(invocation.metadata, 'last-observed-at-unix-ms')
+  return Math.max(lastObserved, firstObserved, invocation.startedAtUnixMs)
+}
+
+function isStale(invocation: BzBusInvocation): boolean {
+  const lastObserved = lastObservedTime(invocation)
+  return lastObserved > 0 && Date.now() - lastObserved > ACTIVE_STALE_MS
+}
+
 function isActive(invocation: BzBusInvocation): boolean {
+  if (invocation.endedAtUnixMs > 0 || isStale(invocation)) return false
   return invocation.status !== 'finished'
     && invocation.status !== 'failed'
     && invocation.outcome !== 'success'
@@ -208,8 +334,7 @@ function isActive(invocation: BzBusInvocation): boolean {
 }
 
 function observedTime(invocation: BzBusInvocation): number {
-  const firstObserved = numberProperty(invocation.metadata, 'first-observed-at-unix-ms')
-  return Math.max(invocation.endedAtUnixMs, invocation.startedAtUnixMs, firstObserved)
+  return Math.max(invocation.endedAtUnixMs, lastObservedTime(invocation))
 }
 
 function compareInvocations(left: BzBusInvocation, right: BzBusInvocation): number {
