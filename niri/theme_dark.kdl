@@ -21,6 +21,6 @@ window-rule {
 }
 
 cursor {
-    xcursor-theme "phinger-cursors-dark"
+    xcursor-theme "phinger-cursors-light"
     xcursor-size 24
 }

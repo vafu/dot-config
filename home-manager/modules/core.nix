@@ -66,9 +66,12 @@
       wl-clipboard
       xwayland-satellite
       zk
-
+      ripgrep
+      triggerhappy
       (config.lib.nixGL.wrap pkgs.ghostty)
       (config.lib.nixGL.wrap pkgs.scrcpy)
+
+      pandoc
 
       (python312.withPackages (
         ps: with ps; [
@@ -86,6 +89,8 @@
   };
 
   programs.home-manager.enable = true;
+
+  systemd.user.startServices = "suggest";
 
   targets.genericLinux = {
     enable = true;

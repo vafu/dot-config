@@ -16,6 +16,6 @@ layout {
 }
 
 cursor {
-    xcursor-theme "phinger-cursors-light"
+    xcursor-theme "phinger-cursors-dark"
     xcursor-size 24
 }

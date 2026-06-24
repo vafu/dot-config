@@ -5,14 +5,13 @@ import {
   distinctUntilChanged,
   map,
   of,
-  scan,
   shareReplay,
   startWith,
   switchMap,
 } from 'rxjs'
 import { AgentStatus, getAgentService } from 'services/agent'
 import { firstProjectName, workspace$, workspaceExternalId } from 'services/locus'
-import { NodeListDiffCommand, locus } from 'services/locus.generated'
+import { locus } from 'services/locus.generated'
 
 export type WorkspaceWindowIndicatorBase = {
   id: string
@@ -231,25 +230,9 @@ const agentWindowTooltip = (status: AgentStatus, sessionId: string, substatusCou
   return `${name} · ${status.modelName || 'idle'} · ${state} · ${Math.round(status.contextPct)}%${subagents}`
 }
 
-function applyNodeListDiff(current: string[], commands: NodeListDiffCommand[]) {
-  let next = [...current]
-  for (const command of commands) {
-    if (command.type === 'reset') {
-      next = [...command.nodes]
-    } else if (command.type === 'node-added') {
-      const index = Math.max(0, Math.min(command.index, next.length))
-      if (!next.includes(command.node)) next.splice(index, 0, command.node)
-    } else if (command.type === 'node-removed') {
-      const exact = next[command.index] === command.node ? command.index : next.indexOf(command.node)
-      if (exact >= 0) next.splice(exact, 1)
-    }
-  }
-  return next
-}
 
 function workspaceIdsForOutput$(connector: string) {
-  return locus.sourcesDiff$(`output:${connector}`, 'output').pipe(
-    scan(applyNodeListDiff, [] as string[]),
+  return locus.sources$(`output:${connector}`, 'output').pipe(
     map(subjects => subjects.filter(subject => subject.startsWith('workspace:'))),
     distinctUntilChanged(sameArray),
     shareReplay({ bufferSize: 1, refCount: true }),

@@ -5,6 +5,7 @@ environment {
 spawn-at-startup "uwsm" "finalize"
 spawn-sh-at-startup "runapp -i session-graphical.slice -- hypridle"
 spawn-sh-at-startup "runapp -- $HOME/.cargo/bin/supprssor"
+spawn-sh-at-startup "runapp -- ags run"
 spawn-sh-at-startup "runapp -- rsynapse-daemon"
 spawn-sh-at-startup "runapp -- remarked"
 spawn-sh-at-startup "runapp -i background-graphical.slice -- udiskie"
@@ -12,6 +13,7 @@ spawn-sh-at-startup "runapp -i background-graphical.slice -- udiskie"
 // spawn-sh-at-startup "hypridle"
 
 // spawn-sh-at-startup "$HOME/.cargo/bin/supprssor"
+// spawn-sh-at-startup "ags run"
 // spawn-sh-at-startup "$HOME/.nix-profile/bin/rsynapse-daemon"
 // spawn-sh-at-startup "remarked"
 // spawn-sh-at-startup "udiskie"
@@ -202,7 +204,7 @@ binds {
     Ctrl+Shift+L hotkey-overlay-title="Lock the Screen: swaylock" { spawn-sh "runapp -o hyprlock"; }
     Ctrl+Shift+U hotkey-overlay-title="Lock the Screen: swaylock" { spawn-sh "~/.config/scripts/suspend.sh"; }
 
-    Ctrl+Shift+R { spawn-sh "systemctl --user restart rsynapse-shell.service"; }
+    Ctrl+Shift+R { spawn-sh "systemctl --user restart 'app-niri-ags*.service'"; }
 
     // Example volume keys mappings for PipeWire & WirePlumber.
     // The allow-when-locked=true property makes them work even when the session is locked.
