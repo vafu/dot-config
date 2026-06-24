@@ -22,24 +22,69 @@ safe_part() {
   printf '%s' "$1" | tr -c '[:alnum:]_' '_'
 }
 
-selected_window=$(locusctl context get selected window --first 2>/dev/null || true)
+mountpoint=${LOCUS_ROOT:-${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/locusfs}
+
+encode_segment() {
+  jq -rn --arg value "$1" '$value | @uri'
+}
+
+node_dir() {
+  subject=$1
+  kind=${subject%%:*}
+  local_id=${subject#*:}
+  if [ "$kind" = "$subject" ] || [ -z "$kind" ] || [ -z "$local_id" ]; then
+    return 1
+  fi
+  printf '%s/%s/%s\n' "$mountpoint" "$(encode_segment "$kind")" "$(encode_segment "$local_id")"
+}
+
+ensure_node() {
+  subject=$1
+  kind=${subject%%:*}
+  dir=$(node_dir "$subject") || return 1
+  mkdir "$mountpoint/$(encode_segment "$kind")" 2>/dev/null || true
+  [ -d "$dir" ] || mkdir "$dir"
+}
+
+write_prop() {
+  subject=$1
+  key=$2
+  value=$3
+  ensure_node "$subject" || return 1
+  dir=$(node_dir "$subject") || return 1
+  printf '%s\n' "$value" > "$dir/$(encode_segment "$key")"
+}
+
+selected_window_path=$(readlink -f "$mountpoint/context/selected/window" 2>/dev/null || true)
+selected_window=
+if [ -n "$selected_window_path" ]; then
+  selected_window="window:$(basename "$selected_window_path")"
+fi
 app_part=$(safe_part "$app_name")
-app_node="app-instance:${app_part}/$$-$(date +%s%N)"
+app_local="${app_part}_$$_$(date +%s%N)"
+app_node="app-instance:${app_local}"
+app_dir=
 linked=0
 
 cleanup() {
   if [ "$linked" = 1 ]; then
-    locusctl delete-node "$app_node" >/dev/null 2>&1 || true
+    selected_window_id=${selected_window#window:}
+    rm -f "$mountpoint/window/$(encode_segment "$selected_window_id")/app-instance" 2>/dev/null || true
+    [ -n "$app_dir" ] && rmdir "$app_dir" >/dev/null 2>&1 || true
   fi
 }
 
 trap cleanup EXIT HUP INT TERM
 
 if [ -n "$app_part" ] && [ "${selected_window#window:}" != "$selected_window" ]; then
-  locusctl prop set "$app_node" kind app-instance >/dev/null 2>&1 \
-    && locusctl prop set "$app_node" name "$app_name" >/dev/null 2>&1 \
-    && locusctl prop set "$app_node" icon "$app_icon" >/dev/null 2>&1 \
-    && locusctl link set "$selected_window" app-instance "$app_node" >/dev/null 2>&1 \
+  selected_window_id=${selected_window#window:}
+  app_dir=$(node_dir "$app_node") || app_dir=
+  window_dir="$mountpoint/window/$(encode_segment "$selected_window_id")"
+  write_prop "$app_node" kind app-instance >/dev/null 2>&1 \
+    && write_prop "$app_node" name "$app_name" >/dev/null 2>&1 \
+    && write_prop "$app_node" icon "$app_icon" >/dev/null 2>&1 \
+    && rm -f "$window_dir/app-instance" 2>/dev/null \
+    && ln -s "../../app-instance/$(encode_segment "$app_local")" "$window_dir/app-instance" \
     && linked=1
 fi
 

@@ -1,11 +1,67 @@
-[[ -r "$HOME/.config/locus/locus.sh" ]] && source "$HOME/.config/locus/locus.sh"
+_locus_root() {
+  print -r -- "${LOCUS_ROOT:-${XDG_RUNTIME_DIR:-/run/user/$UID}/locusfs}"
+}
+
+_locus_encode_segment() {
+  jq -rn --arg value "$1" '$value | @uri'
+}
 
 _locus_safe_node_part() {
   print -r -- "$1" | tr -c '[:alnum:]_' '_'
 }
 
-_locus_apply() {
-  locusctl apply >/dev/null 2>&1
+_locus_selected_node() {
+  local relative_path="$1"
+  local kind="$2"
+  local target
+  target="$(readlink -f "$(_locus_root)/$relative_path" 2>/dev/null)" || return 1
+  [[ -n "$target" ]] || return 1
+  print -r -- "$kind:${target:t}"
+}
+
+locus_selected_window() {
+  _locus_selected_node context/selected/window window
+}
+
+locus_selected_workspace() {
+  _locus_selected_node context/selected/workspace workspace
+}
+
+locus_selected_project_path() {
+  local property="$(_locus_root)/context/selected/workspace/project/path"
+  local value
+  [[ -r "$property" ]] || return 1
+  IFS= read -r value < "$property" || return 1
+  [[ -n "$value" ]] || return 1
+  print -r -- "$value"
+}
+
+_locus_node_dir() {
+  local subject="$1"
+  local kind="${subject%%:*}"
+  local local_id="${subject#*:}"
+  [[ "$kind" != "$subject" && -n "$kind" && -n "$local_id" ]] || return 1
+  print -r -- "$(_locus_root)/$(_locus_encode_segment "$kind")/$(_locus_encode_segment "$local_id")"
+}
+
+_locus_ensure_node() {
+  local subject="$1"
+  local root="$(_locus_root)"
+  local kind="${subject%%:*}"
+  local dir
+  dir="$(_locus_node_dir "$subject")" || return 1
+  mkdir "$root/$(_locus_encode_segment "$kind")" 2>/dev/null || true
+  [[ -d "$dir" ]] || mkdir "$dir"
+}
+
+_locus_write_prop() {
+  local subject="$1"
+  local key="$2"
+  local value="$3"
+  local dir
+  _locus_ensure_node "$subject" || return 1
+  dir="$(_locus_node_dir "$subject")" || return 1
+  print -r -- "$value" > "$dir/$(_locus_encode_segment "$key")"
 }
 
 _locus_wrap_app() {
@@ -16,30 +72,36 @@ _locus_wrap_app() {
     shift
   fi
 
-  local selected_window app_part app_node linked=0 command_status=0
+  local selected_window selected_window_id app_part app_local app_node app_dir linked=0 command_status=0
   selected_window="$(locus_selected_window 2>/dev/null)"
+  selected_window_id="${selected_window#window:}"
   app_part="$(_locus_safe_node_part "$app_name")"
-  app_node="app-instance:${app_part}/${$}-${RANDOM}"
+  app_local="${app_part}_${$}_${RANDOM}"
+  app_node="app-instance:${app_local}"
 
   if [[ "$selected_window" == window:* && -n "$1" && -n "$app_part" ]]; then
-    {
-      print -r -- "set-property"$'\t'"$app_node"$'\t'"kind"$'\t'"app-instance"
-      print -r -- "set-property"$'\t'"$app_node"$'\t'"name"$'\t'"$app_name"
-      print -r -- "set-property"$'\t'"$app_node"$'\t'"icon"$'\t'"$app_icon"
-      print -r -- "set-link"$'\t'"$selected_window"$'\t'"app-instance"$'\t'"$app_node"
-    } | _locus_apply && linked=1
+    app_dir="$(_locus_node_dir "$app_node")"
+    if _locus_write_prop "$app_node" kind app-instance \
+      && _locus_write_prop "$app_node" name "$app_name" \
+      && _locus_write_prop "$app_node" icon "$app_icon"; then
+      rm -f "$(_locus_root)/window/$(_locus_encode_segment "$selected_window_id")/app-instance" 2>/dev/null || true
+      ln -s "../../app-instance/$(_locus_encode_segment "$app_local")" \
+        "$(_locus_root)/window/$(_locus_encode_segment "$selected_window_id")/app-instance" \
+        && linked=1
+    fi
   fi
 
   {
     if (( linked )); then
-      LOCUS_APP_INSTANCE="$app_node" AGENT_DBUS_WINDOW_ID="${selected_window#window:}" "$@"
+      LOCUS_APP_INSTANCE="$app_node" AGENT_DBUS_WINDOW_ID="$selected_window_id" "$@"
     else
       "$@"
     fi
   } always {
     command_status=$?
     if (( linked )); then
-      locusctl delete-node "$app_node" >/dev/null 2>&1 || true
+      rm -f "$(_locus_root)/window/$(_locus_encode_segment "$selected_window_id")/app-instance" 2>/dev/null || true
+      rmdir "$app_dir" >/dev/null 2>&1 || true
     fi
   }
 

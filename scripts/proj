@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-LOCUS_SH="${LOCUS_SH:-$HOME/.config/locus/locus.sh}"
+mountpoint="${LOCUS_ROOT:-${LOCUSFS_MOUNT:-${LOCUS_MOUNT:-${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/locusfs}}}"
 
 usage() {
   cat >&2 <<'EOF'
@@ -19,6 +19,98 @@ EOF
 die() {
   echo "proj: $*" >&2
   exit 1
+}
+
+encode_segment() {
+  jq -rn --arg value "$1" '$value | @uri'
+}
+
+node_dir_from_subject() {
+  local subject="$1"
+  local kind="${subject%%:*}"
+  local local_id="${subject#*:}"
+  [[ "$kind" != "$subject" && -n "$kind" && -n "$local_id" ]] || return 1
+  printf '%s/%s/%s\n' "$mountpoint" "$(encode_segment "$kind")" "$(encode_segment "$local_id")"
+}
+
+ensure_node() {
+  local subject="$1"
+  local kind="${subject%%:*}"
+  local dir
+  dir="$(node_dir_from_subject "$subject")" || return 1
+  mkdir "$mountpoint/$(encode_segment "$kind")" 2>/dev/null || true
+  [[ -d "$dir" ]] || mkdir "$dir"
+}
+
+write_property() {
+  local subject="$1"
+  local key="$2"
+  local value="$3"
+  local dir
+  ensure_node "$subject" || return 1
+  dir="$(node_dir_from_subject "$subject")" || return 1
+  printf '%s\n' "$value" > "$dir/$(encode_segment "$key")"
+}
+
+remove_property() {
+  local subject="$1"
+  local key="$2"
+  local dir
+  dir="$(node_dir_from_subject "$subject")" || return 0
+  rm -f "$dir/$(encode_segment "$key")" 2>/dev/null || true
+}
+
+relation_target() {
+  local subject="$1"
+  local kind="${subject%%:*}"
+  local local_id="${subject#*:}"
+  [[ "$kind" != "$subject" && -n "$kind" && -n "$local_id" ]] || return 1
+  printf '../../%s/%s\n' "$(encode_segment "$kind")" "$(encode_segment "$local_id")"
+}
+
+set_relation() {
+  local source="$1"
+  local relation="$2"
+  local target="$3"
+  local source_dir rel_path
+  ensure_node "$source" || return 1
+  ensure_node "$target" || return 1
+  source_dir="$(node_dir_from_subject "$source")" || return 1
+  rel_path="$source_dir/$(encode_segment "$relation")"
+  rm -f "$rel_path" 2>/dev/null || true
+  ln -s "$(relation_target "$target")" "$rel_path"
+}
+
+remove_relation() {
+  local source="$1"
+  local relation="$2"
+  local source_dir
+  source_dir="$(node_dir_from_subject "$source")" || return 0
+  rm -f "$source_dir/$(encode_segment "$relation")" 2>/dev/null || true
+}
+
+apply_mutations_to_locusfs() {
+  local op subject key value
+  while IFS=$'\t' read -r op subject key value; do
+    [[ -n "${op:-}" ]] || continue
+    case "$op" in
+      set-property)
+        write_property "$subject" "$key" "$value"
+        ;;
+      remove-property)
+        remove_property "$subject" "$key"
+        ;;
+      set-link)
+        set_relation "$subject" "$key" "$value"
+        ;;
+      remove-links)
+        remove_relation "$subject" "$key"
+        ;;
+      *)
+        die "unsupported mutation: $op"
+        ;;
+    esac
+  done
 }
 
 absolute_dir() {
@@ -227,23 +319,10 @@ composed_notebook_scope() {
 }
 
 selected_workspace() {
-  local workspace
-  if [[ -r "$LOCUS_SH" ]]; then
-    # shellcheck disable=SC1090
-    . "$LOCUS_SH"
-    workspace="$(locus_selected_workspace 2>/dev/null || true)"
-    if [[ "$workspace" == workspace:* ]]; then
-      printf '%s\n' "$workspace"
-      return 0
-    fi
-  fi
-  workspace="$(locusctl resolve context:selected workspace 2>/dev/null || true)"
-  if [[ "$workspace" == workspace:* ]]; then
-    printf '%s\n' "$workspace"
-    return 0
-  fi
-  locusctl prop subjects --key focused --value true 2>/dev/null \
-    | awk '/^workspace:/ { print; exit }'
+  local target
+  target="$(readlink -f "$mountpoint/context/selected/workspace" 2>/dev/null || true)"
+  [[ -n "$target" ]] || return 1
+  printf 'workspace:%s\n' "$(basename "$target")"
 }
 
 cmd_init() {
@@ -338,7 +417,7 @@ cmd_project_mutations() {
 cmd_update() {
   local root
   root="$(project_root_for_path "${1:-$PWD}")" || return 0
-  cmd_project_mutations "$root" | locusctl apply >/dev/null
+  cmd_project_mutations "$root" | apply_mutations_to_locusfs >/dev/null
 }
 
 cmd_set_current() {
@@ -350,7 +429,7 @@ cmd_set_current() {
   {
     cmd_project_mutations "$root"
     printf "%s\t%s\t%s\t%s\n" set-link "$workspace" project "project:$root"
-  } | locusctl apply >/dev/null
+  } | apply_mutations_to_locusfs >/dev/null
 }
 
 cmd_publish() {
@@ -364,7 +443,7 @@ cmd_clear() {
   fi
   [[ "$workspace" == workspace:* ]] || die "no selected workspace"
 
-  printf "%s\t%s\t%s\t%s\n" remove-links "$workspace" project "" | locusctl apply >/dev/null
+  printf "%s\t%s\t%s\t%s\n" remove-links "$workspace" project "" | apply_mutations_to_locusfs >/dev/null
 }
 
 cmd_root() {
