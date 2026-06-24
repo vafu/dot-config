@@ -2,13 +2,13 @@
 set -euo pipefail
 
 working_dir="/tmp"
-export LOCUSCTL="${LOCUSCTL:-$HOME/.cargo/bin/locusctl}"
 
-if [[ -r "$HOME/.config/locus/locus.sh" ]]; then
-  # shellcheck disable=SC1091
-  source "$HOME/.config/locus/locus.sh"
-  project_dir="$(locus_selected_project_path 2>/dev/null || true)"
-  if [[ -n "$project_dir" && -d "$project_dir" ]]; then
+mountpoint="${LOCUS_ROOT:-${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/locusfs}"
+project_path_file="$mountpoint/context/selected/workspace/project/path"
+
+if [[ -r "$project_path_file" ]]; then
+  IFS= read -r project_dir < "$project_path_file" || project_dir=""
+  if [[ -n "${project_dir:-}" && -d "$project_dir" ]]; then
     working_dir="$project_dir"
   fi
 fi

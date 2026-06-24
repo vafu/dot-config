@@ -29,6 +29,16 @@ window-padding-x = 4
 window-padding-y = 4
 window-decoration = none
 
+# ~/.config/ghostty/config
+quick-terminal-position = center
+quick-terminal-animation-duration = 0
+quick-terminal-size = 70%,70%
+gtk-quick-terminal-layer = top
+quick-terminal-keyboard-interactivity = exclusive
+
+# Bind a global hotkey to toggle the quick terminal
+keybind = global:super+/=toggle_quick_terminal
+
 shell-integration-features=true
 gtk-single-instance = true
 #

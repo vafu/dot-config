@@ -20,7 +20,7 @@ spawn-sh-at-startup "runapp -i background-graphical.slice -- udiskie"
 // spawn-sh-at-startup "swww-daemon"
 // spawn-sh-at-startup "claude-dbus"
 // spawn-sh-at-startup "locushookd"
-// spawn-sh-at-startup "ghostty --gtk-single-instance=true --quit-after-last-window-closed=false --initial-window=false"
+spawn-sh-at-startup "runapp -- ghostty --gtk-single-instance=true --quit-after-last-window-closed=false --initial-window=false"
 
 
 input {
@@ -89,8 +89,8 @@ overview {
     position x=1280 y=0
 }
 
-output "Dell Inc. DELL U2720Q 5GMS6H3" {
-    transform "90"
+output "Dell Inc. DELL U2723QE 6H5QG34" {
+    transform "270"
 }
 
 output "Lenovo Group Limited L32p-30 U512DA0P"{
@@ -197,6 +197,7 @@ binds {
     Mod+D hotkey-overlay-title="Run an Application: rsynapse" { spawn-sh "$HOME/.local/bin/rsynapse-ui"; }
     Mod+A hotkey-overlay-title="Agent approvals" { spawn-sh "ags request agent-approvals"; }
     Mod+N hotkey-overlay-title="Run an Application: remarked" { spawn-sh "$HOME/.local/bin/remarked-ui"; }
+    Mod+Slash hotkey-overlay-title="Codex Overlay" { spawn-sh "/home/v47/proj/layer-codex/layer-codex --toggle"; }
     Ctrl+Shift+L hotkey-overlay-title="Lock the Screen: swaylock" { spawn-sh "runapp -o hyprlock"; }
     Ctrl+Shift+U hotkey-overlay-title="Lock the Screen: swaylock" { spawn-sh "~/.config/scripts/suspend.sh"; }
 
