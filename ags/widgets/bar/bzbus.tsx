@@ -7,6 +7,7 @@ import { distinctUntilChanged, map, shareReplay } from 'rxjs'
 
 const bzbus = getBzBusService()
 const liveState$ = bzbus.state$
+const ACTIVE_STALE_MS = 2 * 60 * 60 * 1000
 
 type BzBusView = {
   classes: string[]
@@ -23,6 +24,44 @@ function sameView(left: BzBusView, right: BzBusView) {
     && left.classes.every((cssClass, index) => cssClass === right.classes[index])
 }
 
+function isFailed(invocation: BzBusInvocation): boolean {
+  return invocation.status === 'failed' || invocation.outcome === 'failure'
+}
+
+function isFinished(invocation: BzBusInvocation): boolean {
+  return invocation.status === 'finished' || invocation.outcome === 'success'
+}
+
+function metadataNumber(invocation: BzBusInvocation, key: string): number {
+  const value = Number(invocation.metadata[key] ?? 0)
+  return Number.isFinite(value) ? value : 0
+}
+
+function lastObservedTime(invocation: BzBusInvocation): number {
+  return Math.max(
+    metadataNumber(invocation, 'last-observed-at-unix-ms'),
+    metadataNumber(invocation, 'first-observed-at-unix-ms'),
+    invocation.startedAtUnixMs,
+  )
+}
+
+function isStale(invocation: BzBusInvocation): boolean {
+  const lastObserved = lastObservedTime(invocation)
+  return lastObserved > 0 && Date.now() - lastObserved > ACTIVE_STALE_MS
+}
+
+function isEnded(invocation: BzBusInvocation): boolean {
+  return isFailed(invocation) || isFinished(invocation) || invocation.endedAtUnixMs > 0
+}
+
+function displayStatus(invocation: BzBusInvocation): string {
+  if (isFailed(invocation)) return 'failed'
+  if (isFinished(invocation)) return 'finished'
+  if (invocation.endedAtUnixMs > 0) return 'ended'
+  if (isStale(invocation)) return 'stale'
+  return invocation.status || 'unknown'
+}
+
 function statusText(state: BzBusState): string {
   const invocation = state.latest
   if (!state.connected) return 'offline'
@@ -33,15 +72,16 @@ function statusText(state: BzBusState): string {
   const failures = failureCount(invocation)
   const failurePart = failures > 0 ? ` · ${failures}!` : ''
   const workPart = work ? ` · ${work}` : ''
-  return `${invocation.status || 'unknown'} · ${elapsed}${workPart}${failurePart}`
+  return `${displayStatus(invocation)} · ${elapsed}${workPart}${failurePart}`
 }
 
 function iconFor(state: BzBusState): string {
   const invocation = state.latest
   if (!state.connected) return 'cloud_off'
   if (!invocation) return 'construction'
-  if (invocation.status === 'failed' || invocation.outcome === 'failure') return 'error'
-  if (invocation.status === 'finished' || invocation.outcome === 'success') return 'check_circle'
+  if (isFailed(invocation)) return 'error'
+  if (isFinished(invocation)) return 'check_circle'
+  if (isEnded(invocation) || isStale(invocation)) return 'build_circle'
   return 'build_circle'
 }
 
@@ -51,7 +91,7 @@ function tooltipFor(state: BzBusState): string {
   if (!invocation) return 'bzbus connected · no active build'
 
   const lines = [
-    `status: ${invocation.status || 'unknown'} (${invocation.outcome || 'unknown'})`,
+    `status: ${displayStatus(invocation)} (${invocation.outcome || 'unknown'})`,
     `elapsed: ${elapsedText(invocation)}`,
     `command: ${commandText(invocation)}`,
     `workspace: ${invocation.workspaceDir || invocation.cwd || 'unknown'}`,
@@ -218,8 +258,9 @@ function classesFor(state: BzBusState): string[] {
   const classes = ['bzbus-widget']
   if (!state.connected) return classes.concat(['offline'])
   if (!invocation) return classes.concat(['idle'])
-  if (invocation.status === 'failed' || invocation.outcome === 'failure') return classes.concat(['failed'])
-  if (invocation.status === 'finished' || invocation.outcome === 'success') return classes.concat(['finished'])
+  if (isFailed(invocation)) return classes.concat(['failed'])
+  if (isFinished(invocation)) return classes.concat(['finished'])
+  if (isEnded(invocation) || isStale(invocation)) return classes.concat(['idle'])
   return classes.concat(['running'])
 }
 
