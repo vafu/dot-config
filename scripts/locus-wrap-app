@@ -70,7 +70,7 @@ cleanup() {
   if [ "$linked" = 1 ]; then
     selected_window_id=${selected_window#window:}
     rm -f "$mountpoint/window/$(encode_segment "$selected_window_id")/app-instance" 2>/dev/null || true
-    [ -n "$app_dir" ] && rmdir "$app_dir" >/dev/null 2>&1 || true
+    [ -n "$app_dir" ] && rm -rf -- "$app_dir" >/dev/null 2>&1 || true
   fi
 }
 
@@ -89,7 +89,7 @@ if [ -n "$app_part" ] && [ "${selected_window#window:}" != "$selected_window" ];
 fi
 
 if [ "$linked" = 1 ]; then
-  LOCUS_APP_INSTANCE="$app_node" AGENT_DBUS_WINDOW_ID="${selected_window#window:}" "$@"
+  LOCUS_APP_INSTANCE="$app_node" AGENT_DBUS_WINDOW="${selected_window#window:}" "$@"
 else
   "$@"
 fi

@@ -7,7 +7,7 @@ _locus_encode_segment() {
 }
 
 _locus_safe_node_part() {
-  print -r -- "$1" | tr -c '[:alnum:]_' '_'
+  printf '%s' "$1" | tr -c '[:alnum:]_' '_'
 }
 
 _locus_selected_node() {
@@ -93,7 +93,7 @@ _locus_wrap_app() {
 
   {
     if (( linked )); then
-      LOCUS_APP_INSTANCE="$app_node" AGENT_DBUS_WINDOW_ID="$selected_window_id" "$@"
+      LOCUS_APP_INSTANCE="$app_node" AGENT_DBUS_WINDOW="$selected_window_id" "$@"
     else
       "$@"
     fi
@@ -101,7 +101,7 @@ _locus_wrap_app() {
     command_status=$?
     if (( linked )); then
       rm -f "$(_locus_root)/window/$(_locus_encode_segment "$selected_window_id")/app-instance" 2>/dev/null || true
-      rmdir "$app_dir" >/dev/null 2>&1 || true
+      rm -rf -- "$app_dir" >/dev/null 2>&1 || true
     fi
   }
 
