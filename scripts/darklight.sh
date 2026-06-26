@@ -1,3 +1,3 @@
 #!/bin/bash
 
-ags request scheme-toggle
+/home/v47/.local/bin/rsynapse-shell request scheme-toggle

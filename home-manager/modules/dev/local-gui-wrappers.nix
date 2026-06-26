@@ -116,6 +116,100 @@ in
   xdg.configFile."locusfs/config.toml".source =
     "${config.home.homeDirectory}/proj/locus-shell/rsynapse-shell/config/locusfs/config.toml";
 
+  xdg.configFile."rsynapse-shell/scripts/super-hints-trigger" = {
+    executable = true;
+    text = ''
+      #!${pkgs.runtimeShell}
+      set -eu
+
+      runtime_dir="''${XDG_RUNTIME_DIR:-/tmp}"
+      state_dir="$runtime_dir/rsynapse-shell-super-hints"
+      state_file="$state_dir/state"
+      lock_file="$state_dir/lock"
+
+      emit() {
+        ${config.home.homeDirectory}/.local/bin/rsynapse-shell request hints active "$1" >/dev/null 2>&1 || true
+      }
+
+      reset_state() {
+        mkdir -p "$state_dir"
+        {
+          printf 'left=0\n'
+          printf 'right=0\n'
+          printf 'last=0\n'
+        } > "$state_file"
+        emit false
+      }
+
+      if [ "''${1:-}" = "reset" ]; then
+        reset_state
+        exit 0
+      fi
+
+      key="''${1:-}"
+      value="''${2:-}"
+
+      case "$key" in
+        KEY_LEFTMETA | KEY_RIGHTMETA) ;;
+        *) exit 0 ;;
+      esac
+
+      case "$value" in
+        0 | 1) ;;
+        *) exit 0 ;;
+      esac
+
+      mkdir -p "$state_dir"
+
+      (
+        flock -x 9
+
+        left=0
+        right=0
+        last=0
+        if [ -f "$state_file" ]; then
+          . "$state_file"
+        fi
+
+        pressed=0
+        if [ "$value" = "1" ]; then
+          pressed=1
+        fi
+
+        case "$key" in
+          KEY_LEFTMETA) left="$pressed" ;;
+          KEY_RIGHTMETA) right="$pressed" ;;
+        esac
+
+        active=0
+        if [ "$left" = "1" ] || [ "$right" = "1" ]; then
+          active=1
+        fi
+
+        if [ "$active" != "$last" ]; then
+          if [ "$active" = "1" ]; then
+            emit true
+          else
+            emit false
+          fi
+        fi
+
+        {
+          printf 'left=%s\n' "$left"
+          printf 'right=%s\n' "$right"
+          printf 'last=%s\n' "$active"
+        } > "$state_file"
+      ) 9>"$lock_file"
+    '';
+  };
+
+  xdg.configFile."rsynapse-shell/triggerhappy/super-hints.conf".text = ''
+    KEY_LEFTMETA   1   ${config.home.homeDirectory}/.config/rsynapse-shell/scripts/super-hints-trigger KEY_LEFTMETA 1
+    KEY_LEFTMETA   0   ${config.home.homeDirectory}/.config/rsynapse-shell/scripts/super-hints-trigger KEY_LEFTMETA 0
+    KEY_RIGHTMETA  1   ${config.home.homeDirectory}/.config/rsynapse-shell/scripts/super-hints-trigger KEY_RIGHTMETA 1
+    KEY_RIGHTMETA  0   ${config.home.homeDirectory}/.config/rsynapse-shell/scripts/super-hints-trigger KEY_RIGHTMETA 0
+  '';
+
   xdg.configFile."gtk-4.0/gtk4.css".source =
     "${config.home.homeDirectory}/proj/adw-gtk3/build/src/theme-dark/gtk4.css";
 
@@ -188,6 +282,28 @@ in
         ExecStart = "%h/.local/bin/rsynapse-shell";
         Restart = "on-failure";
         RestartSec = 2;
+      };
+
+      Install.WantedBy = [ "default.target" ];
+    };
+
+    rsynapse-shell-super-hints-triggerhappy = {
+      Unit = {
+        Description = "rsynapse-shell Super-key hints trigger";
+        After = [
+          "graphical-session.target"
+          "rsynapse-shell.service"
+        ];
+        Wants = [ "rsynapse-shell.service" ];
+      };
+
+      Service = {
+        Type = "notify";
+        ExecStartPre = "%h/.config/rsynapse-shell/scripts/super-hints-trigger reset";
+        ExecStart = "${pkgs.triggerhappy}/bin/thd --triggers %h/.config/rsynapse-shell/triggerhappy/super-hints.conf --deviceglob /dev/input/event*";
+        ExecStopPost = "%h/.config/rsynapse-shell/scripts/super-hints-trigger reset";
+        Restart = "on-failure";
+        RestartSec = 1;
       };
 
       Install.WantedBy = [ "default.target" ];
