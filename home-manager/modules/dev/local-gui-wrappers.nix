@@ -69,16 +69,24 @@ in
   xdg.configFile."gtk-4.0/gtk.css" = {
     force = true;
     text = ''
-      @import "accent-color.css";
-      @import "gtk4.css";
+      window.rsynapse-window,
+      window.background.rsynapse-window,
+      .rsynapse-window.background {
+        background: transparent;
+        background-color: transparent;
+      }
     '';
   };
 
   xdg.configFile."gtk-4.0/gtk-dark.css" = {
     force = true;
     text = ''
-      @import "accent-color.css";
-      @import "gtk4.css";
+      window.rsynapse-window,
+      window.background.rsynapse-window,
+      .rsynapse-window.background {
+        background: transparent;
+        background-color: transparent;
+      }
     '';
   };
 
