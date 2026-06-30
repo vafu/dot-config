@@ -1,0 +1,61 @@
+// Power saver is active: force compositor background blur off.
+
+window-rule {
+    background-effect {
+        blur false
+    }
+
+    popups {
+        background-effect {
+            blur false
+        }
+    }
+}
+
+layer-rule {
+    match namespace="^rsynapse-bar$"
+
+    background-effect {
+        blur false
+    }
+}
+
+layer-rule {
+    match namespace="^OSD$"
+
+    background-effect {
+        blur false
+    }
+
+    popups {
+        background-effect {
+            blur false
+        }
+    }
+}
+
+layer-rule {
+    match namespace="^(rsynapse-notifications|rsynapse-notification-center|rsynapse-ui)$"
+
+    background-effect {
+        blur false
+    }
+
+    popups {
+        background-effect {
+            blur false
+        }
+    }
+}
+
+layer-rule {
+    background-effect {
+        blur false
+    }
+
+    popups {
+        background-effect {
+            blur false
+        }
+    }
+}

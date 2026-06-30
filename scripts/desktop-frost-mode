@@ -1,0 +1,238 @@
+#!/usr/bin/env bash
+set -uo pipefail
+
+config_file="${NIRI_CONFIG:-$HOME/.config/niri/config.kdl}"
+blur_dir="${DESKTOP_FROST_BLUR_DIR:-$HOME/.config/niri/blur}"
+current_blur_link="$blur_dir/current.kdl"
+
+solid_light_theme="${DESKTOP_FROST_SOLID_LIGHT_THEME:-kanso}"
+solid_dark_theme="${DESKTOP_FROST_SOLID_DARK_THEME:-kanso-dark}"
+frosted_light_theme="${DESKTOP_FROST_FROSTED_LIGHT_THEME:-kanso-light-frosted}"
+frosted_dark_theme="${DESKTOP_FROST_FROSTED_DARK_THEME:-kanso-dark-frosted}"
+
+power_profiles_bus="net.hadess.PowerProfiles"
+power_profiles_object="/net/hadess/PowerProfiles"
+
+log() {
+    printf '[desktop-frost-mode] %s\n' "$*" >&2
+}
+
+unquote() {
+    sed "s/^'//; s/'$//"
+}
+
+current_power_profile() {
+    powerprofilesctl get 2>/dev/null | tr -d '[:space:]' || true
+}
+
+mode_from_power_profile() {
+    case "$(current_power_profile)" in
+        power-saver | powersave)
+            printf 'solid'
+            ;;
+        *)
+            printf 'frosted'
+            ;;
+    esac
+}
+
+current_variant() {
+    local color_scheme gtk_theme
+    color_scheme="$(gsettings get org.gnome.desktop.interface color-scheme 2>/dev/null | unquote || true)"
+    gtk_theme="$(gsettings get org.gnome.desktop.interface gtk-theme 2>/dev/null | unquote || true)"
+
+    if [[ "$color_scheme" == "prefer-dark" || "$gtk_theme" == *dark* ]]; then
+        printf 'dark'
+    else
+        printf 'light'
+    fi
+}
+
+theme_for_mode() {
+    local mode variant
+    mode="$1"
+    variant="$(current_variant)"
+
+    case "$mode:$variant" in
+        solid:dark) printf '%s' "$solid_dark_theme" ;;
+        solid:light) printf '%s' "$solid_light_theme" ;;
+        frosted:dark) printf '%s' "$frosted_dark_theme" ;;
+        frosted:light) printf '%s' "$frosted_light_theme" ;;
+        *)
+            log "invalid mode/variant: $mode/$variant"
+            return 2
+            ;;
+    esac
+}
+
+niri_blur_target_for_mode() {
+    case "$1" in
+        frosted) printf 'enabled.kdl' ;;
+        solid) printf 'disabled.kdl' ;;
+        *)
+            log "invalid mode: $1"
+            return 2
+            ;;
+    esac
+}
+
+switch_niri_blur() {
+    local mode target tmp
+    mode="$1"
+    target="$(niri_blur_target_for_mode "$mode")" || return $?
+    mkdir -p "$blur_dir" || return 1
+
+    if [[ "$(readlink "$current_blur_link" 2>/dev/null || true)" == "$target" ]]; then
+        return 1
+    fi
+
+    tmp="$blur_dir/current.kdl.tmp.$$"
+    rm -f "$tmp"
+    ln -s "$target" "$tmp" || return 1
+    mv -Tf "$tmp" "$current_blur_link" || return 1
+
+    # Deliberately use touch(1): niri's watcher should see the main config
+    # mtime change even though the included path is a symlink.
+    touch "$config_file"
+
+    log "switched ${current_blur_link} -> ${target}"
+    return 0
+}
+
+reload_niri() {
+    local validation_output
+
+    if ! command -v niri >/dev/null 2>&1; then
+        log "niri command is not available; touched config without explicit reload"
+        return 0
+    fi
+
+    if ! validation_output="$(niri validate -c "$config_file" 2>&1)"; then
+        log "not reloading; ${config_file} did not validate"
+        printf '%s\n' "$validation_output" >&2
+        return 0
+    fi
+
+    if ! niri msg action load-config-file >/dev/null 2>&1; then
+        log "niri msg failed; touched config so the watcher should still reload it"
+        return 0
+    fi
+
+    log "reloaded niri config"
+}
+
+set_key_file_value() {
+    local file key value
+    file="$1"
+    key="$2"
+    value="$3"
+
+    [[ -f "$file" ]] || return 0
+    if grep -q "^${key}=" "$file"; then
+        perl -0pi -e "s/^\\Q${key}\\E=.*/${key}=${value}/m" "$file"
+    else
+        printf '%s=%s\n' "$key" "$value" >> "$file"
+    fi
+}
+
+switch_gtk_theme() {
+    local mode theme variant dark_preference
+    mode="$1"
+    theme="$(theme_for_mode "$mode")" || return $?
+    variant="$(current_variant)"
+    if [[ "$variant" == "dark" ]]; then
+        dark_preference="1"
+        gsettings set org.gnome.desktop.interface color-scheme prefer-dark 2>/dev/null || true
+    else
+        dark_preference="0"
+        gsettings set org.gnome.desktop.interface color-scheme default 2>/dev/null || true
+    fi
+
+    gsettings set org.gnome.desktop.interface gtk-theme "$theme" 2>/dev/null || true
+    set_key_file_value "$HOME/.config/gtk-3.0/settings.ini" "gtk-theme-name" "$theme"
+    set_key_file_value "$HOME/.config/gtk-3.0/settings.ini" "gtk-application-prefer-dark-theme" "$dark_preference"
+    set_key_file_value "$HOME/.config/gtk-4.0/settings.ini" "gtk-theme-name" "$theme"
+    set_key_file_value "$HOME/.config/gtk-4.0/settings.ini" "gtk-application-prefer-dark-theme" "$dark_preference"
+
+    if [[ -f "$HOME/.config/xsettingsd/xsettingsd.conf" ]]; then
+        perl -0pi -e "s/^Net\\/ThemeName .*/Net\\/ThemeName \"${theme}\"/m" \
+            "$HOME/.config/xsettingsd/xsettingsd.conf"
+        pkill -HUP xsettingsd 2>/dev/null || true
+    fi
+
+    log "set GTK theme to ${theme}"
+}
+
+apply_mode() {
+    local mode niri_changed
+    mode="$1"
+
+    case "$mode" in
+        solid | frosted) ;;
+        *)
+            log "invalid mode: $mode"
+            return 2
+            ;;
+    esac
+
+    niri_changed=0
+    if switch_niri_blur "$mode"; then
+        niri_changed=1
+    fi
+    switch_gtk_theme "$mode"
+    if [[ "$niri_changed" == "1" ]]; then
+        reload_niri
+    fi
+}
+
+apply_powerprofiles() {
+    local mode
+    mode="$(mode_from_power_profile)"
+    log "PowerProfiles profile $(current_power_profile) maps to ${mode}"
+    apply_mode "$mode"
+}
+
+watch_powerprofiles() {
+    apply_powerprofiles
+
+    while true; do
+        if ! command -v gdbus >/dev/null 2>&1; then
+            log "gdbus is not available; polling every 30 seconds"
+            sleep 30
+            apply_powerprofiles
+            continue
+        fi
+
+        gdbus monitor \
+            --system \
+            --dest "$power_profiles_bus" \
+            --object-path "$power_profiles_object" 2>&1 |
+            while IFS= read -r line; do
+                case "$line" in
+                    *PropertiesChanged* | *ActiveProfile*)
+                        apply_powerprofiles
+                        ;;
+                esac
+            done
+
+        log "PowerProfiles monitor exited; retrying"
+        sleep 2
+    done
+}
+
+case "${1:---watch-powerprofiles}" in
+    --set)
+        shift
+        apply_mode "${1:-}"
+        ;;
+    --apply-powerprofiles | --apply)
+        apply_powerprofiles
+        ;;
+    --watch-powerprofiles | --watch)
+        watch_powerprofiles
+        ;;
+    *)
+        printf 'usage: %s --set solid|frosted | --apply-powerprofiles | --watch-powerprofiles\n' "${0##*/}" >&2
+        exit 2
+        ;;
+esac

@@ -39,6 +39,7 @@ hypr/workspaces.conf
 !systemd/user/locus-autorun.service
 !systemd/user/locus-graph.service
 !systemd/user/locus-niri.service
+!systemd/user/desktop-frost-mode-powerprofiles.service
 !systemd/user/default.target.wants/
 !systemd/user/default.target.wants/locus-autorun.service
 !systemd/user/default.target.wants/locus-graph.service
