@@ -41,7 +41,18 @@ current_variant() {
     color_scheme="$(gsettings get org.gnome.desktop.interface color-scheme 2>/dev/null | unquote || true)"
     gtk_theme="$(gsettings get org.gnome.desktop.interface gtk-theme 2>/dev/null | unquote || true)"
 
-    if [[ "$color_scheme" == "prefer-dark" || "$gtk_theme" == *dark* ]]; then
+    case "$color_scheme" in
+        prefer-dark)
+            printf 'dark'
+            return
+            ;;
+        default | prefer-light)
+            printf 'light'
+            return
+            ;;
+    esac
+
+    if [[ "$gtk_theme" == *dark* ]]; then
         printf 'dark'
     else
         printf 'light'
@@ -72,6 +83,16 @@ niri_blur_target_for_mode() {
         *)
             log "invalid mode: $1"
             return 2
+            ;;
+    esac
+}
+
+mode_from_current_state() {
+    case "$(readlink "$current_blur_link" 2>/dev/null || true)" in
+        enabled.kdl) printf 'frosted' ;;
+        disabled.kdl) printf 'solid' ;;
+        *)
+            mode_from_power_profile
             ;;
     esac
 }
@@ -145,7 +166,7 @@ switch_gtk_theme() {
         gsettings set org.gnome.desktop.interface color-scheme prefer-dark 2>/dev/null || true
     else
         dark_preference="0"
-        gsettings set org.gnome.desktop.interface color-scheme default 2>/dev/null || true
+        gsettings set org.gnome.desktop.interface color-scheme prefer-light 2>/dev/null || true
     fi
 
     gsettings set org.gnome.desktop.interface gtk-theme "$theme" 2>/dev/null || true
@@ -192,6 +213,13 @@ apply_powerprofiles() {
     apply_mode "$mode"
 }
 
+apply_current() {
+    local mode
+    mode="$(mode_from_current_state)"
+    log "current desktop frost mode maps to ${mode}"
+    apply_mode "$mode"
+}
+
 watch_powerprofiles() {
     apply_powerprofiles
 
@@ -228,11 +256,14 @@ case "${1:---watch-powerprofiles}" in
     --apply-powerprofiles | --apply)
         apply_powerprofiles
         ;;
+    --apply-current | --sync)
+        apply_current
+        ;;
     --watch-powerprofiles | --watch)
         watch_powerprofiles
         ;;
     *)
-        printf 'usage: %s --set solid|frosted | --apply-powerprofiles | --watch-powerprofiles\n' "${0##*/}" >&2
+        printf 'usage: %s --set solid|frosted | --apply-current | --apply-powerprofiles | --watch-powerprofiles\n' "${0##*/}" >&2
         exit 2
         ;;
 esac
