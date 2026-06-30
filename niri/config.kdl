@@ -172,11 +172,92 @@ window-rule {
     open-floating true
 }
 
-
 window-rule {
+    exclude app-id=r#"firefox$"#
+
     geometry-corner-radius 8
     clip-to-geometry true
+    draw-border-with-background false
+
+    background-effect {
+        blur true
+    }
+    popups {
+            geometry-corner-radius 16 // Matches default libadwaita popup corners
+            background-effect {
+                blur true
+            }
+        }
 }
+
+window-rule {
+    match app-id=r#"firefox$"#
+
+    geometry-corner-radius 8
+    clip-to-geometry true
+    draw-border-with-background false
+
+    background-effect {
+        blur true 
+    }
+
+    popups {
+        background-effect {
+            blur true 
+        }
+    }
+}
+
+layer-rule {
+    match namespace="^OSD$"
+
+    background-effect {
+        xray false
+    }
+
+    popups {
+        background-effect {
+            xray false
+        }
+    }
+}
+
+layer-rule {
+    match namespace="^(rsynapse-notifications|rsynapse-notification-center)$"
+
+    background-effect {
+        xray false
+    }
+
+    popups {
+        background-effect {
+            xray false
+        }
+    }
+}
+
+layer-rule {
+    match namespace="^rsynapse-ui$"
+
+    background-effect {
+        xray false
+    }
+
+    popups {
+        background-effect {
+            xray false
+        }
+    }
+}
+
+layer-rule {
+    match namespace="^rsynapse-bar$"
+
+    background-effect {
+        xray false
+    }
+}
+
 
 binds {
     // Keys consist of modifiers separated by + signs, followed by an XKB key name
