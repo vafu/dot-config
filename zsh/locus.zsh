@@ -10,6 +10,57 @@ _locus_safe_node_part() {
   printf '%s' "$1" | tr -c '[:alnum:]_' '_'
 }
 
+_locus_ghostty_surface_id() {
+  sed -n 's#.*app-ghostty-surface-transient-\([0-9][0-9]*\)\.scope.*#\1#p' /proc/self/cgroup | head -n1
+}
+
+_locus_random_token() {
+  if command -v uuidgen >/dev/null 2>&1; then
+    uuidgen
+  else
+    print -r -- "$$-$EPOCHREALTIME-$RANDOM"
+  fi
+}
+
+_locus_niri_window_id_for_title() {
+  local title="$1"
+  niri msg --json windows 2>/dev/null \
+    | jq -r --arg title "$title" '
+        .[]
+        | select(.app_id == "com.mitchellh.ghostty" and .title == $title)
+        | .id
+      ' \
+    | head -n1
+}
+
+_locus_init_terminal_window_env() {
+  [[ -o interactive ]] || return 0
+  [[ "$TERM_PROGRAM" == ghostty ]] || return 0
+  [[ "$XDG_CURRENT_DESKTOP" == niri || "$DESKTOP_SESSION" == niri ]] || return 0
+  [[ -z "$LOCUS_TERMINAL_WINDOW_ID" ]] || return 0
+  command -v niri >/dev/null 2>&1 || return 0
+  command -v jq >/dev/null 2>&1 || return 0
+  [[ -w /dev/tty ]] || return 0
+
+  local surface_id token window_id _
+  surface_id="$(_locus_ghostty_surface_id)"
+  [[ -n "$surface_id" ]] || return 0
+
+  token="locus-ghostty-surface:$surface_id:$(_locus_random_token)"
+  printf '\033]2;%s\007' "$token" > /dev/tty 2>/dev/null || return 0
+
+  for _ in {1..10}; do
+    window_id="$(_locus_niri_window_id_for_title "$token")"
+    [[ "$window_id" == <-> ]] && break
+    sleep 0.02
+  done
+
+  [[ "$window_id" == <-> ]] || return 0
+  export LOCUS_GHOSTTY_SURFACE_ID="$surface_id"
+  export LOCUS_TERMINAL_WINDOW_ID="$window_id"
+  export AGENT_DBUS_WINDOW="$window_id"
+}
+
 _locus_selected_node() {
   local relative_path="$1"
   local kind="$2"
@@ -73,8 +124,13 @@ _locus_wrap_app() {
   fi
 
   local selected_window selected_window_id app_part app_local app_node app_dir linked=0 command_status=0
-  selected_window="$(locus_selected_window 2>/dev/null)"
-  selected_window_id="${selected_window#window:}"
+  if [[ -n "$LOCUS_TERMINAL_WINDOW_ID" ]]; then
+    selected_window_id="$LOCUS_TERMINAL_WINDOW_ID"
+    selected_window="window:$selected_window_id"
+  else
+    selected_window="$(locus_selected_window 2>/dev/null)"
+    selected_window_id="${selected_window#window:}"
+  fi
   app_part="$(_locus_safe_node_part "$app_name")"
   app_local="${app_part}_${$}_${RANDOM}"
   app_node="app-instance:${app_local}"
@@ -234,3 +290,4 @@ precmd_functions=("${(@)precmd_functions:#_locus_precmd_project_workspace}")
 precmd_functions+=(_locus_precmd_project_workspace)
 _locus_refresh_project_root >/dev/null 2>&1 || true
 _locus_update_project_if_changed
+_locus_init_terminal_window_env
