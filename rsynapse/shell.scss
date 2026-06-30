@@ -1,0 +1,23 @@
+// Local rsynapse GTK styling entry point.
+// Edit tokens here, then import the repository stylesheet.
+
+$shell-surface-opacity: 1 !default;
+
+$rsx-surface: "alpha(@bg, #{$shell-surface-opacity})" !default;
+$rsx-surface-container: "alpha(@bg, #{$shell-surface-opacity})" !default;
+$rsx-surface-container-high: "alpha(@bg, #{$shell-surface-opacity})" !default;
+$rsx-on-surface: "@fg" !default;
+$rsx-primary: "@accent_color" !default;
+$rsx-error: "@sys_danger" !default;
+$rsx-outline: "color-mix(in srgb, @fg 22%, transparent)" !default;
+$rsx-outline-variant: "color-mix(in srgb, @fg 14%, transparent)" !default;
+$rsx-selected-outline: "color-mix(in srgb, #{$rsx-primary} 72%, #{$rsx-on-surface})" !default;
+$rsx-error-outline: "color-mix(in srgb, #{$rsx-error} 55%, transparent)" !default;
+
+$rsx-surface-outline-width: 0.5px !default;
+$rsx-surface-radius-small: 8px !default;
+$rsx-surface-radius: 12px !default;
+$rsx-surface-radius-large: 24px !default;
+$rsx-surface-radius-pill: 999px !default;
+
+@import 'rsynapse-shell.scss';
