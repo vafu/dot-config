@@ -15,6 +15,7 @@ $rsx-selected-outline: "color-mix(in srgb, #{$rsx-primary} 72%, #{$rsx-on-surfac
 $rsx-error-outline: "color-mix(in srgb, #{$rsx-error} 55%, transparent)" !default;
 
 $rsx-surface-outline-width: 0.5px !default;
+$rsx-selected-outline-width: 1px !default;
 $rsx-surface-radius-small: 8px !default;
 $rsx-surface-radius: 12px !default;
 $rsx-surface-radius-large: 24px !default;
