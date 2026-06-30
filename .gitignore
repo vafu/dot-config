@@ -37,14 +37,10 @@ hypr/workspaces.conf
 !scripts/**
 !systemd/
 !systemd/user/
-!systemd/user/locus-autorun.service
-!systemd/user/locus-graph.service
-!systemd/user/locus-niri.service
 !systemd/user/desktop-frost-mode-powerprofiles.service
 !systemd/user/default.target.wants/
-!systemd/user/default.target.wants/locus-autorun.service
-!systemd/user/default.target.wants/locus-graph.service
-!systemd/user/default.target.wants/locus-niri.service
+!systemd/user/graphical-session.target.wants/
+!systemd/user/graphical-session.target.wants/desktop-frost-mode-powerprofiles.service
 !nvim
 !zsh/**
 zsh/.zcompdump*
