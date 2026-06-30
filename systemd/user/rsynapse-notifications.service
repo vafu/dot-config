@@ -1,0 +1,15 @@
+[Unit]
+Description=Rsynapse Notifications
+After=graphical-session.target locusfs.service
+Wants=locusfs.service
+
+[Service]
+Type=simple
+Environment=LOCUS_ROOT=%t/locusfs
+ExecStartPre=/usr/bin/sh -c 'for _ in $(/usr/bin/seq 1 100); do /usr/bin/mountpoint -q %t/locusfs && exit 0; /usr/bin/sleep 0.1; done; exit 1'
+ExecStart=/home/v47/.local/bin/rsynapse-notifications
+Restart=on-failure
+RestartSec=2s
+
+[Install]
+WantedBy=default.target

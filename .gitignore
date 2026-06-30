@@ -37,8 +37,10 @@ hypr/workspaces.conf
 !scripts/**
 !systemd/
 !systemd/user/
+!systemd/user/rsynapse-notifications.service
 !systemd/user/desktop-frost-mode-powerprofiles.service
 !systemd/user/default.target.wants/
+!systemd/user/default.target.wants/rsynapse-notifications.service
 !systemd/user/graphical-session.target.wants/
 !systemd/user/graphical-session.target.wants/desktop-frost-mode-powerprofiles.service
 !nvim
