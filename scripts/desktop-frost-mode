@@ -3,22 +3,14 @@ set -uo pipefail
 
 config_file="${NIRI_CONFIG:-$HOME/.config/niri/config.kdl}"
 blur_dir="${DESKTOP_FROST_BLUR_DIR:-$HOME/.config/niri/blur}"
+rsynapse_shell="${RSYNAPSE_SHELL:-$HOME/.local/bin/rsynapse-shell}"
 current_blur_link="$blur_dir/current.kdl"
-
-solid_light_theme="${DESKTOP_FROST_SOLID_LIGHT_THEME:-kanso}"
-solid_dark_theme="${DESKTOP_FROST_SOLID_DARK_THEME:-kanso-dark}"
-frosted_light_theme="${DESKTOP_FROST_FROSTED_LIGHT_THEME:-kanso-light-frosted}"
-frosted_dark_theme="${DESKTOP_FROST_FROSTED_DARK_THEME:-kanso-dark-frosted}"
 
 power_profiles_bus="net.hadess.PowerProfiles"
 power_profiles_object="/net/hadess/PowerProfiles"
 
 log() {
     printf '[desktop-frost-mode] %s\n' "$*" >&2
-}
-
-unquote() {
-    sed "s/^'//; s/'$//"
 }
 
 current_power_profile() {
@@ -32,46 +24,6 @@ mode_from_power_profile() {
             ;;
         *)
             printf 'frosted'
-            ;;
-    esac
-}
-
-current_variant() {
-    local color_scheme gtk_theme
-    color_scheme="$(gsettings get org.gnome.desktop.interface color-scheme 2>/dev/null | unquote || true)"
-    gtk_theme="$(gsettings get org.gnome.desktop.interface gtk-theme 2>/dev/null | unquote || true)"
-
-    case "$color_scheme" in
-        prefer-dark)
-            printf 'dark'
-            return
-            ;;
-        default | prefer-light)
-            printf 'light'
-            return
-            ;;
-    esac
-
-    if [[ "$gtk_theme" == *dark* ]]; then
-        printf 'dark'
-    else
-        printf 'light'
-    fi
-}
-
-theme_for_mode() {
-    local mode variant
-    mode="$1"
-    variant="$(current_variant)"
-
-    case "$mode:$variant" in
-        solid:dark) printf '%s' "$solid_dark_theme" ;;
-        solid:light) printf '%s' "$solid_light_theme" ;;
-        frosted:dark) printf '%s' "$frosted_dark_theme" ;;
-        frosted:light) printf '%s' "$frosted_light_theme" ;;
-        *)
-            log "invalid mode/variant: $mode/$variant"
-            return 2
             ;;
     esac
 }
@@ -142,50 +94,41 @@ reload_niri() {
     log "reloaded niri config"
 }
 
-set_key_file_value() {
-    local file key value
-    file="$1"
-    key="$2"
-    value="$3"
-
-    [[ -f "$file" ]] || return 0
-    if grep -q "^${key}=" "$file"; then
-        perl -0pi -e "s/^\\Q${key}\\E=.*/${key}=${value}/m" "$file"
-    else
-        printf '%s=%s\n' "$key" "$value" >> "$file"
-    fi
-}
-
-switch_gtk_theme() {
-    local mode theme variant dark_preference
+set_shell_frost_mode() {
+    local attempt mode output
     mode="$1"
-    theme="$(theme_for_mode "$mode")" || return $?
-    variant="$(current_variant)"
-    if [[ "$variant" == "dark" ]]; then
-        dark_preference="1"
-        gsettings set org.gnome.desktop.interface color-scheme prefer-dark 2>/dev/null || true
-    else
-        dark_preference="0"
-        gsettings set org.gnome.desktop.interface color-scheme prefer-light 2>/dev/null || true
+    output=""
+
+    if [[ ! -x "$rsynapse_shell" ]]; then
+        log "rsynapse-shell is not executable at ${rsynapse_shell}"
+        return 1
     fi
 
-    gsettings set org.gnome.desktop.interface gtk-theme "$theme" 2>/dev/null || true
-    set_key_file_value "$HOME/.config/gtk-3.0/settings.ini" "gtk-theme-name" "$theme"
-    set_key_file_value "$HOME/.config/gtk-3.0/settings.ini" "gtk-application-prefer-dark-theme" "$dark_preference"
-    set_key_file_value "$HOME/.config/gtk-4.0/settings.ini" "gtk-theme-name" "$theme"
-    set_key_file_value "$HOME/.config/gtk-4.0/settings.ini" "gtk-application-prefer-dark-theme" "$dark_preference"
+    attempt=1
+    while (( attempt <= 50 )); do
+        if output="$("$rsynapse_shell" request frost-mode "$mode" 2>&1 >/dev/null)"; then
+            log "requested rsynapse-shell frost-mode ${mode}"
+            return 0
+        fi
 
-    if [[ -f "$HOME/.config/xsettingsd/xsettingsd.conf" ]]; then
-        perl -0pi -e "s/^Net\\/ThemeName .*/Net\\/ThemeName \"${theme}\"/m" \
-            "$HOME/.config/xsettingsd/xsettingsd.conf"
-        pkill -HUP xsettingsd 2>/dev/null || true
-    fi
+        case "$output" in
+            *"connect request socket"* | *"Connection refused"* | *"No such file"*)
+                sleep 0.1
+                ;;
+            *)
+                break
+                ;;
+        esac
 
-    log "set GTK theme to ${theme}"
+        ((attempt += 1))
+    done
+
+    log "failed to request rsynapse-shell frost-mode ${mode}: ${output}"
+    return 1
 }
 
 apply_mode() {
-    local mode niri_changed
+    local mode niri_changed status
     mode="$1"
 
     case "$mode" in
@@ -196,14 +139,16 @@ apply_mode() {
             ;;
     esac
 
+    status=0
     niri_changed=0
     if switch_niri_blur "$mode"; then
         niri_changed=1
     fi
-    switch_gtk_theme "$mode"
+    set_shell_frost_mode "$mode" || status=$?
     if [[ "$niri_changed" == "1" ]]; then
         reload_niri
     fi
+    return "$status"
 }
 
 apply_powerprofiles() {
