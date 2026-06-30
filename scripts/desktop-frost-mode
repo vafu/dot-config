@@ -3,8 +3,10 @@ set -uo pipefail
 
 config_file="${NIRI_CONFIG:-$HOME/.config/niri/config.kdl}"
 blur_dir="${DESKTOP_FROST_BLUR_DIR:-$HOME/.config/niri/blur}"
+ghostty_frost_dir="${DESKTOP_FROST_GHOSTTY_DIR:-$HOME/.config/ghostty/frost}"
 rsynapse_shell="${RSYNAPSE_SHELL:-$HOME/.local/bin/rsynapse-shell}"
 current_blur_link="$blur_dir/current.kdl"
+current_ghostty_link="$ghostty_frost_dir/current"
 
 power_profiles_bus="net.hadess.PowerProfiles"
 power_profiles_object="/net/hadess/PowerProfiles"
@@ -19,11 +21,11 @@ current_power_profile() {
 
 mode_from_power_profile() {
     case "$(current_power_profile)" in
-        power-saver | powersave)
-            printf 'solid'
+        performance)
+            printf 'frosted'
             ;;
         *)
-            printf 'frosted'
+            printf 'solid'
             ;;
     esac
 }
@@ -32,6 +34,17 @@ niri_blur_target_for_mode() {
     case "$1" in
         frosted) printf 'enabled.kdl' ;;
         solid) printf 'disabled.kdl' ;;
+        *)
+            log "invalid mode: $1"
+            return 2
+            ;;
+    esac
+}
+
+ghostty_target_for_mode() {
+    case "$1" in
+        frosted) printf 'frosted' ;;
+        solid) printf 'solid' ;;
         *)
             log "invalid mode: $1"
             return 2
@@ -49,26 +62,47 @@ mode_from_current_state() {
     esac
 }
 
-switch_niri_blur() {
-    local mode target tmp
-    mode="$1"
-    target="$(niri_blur_target_for_mode "$mode")" || return $?
-    mkdir -p "$blur_dir" || return 1
+switch_symlink() {
+    local current_link dir target tmp
+    current_link="$1"
+    target="$2"
+    dir="$(dirname "$current_link")"
 
-    if [[ "$(readlink "$current_blur_link" 2>/dev/null || true)" == "$target" ]]; then
+    mkdir -p "$dir" || return 1
+
+    if [[ "$(readlink "$current_link" 2>/dev/null || true)" == "$target" ]]; then
         return 1
     fi
 
-    tmp="$blur_dir/current.kdl.tmp.$$"
+    tmp="${current_link}.tmp.$$"
     rm -f "$tmp"
     ln -s "$target" "$tmp" || return 1
-    mv -Tf "$tmp" "$current_blur_link" || return 1
+    mv -Tf "$tmp" "$current_link" || return 1
+    return 0
+}
+
+switch_niri_blur() {
+    local mode target
+    mode="$1"
+    target="$(niri_blur_target_for_mode "$mode")" || return $?
+
+    switch_symlink "$current_blur_link" "$target" || return $?
 
     # Deliberately use touch(1): niri's watcher should see the main config
     # mtime change even though the included path is a symlink.
     touch "$config_file"
 
     log "switched ${current_blur_link} -> ${target}"
+    return 0
+}
+
+switch_ghostty_transparency() {
+    local mode target
+    mode="$1"
+    target="$(ghostty_target_for_mode "$mode")" || return $?
+
+    switch_symlink "$current_ghostty_link" "$target" || return $?
+    log "switched ${current_ghostty_link} -> ${target}"
     return 0
 }
 
@@ -92,6 +126,40 @@ reload_niri() {
     fi
 
     log "reloaded niri config"
+}
+
+reload_ghostty() {
+    local validation_output
+
+    if ! command -v ghostty >/dev/null 2>&1; then
+        log "ghostty command is not available; new Ghostty windows will read the selected config"
+        return 0
+    fi
+
+    if ! validation_output="$(ghostty +validate-config 2>&1)"; then
+        log "not reloading Ghostty; config did not validate"
+        printf '%s\n' "$validation_output" >&2
+        return 0
+    fi
+
+    if ! command -v gdbus >/dev/null 2>&1; then
+        log "gdbus is not available; existing Ghostty windows need manual reload_config"
+        return 0
+    fi
+
+    if ! gdbus call \
+        --session \
+        --dest com.mitchellh.ghostty \
+        --object-path /com/mitchellh/ghostty \
+        --method org.gtk.Actions.Activate \
+        reload-config \
+        '[]' \
+        '{}' >/dev/null 2>&1; then
+        log "Ghostty is not running or did not accept reload-config; new windows will read the selected config"
+        return 0
+    fi
+
+    log "reloaded Ghostty config"
 }
 
 set_shell_frost_mode() {
@@ -128,7 +196,7 @@ set_shell_frost_mode() {
 }
 
 apply_mode() {
-    local mode niri_changed status
+    local ghostty_changed mode niri_changed status
     mode="$1"
 
     case "$mode" in
@@ -140,13 +208,20 @@ apply_mode() {
     esac
 
     status=0
+    ghostty_changed=0
     niri_changed=0
     if switch_niri_blur "$mode"; then
         niri_changed=1
     fi
+    if switch_ghostty_transparency "$mode"; then
+        ghostty_changed=1
+    fi
     set_shell_frost_mode "$mode" || status=$?
     if [[ "$niri_changed" == "1" ]]; then
         reload_niri
+    fi
+    if [[ "$ghostty_changed" == "1" ]]; then
+        reload_ghostty
     fi
     return "$status"
 }

@@ -25,8 +25,7 @@ font-family = "0xProto Nerd Font"
 font-size = 9
 adjust-cell-height = 8
 
-background-opacity = 0.8
-background-opacity-cells = true
+config-file = "frost/current"
 
 window-padding-x = 4
 window-padding-y = 4
