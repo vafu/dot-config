@@ -1,6 +1,7 @@
 // Power saver is active: force compositor background blur off.
 
 window-rule {
+    geometry-corner-radius 8
     background-effect {
         blur false
     }

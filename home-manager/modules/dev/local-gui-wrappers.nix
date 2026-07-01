@@ -14,8 +14,8 @@ let
     glib
     glibc
     graphene
-    gtk4
     gtk4-layer-shell
+    gtk4
     harfbuzz
     libadwaita
     libepoxy
@@ -347,6 +347,7 @@ in
       liblocusfs_plugin_dbusmenu.so \
       liblocusfs_plugin_mpris.so \
       liblocusfs_plugin_niri.so \
+      liblocusfs_plugin_notifyd.so \
       liblocusfs_plugin_pipewire.so \
       liblocusfs_plugin_project.so \
       liblocusfs_plugin_statusnotifier.so

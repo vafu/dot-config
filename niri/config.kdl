@@ -194,7 +194,6 @@ binds {
     Mod+Return hotkey-overlay-title="Open a Terminal" { spawn-sh "~/.config/scripts/ghostty-project-window"; }
     Mod+Shift+Return hotkey-overlay-title="Open a Terminal" { spawn-sh "ghostty"; }
     Mod+D hotkey-overlay-title="Run an Application: rsynapse" { spawn-sh "$HOME/.local/bin/rsynapse-ui"; }
-    Mod+A hotkey-overlay-title="Agent approvals" { spawn-sh "ags request agent-approvals"; }
     Mod+N hotkey-overlay-title="Run an Application: remarked" { spawn-sh "$HOME/.local/bin/remarked-ui"; }
     Mod+Slash hotkey-overlay-title="Codex Overlay" { spawn-sh "/home/v47/proj/layer-codex/layer-codex --toggle"; }
     Ctrl+Shift+L hotkey-overlay-title="Lock the Screen: swaylock" { spawn-sh "runapp -o hyprlock"; }

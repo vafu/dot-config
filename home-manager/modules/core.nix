@@ -28,6 +28,7 @@
       endeavour
       evolution-data-server
       firefox
+      librewolf
       foot
       glib
       gnome-pomodoro
