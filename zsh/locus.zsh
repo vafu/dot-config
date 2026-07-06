@@ -1,13 +1,95 @@
-_locus_root() {
-  print -r -- "${LOCUS_ROOT:-${XDG_RUNTIME_DIR:-/run/user/$UID}/locusfs}"
+typeset -g _LOCUS_BUS="${LOCUS_BUS:-org.rsynapse.Locus}"
+typeset -g _LOCUS_PATH="/org/rsynapse/Locus"
+typeset -g _LOCUS_INTERFACE="org.rsynapse.Locus.Relations1"
+typeset -g _LOCUS_NIRI_BUS="${LOCUS_NIRI_BUS:-org.rsynapse.Niri}"
+typeset -g _LOCUS_NIRI_PATH="/org/rsynapse/Niri"
+typeset -g _LOCUS_NIRI_INTERFACE="org.rsynapse.Niri1"
+typeset -g _LOCUS_WORKSPACE_PROJECT_RELATION="org.rsynapse.workspace.project"
+
+_locus_have() {
+  command -v "$1" >/dev/null 2>&1
 }
 
-_locus_encode_segment() {
-  jq -rn --arg value "$1" '$value | @uri'
+_locus_need_dbus_json() {
+  _locus_have busctl && _locus_have jq
 }
 
-_locus_safe_node_part() {
-  printf '%s' "$1" | tr -c '[:alnum:]_' '_'
+_locus_dbus_property() {
+  local bus="$1"
+  local path="$2"
+  local interface="$3"
+  local property="$4"
+  _locus_need_dbus_json || return 1
+  busctl --user --json=short get-property "$bus" "$path" "$interface" "$property" 2>/dev/null \
+    | jq -r '.data[0] // empty'
+}
+
+_locus_dbus_call_json() {
+  _locus_need_dbus_json || return 1
+  busctl --user --json=short call "$_LOCUS_BUS" "$_LOCUS_PATH" "$_LOCUS_INTERFACE" "$@" 2>/dev/null
+}
+
+_locus_id_from_path() {
+  local path="$1"
+  local prefix="$2"
+  local id
+  [[ -n "$path" ]] || return 1
+  id="${path:t}"
+  id="${id#$prefix}"
+  [[ "$id" == <-> ]] || return 1
+  print -r -- "$id"
+}
+
+_locus_selected_workspace_id() {
+  local path
+  path="$(_locus_dbus_property "$_LOCUS_NIRI_BUS" "$_LOCUS_NIRI_PATH" "$_LOCUS_NIRI_INTERFACE" FocusedWorkspace)" || return 1
+  _locus_id_from_path "$path" workspace_
+}
+
+_locus_selected_window_id() {
+  local path
+  if [[ "${LOCUS_TERMINAL_WINDOW_ID:-}" == <-> ]]; then
+    print -r -- "$LOCUS_TERMINAL_WINDOW_ID"
+    return 0
+  fi
+  path="$(_locus_dbus_property "$_LOCUS_NIRI_BUS" "$_LOCUS_NIRI_PATH" "$_LOCUS_NIRI_INTERFACE" FocusedWindow)" || return 1
+  _locus_id_from_path "$path" window_
+}
+
+_locus_targets() {
+  local subject="$1"
+  local relation="$2"
+  _locus_dbus_call_json Targets ss "$subject" "$relation" | jq -r '.data[0][]?'
+}
+
+locus_selected_workspace() {
+  local id
+  id="$(_locus_selected_workspace_id)" || return 1
+  print -r -- "niri-workspace:$id"
+}
+
+locus_selected_window() {
+  local id
+  id="$(_locus_selected_window_id)" || return 1
+  print -r -- "niri-window:$id"
+}
+
+locus_selected_project_target() {
+  local subject
+  subject="$(locus_selected_workspace)" || return 1
+  _locus_targets "$subject" "$_LOCUS_WORKSPACE_PROJECT_RELATION" | head -n1
+}
+
+locus_selected_project_path() {
+  local target path
+  target="$(locus_selected_project_target)" || return 1
+  [[ -n "$target" ]] || return 1
+  case "$target" in
+    project:*) path="${target#project:}" ;;
+    *) path="$target" ;;
+  esac
+  [[ -d "$path" ]] || return 1
+  print -r -- "$path"
 }
 
 _locus_ghostty_surface_id() {
@@ -15,7 +97,7 @@ _locus_ghostty_surface_id() {
 }
 
 _locus_random_token() {
-  if command -v uuidgen >/dev/null 2>&1; then
+  if _locus_have uuidgen; then
     uuidgen
   else
     print -r -- "$$-$EPOCHREALTIME-$RANDOM"
@@ -24,6 +106,7 @@ _locus_random_token() {
 
 _locus_niri_window_id_for_title() {
   local title="$1"
+  _locus_have niri && _locus_have jq || return 1
   niri msg --json windows 2>/dev/null \
     | jq -r --arg title "$title" '
         .[]
@@ -35,11 +118,11 @@ _locus_niri_window_id_for_title() {
 
 _locus_init_terminal_window_env() {
   [[ -o interactive ]] || return 0
-  [[ "$TERM_PROGRAM" == ghostty ]] || return 0
-  [[ "$XDG_CURRENT_DESKTOP" == niri || "$DESKTOP_SESSION" == niri ]] || return 0
-  [[ -z "$LOCUS_TERMINAL_WINDOW_ID" ]] || return 0
-  command -v niri >/dev/null 2>&1 || return 0
-  command -v jq >/dev/null 2>&1 || return 0
+  [[ "${TERM_PROGRAM:-}" == ghostty ]] || return 0
+  [[ "${XDG_CURRENT_DESKTOP:-}" == niri || "${DESKTOP_SESSION:-}" == niri ]] || return 0
+  [[ -z "${LOCUS_TERMINAL_WINDOW_ID:-}" ]] || return 0
+  _locus_have niri || return 0
+  _locus_have jq || return 0
   [[ -w /dev/tty ]] || return 0
 
   local surface_id token window_id _
@@ -61,107 +144,21 @@ _locus_init_terminal_window_env() {
   export AGENT_DBUS_WINDOW="$window_id"
 }
 
-_locus_selected_node() {
-  local relative_path="$1"
-  local kind="$2"
-  local target
-  target="$(readlink -f "$(_locus_root)/$relative_path" 2>/dev/null)" || return 1
-  [[ -n "$target" ]] || return 1
-  print -r -- "$kind:${target:t}"
-}
-
-locus_selected_window() {
-  _locus_selected_node context/selected/window window
-}
-
-locus_selected_workspace() {
-  _locus_selected_node context/selected/workspace workspace
-}
-
-locus_selected_project_path() {
-  local property="$(_locus_root)/context/selected/workspace/project/path"
-  local value
-  [[ -r "$property" ]] || return 1
-  IFS= read -r value < "$property" || return 1
-  [[ -n "$value" ]] || return 1
-  print -r -- "$value"
-}
-
-_locus_node_dir() {
-  local subject="$1"
-  local kind="${subject%%:*}"
-  local local_id="${subject#*:}"
-  [[ "$kind" != "$subject" && -n "$kind" && -n "$local_id" ]] || return 1
-  print -r -- "$(_locus_root)/$(_locus_encode_segment "$kind")/$(_locus_encode_segment "$local_id")"
-}
-
-_locus_ensure_node() {
-  local subject="$1"
-  local root="$(_locus_root)"
-  local kind="${subject%%:*}"
-  local dir
-  dir="$(_locus_node_dir "$subject")" || return 1
-  mkdir "$root/$(_locus_encode_segment "$kind")" 2>/dev/null || true
-  [[ -d "$dir" ]] || mkdir "$dir"
-}
-
-_locus_write_prop() {
-  local subject="$1"
-  local key="$2"
-  local value="$3"
-  local dir
-  _locus_ensure_node "$subject" || return 1
-  dir="$(_locus_node_dir "$subject")" || return 1
-  print -r -- "$value" > "$dir/$(_locus_encode_segment "$key")"
-}
-
 _locus_wrap_app() {
   local app_name="$1"
   local app_icon="$2"
   shift 2
-  if [[ "$1" == "--" ]]; then
+  if [[ "${1:-}" == "--" ]]; then
     shift
   fi
 
-  local selected_window selected_window_id app_part app_local app_node app_dir linked=0 command_status=0
-  if [[ -n "$LOCUS_TERMINAL_WINDOW_ID" ]]; then
-    selected_window_id="$LOCUS_TERMINAL_WINDOW_ID"
-    selected_window="window:$selected_window_id"
+  local selected_window_id
+  selected_window_id="$(_locus_selected_window_id 2>/dev/null || true)"
+  if [[ "$selected_window_id" == <-> ]]; then
+    AGENT_DBUS_WINDOW="$selected_window_id" "$@"
   else
-    selected_window="$(locus_selected_window 2>/dev/null)"
-    selected_window_id="${selected_window#window:}"
+    "$@"
   fi
-  app_part="$(_locus_safe_node_part "$app_name")"
-  app_local="${app_part}_${$}_${RANDOM}"
-  app_node="app-instance:${app_local}"
-
-  if [[ "$selected_window" == window:* && -n "$1" && -n "$app_part" ]]; then
-    app_dir="$(_locus_node_dir "$app_node")"
-    if _locus_write_prop "$app_node" kind app-instance \
-      && _locus_write_prop "$app_node" name "$app_name" \
-      && _locus_write_prop "$app_node" icon "$app_icon"; then
-      rm -f "$(_locus_root)/window/$(_locus_encode_segment "$selected_window_id")/app-instance" 2>/dev/null || true
-      ln -s "../../app-instance/$(_locus_encode_segment "$app_local")" \
-        "$(_locus_root)/window/$(_locus_encode_segment "$selected_window_id")/app-instance" \
-        && linked=1
-    fi
-  fi
-
-  {
-    if (( linked )); then
-      LOCUS_APP_INSTANCE="$app_node" AGENT_DBUS_WINDOW="$selected_window_id" "$@"
-    else
-      "$@"
-    fi
-  } always {
-    command_status=$?
-    if (( linked )); then
-      rm -f "$(_locus_root)/window/$(_locus_encode_segment "$selected_window_id")/app-instance" 2>/dev/null || true
-      rm -rf -- "$app_dir" >/dev/null 2>&1 || true
-    fi
-  }
-
-  return $command_status
 }
 
 codex() {

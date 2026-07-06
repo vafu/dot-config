@@ -3,14 +3,64 @@ set -euo pipefail
 
 working_dir="/tmp"
 
-mountpoint="${LOCUS_ROOT:-${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/locusfs}"
-project_path_file="$mountpoint/context/selected/workspace/project/path"
+locus_bus="org.rsynapse.Locus"
+locus_path="/org/rsynapse/Locus"
+locus_interface="org.rsynapse.Locus.Relations1"
+niri_bus="org.rsynapse.Niri"
+niri_path="/org/rsynapse/Niri"
+niri_interface="org.rsynapse.Niri1"
+workspace_project_relation="org.rsynapse.workspace.project"
 
-if [[ -r "$project_path_file" ]]; then
-  IFS= read -r project_dir < "$project_path_file" || project_dir=""
-  if [[ -n "${project_dir:-}" && -d "$project_dir" ]]; then
-    working_dir="$project_dir"
-  fi
+have() {
+  command -v "$1" >/dev/null 2>&1
+}
+
+selected_workspace_id() {
+  have busctl && have jq || return 1
+
+  local path id
+  path="$(
+    busctl --user --json=short get-property \
+      "$niri_bus" "$niri_path" "$niri_interface" FocusedWorkspace 2>/dev/null \
+      | jq -r '.data[0] // empty'
+  )" || return 1
+
+  [[ -n "$path" ]] || return 1
+  id="${path##*/}"
+  id="${id#workspace_}"
+  [[ -n "$id" ]] || return 1
+  printf '%s\n' "$id"
+}
+
+locus_targets() {
+  have busctl && have jq || return 1
+
+  local subject="$1"
+  local relation="$2"
+  busctl --user --json=short call \
+    "$locus_bus" "$locus_path" "$locus_interface" \
+    Targets ss "$subject" "$relation" 2>/dev/null \
+    | jq -r '.data[0][]?'
+}
+
+selected_project_dir() {
+  local workspace_id subject target project_dir
+  workspace_id="$(selected_workspace_id)" || return 1
+  subject="niri-workspace:$workspace_id"
+  target="$(locus_targets "$subject" "$workspace_project_relation" | head -n1)" || return 1
+  [[ -n "$target" ]] || return 1
+
+  case "$target" in
+    project:*) project_dir="${target#project:}" ;;
+    *) project_dir="$target" ;;
+  esac
+
+  [[ -d "$project_dir" ]] || return 1
+  printf '%s\n' "$project_dir"
+}
+
+if project_dir="$(selected_project_dir)"; then
+  working_dir="$project_dir"
 fi
 
 exec ghostty \
