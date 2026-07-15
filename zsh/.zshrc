@@ -138,8 +138,21 @@ source_if_exists() {
   fi
 }
 
+source_ghostty_integration() {
+  if [[ -n "${GHOSTTY_RESOURCES_DIR:-}" && -r "$GHOSTTY_RESOURCES_DIR/shell-integration/zsh/ghostty-integration" ]]; then
+    if [[ -n "${GHOSTTY_SHELL_FEATURES:-}" ]]; then
+      local -a ghostty_features
+      ghostty_features=("${(@s:,:)GHOSTTY_SHELL_FEATURES}")
+      ghostty_features=("${(@)ghostty_features:#title}")
+      export GHOSTTY_SHELL_FEATURES="${(j:,:)ghostty_features}"
+    fi
+    source "$GHOSTTY_RESOURCES_DIR/shell-integration/zsh/ghostty-integration"
+  fi
+}
+
 source_if_exists "$ZDOTDIR/env.zsh"
 source_if_exists "$ZDOTDIR/aliases.zsh"
+source_ghostty_integration
 source_if_exists "$ZDOTDIR/locus.zsh"
 source_if_exists "$ZDOTDIR/niri.zsh"
 source_if_exists "$HOME/.zshrc"

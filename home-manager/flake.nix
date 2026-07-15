@@ -3,6 +3,7 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
+    nixpkgs-codex.url = "github:nixos/nixpkgs/f205b5574fd0cb7da5b702a2da51507b7f4fdd1b";
 
     home-manager = {
       url = "github:nix-community/home-manager";
@@ -47,18 +48,20 @@
   };
 
   outputs =
-    inputs@{ nixpkgs, home-manager, ... }:
+    inputs@{ nixpkgs, nixpkgs-codex, home-manager, ... }:
     let
       system = "x86_64-linux";
       username = "vfuchedzhy";
 
+      nixpkgsConfig = {
+        allowUnfree = true;
+        allowUnfreePredicate = _: true;
+      };
+
       pkgs = import nixpkgs {
         inherit system;
 
-        config = {
-          allowUnfree = true;
-          allowUnfreePredicate = _: true;
-        };
+        config = nixpkgsConfig;
 
         overlays = [
           (import ./overlays/hyprlock-pam.nix)
@@ -66,6 +69,11 @@
           (import ./overlays/libadwaita-theme.nix)
           inputs.rsynapse.overlays.default
         ];
+      };
+
+      pkgsCodex = import nixpkgs-codex {
+        inherit system;
+        config = nixpkgsConfig;
       };
     in
     {
@@ -75,7 +83,7 @@
         inherit pkgs;
 
         extraSpecialArgs = {
-          inherit inputs username;
+          inherit inputs username pkgsCodex;
         };
 
         modules = [ ./home.nix ];

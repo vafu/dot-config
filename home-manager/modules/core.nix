@@ -2,6 +2,7 @@
   config,
   inputs,
   pkgs,
+  pkgsCodex,
   username,
   ...
 }:
@@ -22,7 +23,7 @@
       cage
       cmake
       code-cursor
-      codex
+      pkgsCodex.codex
       dart-sass
       delta
       endeavour

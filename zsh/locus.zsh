@@ -5,6 +5,7 @@ typeset -g _LOCUS_NIRI_BUS="${LOCUS_NIRI_BUS:-org.rsynapse.Niri}"
 typeset -g _LOCUS_NIRI_PATH="/org/rsynapse/Niri"
 typeset -g _LOCUS_NIRI_INTERFACE="org.rsynapse.Niri1"
 typeset -g _LOCUS_WORKSPACE_PROJECT_RELATION="org.rsynapse.workspace.project"
+typeset -g _LOCUS_WINDOW_APP_INSTANCE_RELATION="org.rsynapse.window.app-instance"
 
 _locus_have() {
   command -v "$1" >/dev/null 2>&1
@@ -48,6 +49,10 @@ _locus_selected_workspace_id() {
 
 _locus_selected_window_id() {
   local path
+  if [[ "${NIRI_WINDOW_ID:-}" == <-> ]]; then
+    print -r -- "$NIRI_WINDOW_ID"
+    return 0
+  fi
   if [[ "${LOCUS_TERMINAL_WINDOW_ID:-}" == <-> ]]; then
     print -r -- "$LOCUS_TERMINAL_WINDOW_ID"
     return 0
@@ -92,10 +97,6 @@ locus_selected_project_path() {
   print -r -- "$path"
 }
 
-_locus_ghostty_surface_id() {
-  sed -n 's#.*app-ghostty-surface-transient-\([0-9][0-9]*\)\.scope.*#\1#p' /proc/self/cgroup | head -n1
-}
-
 _locus_random_token() {
   if _locus_have uuidgen; then
     uuidgen
@@ -104,44 +105,65 @@ _locus_random_token() {
   fi
 }
 
+_locus_set_terminal_title() {
+  local title="$1"
+  printf '\033]2;%s\007' "$title" > /dev/tty 2>/dev/null
+}
+
 _locus_niri_window_id_for_title() {
   local title="$1"
   _locus_have niri && _locus_have jq || return 1
   niri msg --json windows 2>/dev/null \
     | jq -r --arg title "$title" '
         .[]
-        | select(.app_id == "com.mitchellh.ghostty" and .title == $title)
+        | select((.app_id == "com.mitchellh.ghostty" or .app_id == "ghostty") and .title == $title)
         | .id
       ' \
     | head -n1
 }
 
-_locus_init_terminal_window_env() {
+_locus_link_ghostty_window_async() {
+  local window_id="$1"
+  local ghostty_uuid="$2"
+  [[ "$window_id" == <-> && -n "$ghostty_uuid" ]] || return 0
+  _locus_need_dbus_json || return 0
+
+  {
+    busctl --user --json=short call \
+      "$_LOCUS_BUS" "$_LOCUS_PATH" "$_LOCUS_INTERFACE" \
+      SetOne a{ss}sa{ss}a{ss} \
+      3 type stable-key kind org.rsynapse.niri.window.id id "$window_id" \
+      "$_LOCUS_WINDOW_APP_INSTANCE_RELATION" \
+      3 type stable-key kind org.rsynapse.app-instance.id id "$ghostty_uuid" \
+      4 terminal ghostty shell zsh cwd "$PWD" pid "$$" \
+      >/dev/null 2>&1 || true
+  } &!
+}
+
+_locus_init_ghostty_window_title() {
+  precmd_functions=("${(@)precmd_functions:#_locus_init_ghostty_window_title}")
   [[ -o interactive ]] || return 0
   [[ "${TERM_PROGRAM:-}" == ghostty ]] || return 0
-  [[ "${XDG_CURRENT_DESKTOP:-}" == niri || "${DESKTOP_SESSION:-}" == niri ]] || return 0
-  [[ -z "${LOCUS_TERMINAL_WINDOW_ID:-}" ]] || return 0
-  _locus_have niri || return 0
-  _locus_have jq || return 0
   [[ -w /dev/tty ]] || return 0
 
-  local surface_id token window_id _
-  surface_id="$(_locus_ghostty_surface_id)"
-  [[ -n "$surface_id" ]] || return 0
+  local token window_id deadline
+  token="$(_locus_random_token)"
+  _locus_set_terminal_title "$token" || return 0
 
-  token="locus-ghostty-surface:$surface_id:$(_locus_random_token)"
-  printf '\033]2;%s\007' "$token" > /dev/tty 2>/dev/null || return 0
-
-  for _ in {1..10}; do
+  zmodload zsh/datetime 2>/dev/null || true
+  deadline=$(( EPOCHREALTIME + 0.5 ))
+  while (( EPOCHREALTIME < deadline )); do
     window_id="$(_locus_niri_window_id_for_title "$token")"
     [[ "$window_id" == <-> ]] && break
-    sleep 0.02
   done
 
-  [[ "$window_id" == <-> ]] || return 0
-  export LOCUS_GHOSTTY_SURFACE_ID="$surface_id"
-  export LOCUS_TERMINAL_WINDOW_ID="$window_id"
-  export AGENT_DBUS_WINDOW="$window_id"
+  export GHOSTTY_UUID="$token"
+  if [[ "$window_id" == <-> ]]; then
+    export NIRI_WINDOW_ID="$window_id"
+    export LOCUS_TERMINAL_WINDOW_ID="$window_id"
+    export AGENT_DBUS_WINDOW="$window_id"
+    _locus_link_ghostty_window_async "$window_id" "$token"
+  fi
 }
 
 _locus_wrap_app() {
@@ -155,7 +177,10 @@ _locus_wrap_app() {
   local selected_window_id
   selected_window_id="$(_locus_selected_window_id 2>/dev/null || true)"
   if [[ "$selected_window_id" == <-> ]]; then
-    AGENT_DBUS_WINDOW="$selected_window_id" "$@"
+    NIRI_WINDOW_ID="$selected_window_id" \
+      LOCUS_TERMINAL_WINDOW_ID="$selected_window_id" \
+      AGENT_DBUS_WINDOW="$selected_window_id" \
+      "$@"
   else
     "$@"
   fi
@@ -284,7 +309,8 @@ typeset -ga precmd_functions
 precmd_functions=("${(@)precmd_functions:#_locus_publish_project_if_changed}")
 precmd_functions=("${(@)precmd_functions:#_locus_update_project_if_changed}")
 precmd_functions=("${(@)precmd_functions:#_locus_precmd_project_workspace}")
+precmd_functions=("${(@)precmd_functions:#_locus_init_ghostty_window_title}")
 precmd_functions+=(_locus_precmd_project_workspace)
+precmd_functions+=(_locus_init_ghostty_window_title)
 _locus_refresh_project_root >/dev/null 2>&1 || true
 _locus_update_project_if_changed
-_locus_init_terminal_window_env
