@@ -207,15 +207,10 @@ nvim() {
 zmodload -F zsh/stat b:zstat 2>/dev/null || true
 
 _locus_project_root_for_pwd() {
-  local dir="${PWD:A}"
-  while [[ "$dir" != "/" ]]; do
-    if [[ -f "$dir/.project.json" ]]; then
-      print -r -- "$dir"
-      return 0
-    fi
-    dir="${dir:h}"
-  done
-  return 1
+  local root
+  _locus_have git || return 1
+  root="$(git -C "$PWD" rev-parse --show-toplevel 2>/dev/null)" || return 1
+  print -r -- "${root:A}"
 }
 
 _locus_git_dir_for_root() {
@@ -267,19 +262,15 @@ _locus_refresh_project_root() {
 }
 
 _locus_update_project_if_changed() {
-  local proj_bin root file branch head head_mtime mtime state selected_project_path
+  local proj_bin root branch head head_mtime state
   proj_bin="$(whence -p proj 2>/dev/null)" || return 0
   [[ -x "$proj_bin" ]] || return 0
   root="$_LOCUS_PROJECT_ROOT"
   [[ -n "$root" && "$root" != "-" ]] || return 0
-  selected_project_path="$(locus_selected_project_path 2>/dev/null || true)"
-  [[ "$selected_project_path" == "$root" ]] || return 0
-  file="$root/.project.json"
   branch="$(_locus_git_branch_for_root "$root")"
   head="$(_locus_git_head_for_root "$root")"
   head_mtime="$(_locus_project_file_mtime "$head" 2>/dev/null || true)"
-  mtime="$(_locus_project_file_mtime "$file")" || return 0
-  state="$root|$branch|$head_mtime|$mtime"
+  state="$root|$branch|$head_mtime"
   [[ "$state" == "$_LOCUS_PROJECT_UPDATE_STATE" ]] && return 0
   _LOCUS_PROJECT_UPDATE_STATE="$state"
   "$proj_bin" update "$root" >/dev/null 2>&1 || true

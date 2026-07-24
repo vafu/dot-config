@@ -74,6 +74,7 @@
       (config.lib.nixGL.wrap pkgs.scrcpy)
 
       pandoc
+      openscad
 
       (python312.withPackages (
         ps: with ps; [

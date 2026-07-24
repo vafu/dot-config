@@ -100,9 +100,11 @@ output "Lenovo Group Limited L32p-30 U512DA0P"{
 }
 
 layout {
-    gaps 4
+    gaps 8
 
     struts {
+        bottom -4
+        top -4
     }
 
     // When to center a column when changing focus, options are:
@@ -172,7 +174,7 @@ window-rule {
     open-floating true
 }
 
-include "blur/current.kdl"
+// include "blur/current.kdl"
 
 
 binds {

@@ -2,17 +2,17 @@ layout {
     focus-ring {
         on
         width 1
-        active-color "#5c6066"
+        active-color "#8a9a7b"
     }
     shadow {
         on
         softness 8
-        spread 0
+        spread 1
         offset x=0 y=0
-        color "#717c7c"
+        color "#8a9a7b"
         inactive-color "#22262d"
     }
-    background-color  "#1f1f26"
+    background-color  "#252527"
 }
 
 window-rule {
