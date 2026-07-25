@@ -9,9 +9,10 @@ layout {
         softness 8
         spread 1
         offset x=0 y=0
-        color "#8a9a7b"
-        inactive-color "#22262d"
+        color "#c5c9c765"
+        inactive-color "#14171d"
     }
+    
     background-color  "#252527"
 }
 
