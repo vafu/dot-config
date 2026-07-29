@@ -122,6 +122,33 @@ _locus_niri_window_id_for_title() {
     | head -n1
 }
 
+_locus_set_window_app_instance() {
+  local window_id="$1"
+  local ghostty_uuid="$2"
+  local app_name="${3:-}"
+  local app_icon="${4:-}"
+  [[ "$window_id" == <-> && -n "$ghostty_uuid" ]] || return 0
+  _locus_need_dbus_json || return 0
+
+  local -a metadata
+  metadata=(terminal ghostty shell zsh cwd "$PWD" pid "$$")
+  if [[ -n "$app_name" ]]; then
+    metadata+=(app-name "$app_name")
+  fi
+  if [[ -n "$app_icon" ]]; then
+    metadata+=(app-icon "$app_icon")
+  fi
+
+  busctl --user --json=short call \
+    "$_LOCUS_BUS" "$_LOCUS_PATH" "$_LOCUS_INTERFACE" \
+    SetOne a{ss}sa{ss}a{ss} \
+    3 type stable-key kind org.rsynapse.niri.window.id id "$window_id" \
+    "$_LOCUS_WINDOW_APP_INSTANCE_RELATION" \
+    3 type stable-key kind org.rsynapse.app-instance.id id "$ghostty_uuid" \
+    $(( ${#metadata} / 2 )) "${metadata[@]}" \
+    >/dev/null 2>&1
+}
+
 _locus_link_ghostty_window_async() {
   local window_id="$1"
   local ghostty_uuid="$2"
@@ -129,14 +156,7 @@ _locus_link_ghostty_window_async() {
   _locus_need_dbus_json || return 0
 
   {
-    busctl --user --json=short call \
-      "$_LOCUS_BUS" "$_LOCUS_PATH" "$_LOCUS_INTERFACE" \
-      SetOne a{ss}sa{ss}a{ss} \
-      3 type stable-key kind org.rsynapse.niri.window.id id "$window_id" \
-      "$_LOCUS_WINDOW_APP_INSTANCE_RELATION" \
-      3 type stable-key kind org.rsynapse.app-instance.id id "$ghostty_uuid" \
-      4 terminal ghostty shell zsh cwd "$PWD" pid "$$" \
-      >/dev/null 2>&1 || true
+    _locus_set_window_app_instance "$window_id" "$ghostty_uuid" || true
   } &!
 }
 
@@ -166,6 +186,18 @@ _locus_init_ghostty_window_title() {
   fi
 }
 
+_locus_terminal_window_id() {
+  if [[ "${NIRI_WINDOW_ID:-}" == <-> ]]; then
+    print -r -- "$NIRI_WINDOW_ID"
+    return 0
+  fi
+  if [[ "${LOCUS_TERMINAL_WINDOW_ID:-}" == <-> ]]; then
+    print -r -- "$LOCUS_TERMINAL_WINDOW_ID"
+    return 0
+  fi
+  return 1
+}
+
 _locus_wrap_app() {
   local app_name="$1"
   local app_icon="$2"
@@ -174,13 +206,22 @@ _locus_wrap_app() {
     shift
   fi
 
-  local selected_window_id
-  selected_window_id="$(_locus_selected_window_id 2>/dev/null || true)"
+  local selected_window_id app_instance_id status
+  selected_window_id="$(_locus_terminal_window_id 2>/dev/null || true)"
+  app_instance_id="${GHOSTTY_UUID:-}"
   if [[ "$selected_window_id" == <-> ]]; then
+    if [[ -n "$app_instance_id" ]]; then
+      _locus_set_window_app_instance "$selected_window_id" "$app_instance_id" "$app_name" "$app_icon" || true
+    fi
     NIRI_WINDOW_ID="$selected_window_id" \
       LOCUS_TERMINAL_WINDOW_ID="$selected_window_id" \
       AGENT_DBUS_WINDOW="$selected_window_id" \
       "$@"
+    status=$?
+    if [[ -n "$app_instance_id" ]]; then
+      _locus_set_window_app_instance "$selected_window_id" "$app_instance_id" || true
+    fi
+    return "$status"
   else
     "$@"
   fi
@@ -201,7 +242,7 @@ gemini() {
 nvim() {
   local nvim_bin
   nvim_bin="$(whence -p nvim)" || return 1
-  _locus_wrap_app neovim "$HOME/.config/ags/assets/icons/Neovim.svg" -- "$nvim_bin" "$@"
+  _locus_wrap_app neovim nvim -- "$nvim_bin" "$@"
 }
 
 zmodload -F zsh/stat b:zstat 2>/dev/null || true
@@ -276,13 +317,27 @@ _locus_update_project_if_changed() {
   "$proj_bin" update "$root" >/dev/null 2>&1 || true
 }
 
+_locus_refresh_project_workspace_cwd() {
+  local proj_bin root state
+  proj_bin="$(whence -p proj 2>/dev/null)" || return 0
+  [[ -x "$proj_bin" ]] || return 0
+  root="$_LOCUS_PROJECT_ROOT"
+  [[ -n "$root" && "$root" != "-" ]] || return 0
+  state="$root|$PWD"
+  [[ "$state" == "$_LOCUS_PROJECT_CWD_STATE" ]] && return 0
+  _LOCUS_PROJECT_CWD_STATE="$state"
+  "$proj_bin" refresh-current "$PWD" >/dev/null 2>&1 || true
+}
+
 _locus_chpwd_project_workspace() {
   _locus_refresh_project_root || return 0
+  _locus_refresh_project_workspace_cwd
 }
 
 _locus_precmd_project_workspace() {
   _locus_refresh_project_root >/dev/null 2>&1 || return 0
   _locus_update_project_if_changed
+  _locus_refresh_project_workspace_cwd
 }
 
 # Project binding is explicit: run `proj set_current` when assigning the
@@ -290,15 +345,18 @@ _locus_precmd_project_workspace() {
 # current project after commands, so branch changes do not rebind workspaces.
 typeset -g _LOCUS_PROJECT_ROOT=""
 typeset -g _LOCUS_PROJECT_UPDATE_STATE=""
+typeset -g _LOCUS_PROJECT_CWD_STATE=""
 typeset -ga chpwd_functions
 chpwd_functions=("${(@)chpwd_functions:#_locus_chpwd_project_window}")
 chpwd_functions=("${(@)chpwd_functions:#_locus_chpwd_project_workspace}")
 chpwd_functions=("${(@)chpwd_functions:#_locus_publish_project_if_changed}")
 chpwd_functions=("${(@)chpwd_functions:#_locus_update_project_if_changed}")
+chpwd_functions=("${(@)chpwd_functions:#_locus_refresh_project_workspace_cwd}")
 chpwd_functions+=(_locus_chpwd_project_workspace)
 typeset -ga precmd_functions
 precmd_functions=("${(@)precmd_functions:#_locus_publish_project_if_changed}")
 precmd_functions=("${(@)precmd_functions:#_locus_update_project_if_changed}")
+precmd_functions=("${(@)precmd_functions:#_locus_refresh_project_workspace_cwd}")
 precmd_functions=("${(@)precmd_functions:#_locus_precmd_project_workspace}")
 precmd_functions=("${(@)precmd_functions:#_locus_init_ghostty_window_title}")
 precmd_functions+=(_locus_precmd_project_workspace)
