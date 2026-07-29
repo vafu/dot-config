@@ -101,10 +101,10 @@ output "Lenovo Group Limited L32p-30 U512DA0P"{
 
 layout {
     gaps 8
-
     struts {
-        bottom -4
+        bottom -6
         top -4
+        left -4
     }
 
     // When to center a column when changing focus, options are:

@@ -3,7 +3,7 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
-    nixpkgs-codex.url = "github:nixos/nixpkgs/f205b5574fd0cb7da5b702a2da51507b7f4fdd1b";
+    nixpkgs-codex.url = "github:nixos/nixpkgs/nixpkgs-unstable";
 
     home-manager = {
       url = "github:nix-community/home-manager";
@@ -65,6 +65,47 @@
 
         overlays = [
           (import ./overlays/hyprlock-pam.nix)
+          (final: prev:
+            let
+              vcvRackFixSegfaultOnLinux = builtins.toFile "vcv-rack-fix-segfault-on-linux.patch" (
+                builtins.concatStringsSep "\n" [
+                  "--- a/src/window/Window.cpp"
+                  "+++ b/src/window/Window.cpp"
+                  "@@ -819,6 +819,10 @@"
+                  " \tglfwInitHint(GLFW_COCOA_MENUBAR, GLFW_FALSE);"
+                  " #endif"
+                  " "
+                  "+#if defined ARCH_LIN"
+                  "+\tglfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);"
+                  "+#endif"
+                  "+"
+                  " \tglfwSetErrorCallback(errorCallback);"
+                  " \terr = glfwInit();"
+                  " \tif (err != GLFW_TRUE) {"
+                  ""
+                ]
+              );
+
+              isBrokenVcvRackPatch =
+                patch:
+                let
+                  name =
+                    if builtins.isAttrs patch && patch ? name then
+                      patch.name
+                    else
+                      builtins.baseNameOf (toString patch);
+                in
+                name == "fix-segfault-on-linux.patch";
+            in
+            {
+              vcv-rack = prev.vcv-rack.overrideAttrs (old: {
+                patches =
+                  builtins.filter (patch: !(isBrokenVcvRackPatch patch)) (old.patches or [ ])
+                  ++ prev.lib.optionals prev.stdenv.hostPlatform.isLinux [
+                    vcvRackFixSegfaultOnLinux
+                  ];
+              });
+            })
           inputs.niri.overlays.niri
           (import ./overlays/libadwaita-theme.nix)
           inputs.rsynapse.overlays.default
@@ -74,6 +115,38 @@
       pkgsCodex = import nixpkgs-codex {
         inherit system;
         config = nixpkgsConfig;
+        overlays = [
+          (final: prev: {
+            codex = prev.stdenvNoCC.mkDerivation (finalAttrs: {
+              pname = "codex";
+              version = "0.146.0-alpha.13";
+
+              src = prev.fetchurl {
+                url = "https://github.com/openai/codex/releases/download/rust-v${finalAttrs.version}/codex-x86_64-unknown-linux-musl.tar.gz";
+                hash = "sha256-bQLzTVm2ghBPzrFYPLWa11kuTimHPUalUohUcpXSJww=";
+              };
+
+              sourceRoot = ".";
+              dontBuild = true;
+              nativeBuildInputs = [ prev.makeBinaryWrapper ];
+
+              installPhase = ''
+                runHook preInstall
+                install -Dm755 codex-x86_64-unknown-linux-musl "$out/bin/codex"
+                runHook postInstall
+              '';
+
+              postFixup = ''
+                wrapProgram $out/bin/codex --prefix PATH : ${prev.lib.makeBinPath ([ prev.ripgrep ] ++ prev.lib.optionals prev.stdenv.hostPlatform.isLinux [ prev.bubblewrap ])}
+              '';
+
+              meta = prev.codex.meta // {
+                homepage = "https://github.com/openai/codex";
+                mainProgram = "codex";
+              };
+            });
+          })
+        ];
       };
     in
     {

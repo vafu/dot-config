@@ -1,5 +1,10 @@
 layout {
     focus-ring {
+        off
+        width 1
+        active-color "#8a9a7b"
+    }
+    border {
         on
         width 1
         active-color "#8a9a7b"
@@ -7,13 +12,17 @@ layout {
     shadow {
         on
         softness 8
-        spread 1
-        offset x=0 y=0
-        color "#c5c9c765"
-        inactive-color "#14171d"
+        spread 2
+        offset x=0 y=2
+        // color "#c5c9c765"
+        color "#14171d"
     }
     
-    background-color  "#252527"
+    // background-color  "#252527"
+    background-color  "#000"
+}
+overview {
+    backdrop-color  "#000"
 }
 
 window-rule {

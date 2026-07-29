@@ -76,6 +76,8 @@
       pandoc
       openscad
 
+      vcv-rack
+
       (python312.withPackages (
         ps: with ps; [
           dbus-python
