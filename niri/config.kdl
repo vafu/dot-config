@@ -102,8 +102,8 @@ output "Lenovo Group Limited L32p-30 U512DA0P"{
 layout {
     gaps 8
     struts {
-        bottom -6
-        top -4
+        bottom -4
+        top -6
         left -4
     }
 

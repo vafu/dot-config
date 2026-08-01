@@ -1,8 +1,6 @@
 layout {
     focus-ring {
         off
-        width 1
-        active-color "#8a9a7b"
     }
     border {
         on
@@ -18,11 +16,7 @@ layout {
         color "#14171d"
     }
     
-    // background-color  "#252527"
-    background-color  "#000"
-}
-overview {
-    backdrop-color  "#000"
+    background-color  "#1f1f26"
 }
 
 window-rule {
