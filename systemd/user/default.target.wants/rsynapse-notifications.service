@@ -1,1 +1,1 @@
-/nix/store/p4l5c1i4hzzsmjlhj9fa75y5vl8z40zy-home-manager-files/.config/systemd/user/default.target.wants/rsynapse-notifications.service
+/home/v47/.config/systemd/user/rsynapse-notifications.service
