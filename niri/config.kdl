@@ -102,8 +102,8 @@ output "Lenovo Group Limited L32p-30 U512DA0P"{
 layout {
     gaps 8
     struts {
-        bottom -6
-        top -4
+        bottom -4
+        top -6
         left -4
     }
 
@@ -196,7 +196,8 @@ binds {
     Mod+Return hotkey-overlay-title="Open a Terminal" { spawn-sh "~/.config/scripts/ghostty-project-window"; }
     Mod+Shift+Return hotkey-overlay-title="Open a Terminal" { spawn-sh "ghostty"; }
     Mod+D hotkey-overlay-title="Run an Application: rsynapse" { spawn-sh "$HOME/.local/bin/rsynapse-ui"; }
-    Mod+N hotkey-overlay-title="Run an Application: remarked" { spawn-sh "$HOME/.local/bin/remarked-ui"; }
+    // Mod+N hotkey-overlay-title="Run an Application: remarked" { spawn-sh "$HOME/.local/bin/remarked-ui"; }
+    Mod+N hotkey-overlay-title="Run an Application: rsynapse" { spawn-sh "$HOME/proj/remarked/target/debug/remarked-ui-beta"; }
     Mod+Slash hotkey-overlay-title="Codex Overlay" { spawn-sh "/home/v47/proj/layer-codex/layer-codex --toggle"; }
     Ctrl+Shift+L hotkey-overlay-title="Lock the Screen: swaylock" { spawn-sh "runapp -o hyprlock"; }
     Ctrl+Shift+U hotkey-overlay-title="Lock the Screen: swaylock" { spawn-sh "~/.config/scripts/suspend.sh"; }

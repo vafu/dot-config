@@ -1,19 +1,28 @@
 layout {
     focus-ring {
+        off
+    }
+    border {
         on
         width 1
         active-color "#545464"
     }
     shadow {
         on
-        softness 8
+        softness 4
         spread 1
         offset x=0 y=0
         color "#909398"
-        inactive-color "#E2E1DF"
+        inactive-color "#90939866"
     }
-    background-color "#CACAC7"
+    background-color "#e2e1df"
 }
+
+window-rule {
+    geometry-corner-radius 8
+    clip-to-geometry true
+}
+
 
 cursor {
     xcursor-theme "phinger-cursors-dark"
