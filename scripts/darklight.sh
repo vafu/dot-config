@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-"${HOME}/.local/bin/rsynapse-shell" request scheme-toggle >/dev/null
+# Single entry point for the Mod+Shift+Y toggle.
+"${HOME}/.config/scripts/theme" toggle

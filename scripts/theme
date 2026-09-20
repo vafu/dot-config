@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+# theme: unified entry point for ~/.config/theme.
+#   theme set [--skip surf1,surf2] <family> [dark|light]  full update (incl. GTK rebuild)
+#   theme toggle                                          flip dark<->light (fast, no rebuild)
+#   theme get [--name|--mode|--accent]                    print selection
+#   theme accent [name]                                   select unified accent (no arg: show)
+#   theme gtk-rebuild                                     regen + rebuild + reinstall GTK now
+set -euo pipefail
+ROOT="${XDG_CONFIG_HOME:-$HOME/.config}/theme"
+export THEME_ROOT="$ROOT"
+
+cmd="${1:-}"; shift || true
+
+theme_get() {
+  local cur="kanso:dark"
+  [[ -f "$ROOT/current" ]] && cur="$(cat "$ROOT/current")"
+  case "${1:-}" in
+    --name) printf '%s\n' "${cur%%:*}" ;;
+    --mode) printf '%s\n' "${cur##*:}" ;;
+    --accent)
+      if [[ -f "$ROOT/accent" ]]; then cat "$ROOT/accent"
+      else . "$ROOT/lib.sh"; theme_val family default_accent "$ROOT/themes/${cur%%:*}.toml"
+      fi ;;
+    *) printf '%s\n' "$cur" ;;
+  esac
+}
+
+theme_set() {
+  local skip="," usage="usage: theme set [--skip surf1,surf2] <family> [dark|light]"
+  if [[ "${1:-}" == "--skip" ]]; then skip=",$2,"; shift 2; fi
+  local family="${1:-}" mode="${2:-}"
+  [[ -n "$family" ]] || { echo "$usage" >&2; exit 2; }
+  [[ -f "$ROOT/themes/$family.toml" ]] || { echo "theme set: unknown theme '$family'" >&2; exit 1; }
+  if [[ -z "$mode" ]]; then
+    if [[ -f "$ROOT/current" ]]; then
+      local cur; cur="$(cat "$ROOT/current")"
+      if [[ "$cur" == "$family:"* ]]; then mode="${cur#*:}"; else mode="dark"; fi
+    else
+      mode="dark"
+    fi
+  fi
+  [[ "$mode" == "dark" || "$mode" == "light" ]] || { echo "$usage" >&2; exit 2; }
+
+  printf '%s:%s\n' "$family" "$mode" > "$ROOT/current.tmp"
+  mv "$ROOT/current.tmp" "$ROOT/current"
+
+  export THEME_NAME="$family" THEME_MODE="$mode"
+  local fail=0 apply name
+  for apply in "$ROOT"/surfaces.d/*/apply; do
+    [[ -x "$apply" ]] || continue
+    name="$(basename "$(dirname "$apply")")"
+    [[ "$skip" == *",$name,"* ]] && { echo "theme set: skip: $name"; continue; }
+    if "$apply" "$family" "$mode"; then
+      echo "theme set: ok: $name"
+    else
+      echo "theme set: FAIL: $name" >&2
+      fail=1
+    fi
+  done
+  return "$fail"
+}
+
+theme_toggle() {
+  local cur name
+  cur="$(theme_get)"; name="${cur%%:*}"
+  if [[ "${cur##*:}" == "dark" ]]; then
+    theme_set --skip adw-gtk3 "$name" light
+  else
+    theme_set --skip adw-gtk3 "$name" dark
+  fi
+}
+
+theme_accent() {
+  local accents="blue teal green yellow orange red pink purple slate" cur
+  if [[ -z "${1:-}" ]]; then
+    echo -n "accent: "
+    if [[ -f "$ROOT/accent" ]]; then cat "$ROOT/accent"; else echo "(family default)"; fi
+    echo "available: $accents"
+    return 0
+  fi
+  [[ " $accents " == *" $1 "* ]] || { echo "theme accent: unknown accent '$1' (available: $accents)" >&2; exit 1; }
+  printf '%s\n' "$1" > "$ROOT/accent.tmp"
+  mv "$ROOT/accent.tmp" "$ROOT/accent"
+  cur="$(theme_get)"
+  theme_set "${cur%%:*}" "${cur##*:}"
+}
+
+theme_gtk_rebuild() {
+  . "$ROOT/lib.sh"
+  local cur theme mode file gtk
+  cur="$(theme_get)"; theme="${cur%%:*}"; mode="${cur##*:}"
+  file="$ROOT/themes/$theme.toml"
+  "$ROOT/surfaces.d/adw-gtk3/apply" "$theme" "$mode"
+  if [[ "$mode" == "dark" ]]; then
+    gtk="$(theme_val gsettings gtk_theme_dark "$file")"
+  else
+    gtk="$(theme_val gsettings gtk_theme_light "$file")"
+  fi
+  gsettings set org.gnome.desktop.interface gtk-theme "$gtk"
+  echo "theme gtk-rebuild: done, gtk-theme=$gtk (restart GTK apps to pick up)"
+}
+
+case "$cmd" in
+  set) theme_set "$@" ;;
+  toggle) theme_toggle "$@" ;;
+  get) theme_get "$@" ;;
+  accent) theme_accent "$@" ;;
+  gtk-rebuild) theme_gtk_rebuild "$@" ;;
+  *) echo "usage: theme {set|toggle|get|accent|gtk-rebuild} [...]" >&2; exit 2 ;;
+esac
