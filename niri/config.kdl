@@ -210,7 +210,7 @@ binds {
     Mod+D hotkey-overlay-title="Run an Application: rsynapse" { spawn-sh "$HOME/.local/bin/rsynapse-ui"; }
     // Mod+N hotkey-overlay-title="Run an Application: remarked" { spawn-sh "$HOME/.local/bin/remarked-ui"; }
     Mod+N hotkey-overlay-title="Run an Application: remarked" { spawn-sh "$HOME/proj/remarked/target/debug/remarked-ui-beta"; }
-    Mod+Slash hotkey-overlay-title="Codex Overlay" { spawn-sh "/home/v47/proj/layer-codex/layer-codex --toggle"; }
+    Mod+Slash hotkey-overlay-title="Codex Overlay" { spawn-sh "$HOME/proj/layer-codex/layer-codex --toggle"; }
     Ctrl+Shift+L hotkey-overlay-title="Lock the Screen: swaylock" { spawn-sh "runapp -o hyprlock"; }
     Ctrl+Shift+U hotkey-overlay-title="Lock the Screen: swaylock" { spawn-sh "~/.config/scripts/suspend.sh"; }
 

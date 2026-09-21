@@ -4,9 +4,9 @@ After=graphical-session.target
 
 [Service]
 Type=notify
-ExecStartPre=/home/v47/.config/rsynapse-shell/scripts/super-hints-trigger reset
-ExecStart=/usr/bin/thd --triggers /home/v47/.config/rsynapse-shell/triggerhappy/super-hints.conf --deviceglob /dev/input/event*
-ExecStopPost=/home/v47/.config/rsynapse-shell/scripts/super-hints-trigger reset
+ExecStartPre=%h/.config/rsynapse-shell/scripts/super-hints-trigger reset
+ExecStart=/usr/bin/thd --triggers %h/.config/rsynapse-shell/triggerhappy/super-hints.conf --deviceglob /dev/input/event*
+ExecStopPost=%h/.config/rsynapse-shell/scripts/super-hints-trigger reset
 Restart=on-failure
 RestartSec=1s
 

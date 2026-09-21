@@ -5,17 +5,17 @@ layout {
     border {
         on
         width 1
-        active-color "#545464"
+        active-color "${ACCENT}"
     }
     shadow {
         on
         softness 4
         spread 1
         offset x=0 y=0
-        color "#909398"
-        inactive-color "#90939866"
+        color "${SHADOW}"
+        inactive-color "${SHADOW_INACTIVE}"
     }
-    background-color "#e2e1df"
+    background-color "${WORKSPACE_BG}"
 }
 
 window-rule {
@@ -25,6 +25,6 @@ window-rule {
 
 
 cursor {
-    xcursor-theme "phinger-cursors-dark"
+    xcursor-theme "${CURSOR_THEME}"
     xcursor-size 24
 }

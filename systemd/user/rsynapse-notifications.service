@@ -1,1 +1,13 @@
-/nix/store/vwwx4cn63w7966xqhm6v5y2xfm7fd549-home-manager-files/.config/systemd/user/rsynapse-notifications.service
+[Unit]
+Description=Rsynapse Notifications
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/rsynapse-notifications
+Restart=on-failure
+RestartSec=2s
+
+[Install]
+WantedBy=default.target
+

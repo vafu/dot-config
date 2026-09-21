@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Surface: niri. Renders theme.kdl from the central palette (templates hold
+# structure, hex comes from themes/<family>.toml). Replaces the old
+# theme.kdl -> theme_dark.kdl symlink; theme_dark/light.kdl are no longer read.
+set -euo pipefail
+THEME="${1:?usage: apply <theme> <dark|light>}"
+MODE="${2:?usage: apply <theme> <dark|light>}"
+ROOT="${THEME_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/theme}"
+# shellcheck disable=SC1091
+. "$ROOT/lib.sh"
+SURF="$(dirname "$(readlink -f "$0")")"
+NIRI="${XDG_CONFIG_HOME:-$HOME/.config}/niri"
+FILE="$ROOT/themes/$THEME.toml"
+TMPL="$SURF/templates/${MODE}.kdl.tmpl"
+
+[[ -f "$TMPL" ]] || { echo "niri surface: missing $TMPL" >&2; exit 1; }
+pal_export "$FILE" "$MODE"
+ACCENT="$(accent_hex "$FILE" "$MODE" "$(current_accent "$FILE")")"
+[[ -n "$ACCENT" && -n "${WORKSPACE_BG:-}" ]] || { echo "niri surface: empty palette for $THEME/$MODE" >&2; exit 1; }
+export ACCENT
+
+rm -f "$NIRI/theme.kdl" # was a symlink to theme_dark.kdl; now generated
+envsubst < "$TMPL" > "$NIRI/theme.kdl.tmp"
+mv "$NIRI/theme.kdl.tmp" "$NIRI/theme.kdl"
+
+# Explicit reload (don't rely on file watching alone).
+niri msg action load-config-file >/dev/null 2>&1 || true

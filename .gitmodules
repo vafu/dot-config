@@ -4,7 +4,4 @@
 [submodule "ags2"]
 	path = ags2
 	url = git@github.com:vafu/ags-dots.git
-[submodule "alacritty/themes"]
-	path = alacritty/themes
-	url = https://github.com/alacritty/alacritty-theme
 

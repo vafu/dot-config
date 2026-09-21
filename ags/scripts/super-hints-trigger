@@ -1,2 +1,2 @@
 #!/bin/sh
-exec /home/v47/.config/rsynapse-shell/scripts/super-hints-trigger "$@"
+exec $HOME/.config/rsynapse-shell/scripts/super-hints-trigger "$@"

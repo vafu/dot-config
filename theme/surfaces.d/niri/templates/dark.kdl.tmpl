@@ -5,7 +5,7 @@ layout {
     border {
         on
         width 1
-        active-color "#8a9a7b"
+        active-color "${ACCENT}"
     }
     shadow {
         on
@@ -13,10 +13,10 @@ layout {
         spread 2
         offset x=0 y=2
         // color "#c5c9c765"
-        color "#14171d"
+        color "${SHADOW}"
     }
     
-    background-color  "#1f1f26"
+    background-color  "${WORKSPACE_BG}"
 }
 
 window-rule {
@@ -25,6 +25,6 @@ window-rule {
 }
 
 cursor {
-    xcursor-theme "phinger-cursors-light"
+    xcursor-theme "${CURSOR_THEME}"
     xcursor-size 24
 }

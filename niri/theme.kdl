@@ -1,1 +1,30 @@
-/home/vfuchedzhy/.config/niri/theme_dark.kdl
+layout {
+    focus-ring {
+        off
+    }
+    border {
+        on
+        width 0.5
+        active-color "#d4be98"
+    }
+    shadow {
+        on
+        softness 8
+        spread 2
+        offset x=0 y=2
+        // color "#c5c9c765"
+        color "#282828"
+    }
+    
+    background-color  "#32302f"
+}
+
+window-rule {
+    geometry-corner-radius 8
+    clip-to-geometry true
+}
+
+cursor {
+    xcursor-theme "phinger-cursors-light"
+    xcursor-size 24
+}
