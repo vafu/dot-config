@@ -1,0 +1,135 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+handler_desktop_id="rsynapse-open-url.desktop"
+
+browser_desktop_id() {
+    local desktop_id
+
+    for mime in x-scheme-handler/https text/html; do
+        desktop_id="$(xdg-mime query default "$mime" 2>/dev/null || true)"
+        if [[ -n "$desktop_id" && "$desktop_id" != "$handler_desktop_id" ]]; then
+            printf '%s\n' "$desktop_id"
+            return
+        fi
+    done
+
+    gio mime x-scheme-handler/https 2>/dev/null \
+        | awk -v self="$handler_desktop_id" '/^[[:space:]]/ && $1 != self { print $1; exit }'
+}
+
+desktop_file() {
+    local desktop_id="$1"
+    local data_dir
+    local data_dirs
+
+    data_dirs="${XDG_DATA_HOME:-$HOME/.local/share}:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+    IFS=: read -r -a data_dirs <<<"$data_dirs"
+    for data_dir in "${data_dirs[@]}"; do
+        if [[ -f "$data_dir/applications/$desktop_id" ]]; then
+            printf '%s\n' "$data_dir/applications/$desktop_id"
+            return
+        fi
+    done
+}
+
+browser_from_desktop() {
+    local desktop_id="$1"
+    local file exec_line
+    local -a argv
+
+    file="$(desktop_file "$desktop_id")"
+    [[ -n "$file" ]] || return
+
+    exec_line="$(awk -F= '$1 == "Exec" { print $2; exit }' "$file")"
+    exec_line="${exec_line//%[fFuUdDnNickvm]/}"
+    read -r -a argv <<<"$exec_line"
+    if [[ "${argv[0]:-}" == env ]]; then
+        argv=("${argv[@]:1}")
+        while [[ "${argv[0]:-}" == *=* ]]; do
+            argv=("${argv[@]:1}")
+        done
+    fi
+    printf '%s\n' "${argv[0]:-}"
+}
+
+app_id_re_from_desktop() {
+    local app_id="${1%.desktop}"
+
+    case "$app_id" in
+        com.google.Chrome|google-chrome) printf '%s\n' '^(google-chrome|com[.]google[.]Chrome)$' ;;
+        firefox|org.mozilla.firefox) printf '%s\n' '^firefox$' ;;
+        librewolf|io.gitlab.librewolf-community) printf '%s\n' '^librewolf$' ;;
+        *) printf '^%s$\n' "$(printf '%s' "$app_id" | sed 's/[][(){}.^$*+?|\\]/\\&/g')" ;;
+    esac
+}
+
+focused_workspace_id() {
+    local id
+    id="$(niri msg --json focused-window 2>/dev/null | jq -r '.workspace_id // empty' || true)"
+    if [[ -n "$id" ]]; then
+        printf '%s\n' "$id"
+        return
+    fi
+
+    niri msg --json workspaces 2>/dev/null | jq -r 'map(select(.is_focused)) | first.id // empty' || true
+}
+
+browser_window_id() {
+    local workspace_id="$1"
+
+    niri msg --json windows 2>/dev/null | jq -r \
+        --argjson workspace_id "$workspace_id" \
+        --arg app_id_re "$browser_app_id_re" \
+        '[.[] | select(.workspace_id == $workspace_id and (.app_id // "" | test($app_id_re)))]
+         | sort_by(.focus_timestamp.secs // 0, .focus_timestamp.nanos // 0)
+         | last.id // empty' || true
+}
+
+self_test() {
+    local app_id_re='^(google-chrome|com[.]google[.]Chrome)$'
+    local windows='[
+        {"id":1,"app_id":"google-chrome","workspace_id":7,"focus_timestamp":{"secs":1,"nanos":0}},
+        {"id":2,"app_id":"google-chrome","workspace_id":7,"focus_timestamp":{"secs":2,"nanos":0}},
+        {"id":3,"app_id":"google-chrome","workspace_id":8,"focus_timestamp":{"secs":3,"nanos":0}},
+        {"id":4,"app_id":"firefox","workspace_id":7,"focus_timestamp":{"secs":4,"nanos":0}}
+    ]'
+
+    [[ "$(app_id_re_from_desktop google-chrome.desktop)" == "$app_id_re" ]]
+    [[ "$(app_id_re_from_desktop firefox.desktop)" == '^firefox$' ]]
+    [[ "$(jq -r --argjson workspace_id 7 --arg app_id_re "$app_id_re" \
+        '[.[] | select(.workspace_id == $workspace_id and (.app_id // "" | test($app_id_re)))]
+         | sort_by(.focus_timestamp.secs // 0, .focus_timestamp.nanos // 0)
+         | last.id // empty' <<<"$windows")" == 2 ]]
+}
+
+if [[ "${1:-}" == "--self-test" ]]; then
+    self_test
+    exit
+fi
+
+url="${1:-}"
+if [[ -z "$url" ]]; then
+    echo "usage: rsynapse-open-url URL" >&2
+    exit 64
+fi
+
+browser_desktop="${RSYNAPSE_URL_BROWSER_DESKTOP:-$(browser_desktop_id)}"
+browser="${RSYNAPSE_URL_BROWSER:-$(browser_from_desktop "$browser_desktop")}"
+browser="${browser:-google-chrome}"
+browser_app_id_re="${RSYNAPSE_URL_BROWSER_APP_ID_RE:-$(app_id_re_from_desktop "$browser_desktop")}"
+
+if ! command -v "$browser" >/dev/null 2>&1; then
+    notify-send "Rsynapse URL opener" "Browser not found: $browser" 2>/dev/null || true
+    exit 69
+fi
+
+workspace_id="$(focused_workspace_id)"
+if [[ -n "$workspace_id" ]]; then
+    window_id="$(browser_window_id "$workspace_id")"
+    if [[ -n "$window_id" ]] && niri msg action focus-window --id "$window_id" >/dev/null 2>&1; then
+        exec "$browser" "$url"
+    fi
+fi
+
+exec "$browser" --new-window "$url"

@@ -5,10 +5,6 @@
 !home-manager/**
 !rsynapse/**
 
-!alacritty/**
-alacritty/dark.theme
-alacritty/light.theme
-alacritty/theme.toml
 !ghostty/**
 ghostty/frost/current
 
@@ -16,8 +12,6 @@ ghostty/frost/current
 
 !ags/**
 !.zshrc
-!foot/**
-!fuzzel/**
 
 !niri/**
 niri/theme.kdl
@@ -48,3 +42,7 @@ hypr/workspaces.conf
 zsh/.zcompdump*
 zsh/.zcompcache
 !TODO.md
+
+!theme/**
+theme/current
+theme/accent

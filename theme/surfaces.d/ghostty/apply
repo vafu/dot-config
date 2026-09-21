@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# Surface: ghostty. Renders both theme files (dark+light) from the central
+# palette AND points ghostty's `theme = dark:X,light:Y` config line at this
+# family's themes. Touches the config when anything changed so running
+# ghostty picks it up via its config-file watcher. Deterministic otherwise.
+set -euo pipefail
+THEME="${1:?usage: apply <theme> <dark|light>}"
+ROOT="${THEME_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/theme}"
+# shellcheck disable=SC1091
+. "$ROOT/lib.sh"
+SURF="$(dirname "$(readlink -f "$0")")"
+GDIR="${XDG_CONFIG_HOME:-$HOME/.config}/ghostty"
+FILE="$ROOT/themes/$THEME.toml"
+TMPL="$SURF/templates/theme.tmpl"
+CONF="$GDIR/config"
+
+CHANGED=0
+for M in dark light; do
+  pal_export "$FILE" "$M"
+  [[ -n "${BG:-}" && -n "${C0:-}" ]] || { echo "ghostty surface: empty palette for $THEME/$M" >&2; exit 1; }
+  NAME="$(theme_val ghostty "$M" "$FILE")"
+  [[ -n "$NAME" ]] || { echo "ghostty surface: missing [ghostty] $M" >&2; exit 1; }
+  # shellcheck disable=SC2034
+  eval "GHOSTTY_$M=\$NAME"
+  envsubst < "$TMPL" > "$GDIR/themes/$NAME.tmp"
+  if [[ -f "$GDIR/themes/$NAME" ]] && cmp -s "$GDIR/themes/$NAME.tmp" "$GDIR/themes/$NAME"; then
+    rm "$GDIR/themes/$NAME.tmp"
+  else
+    mv "$GDIR/themes/$NAME.tmp" "$GDIR/themes/$NAME"
+    CHANGED=1
+  fi
+done
+
+WANT="theme = dark:$GHOSTTY_dark,light:$GHOSTTY_light"
+if grep -qxF "$WANT" "$CONF"; then
+  :
+else
+  sed -i "s/^theme *=.*/$WANT/" "$CONF"
+  grep -q '^theme =' "$CONF" || printf '%s\n' "$WANT" >> "$CONF"
+  CHANGED=1
+fi
+
+# Trigger reload in running instances: touch for file watchers plus SIGUSR2,
+# which ghostty maps to reload_config (colors/themes are reloadable).
+# Best-effort: no ghostty running (or systemd unit instead) must not fail us.
+if [[ "$CHANGED" == "0" ]]; then
+  :
+else
+  touch "$CONF"
+  if systemctl --user is-active -q com.mitchellh.ghostty.service 2>/dev/null; then
+    systemctl reload --user com.mitchellh.ghostty.service 2>/dev/null || true
+  else
+    pkill -SIGUSR2 -x ghostty 2>/dev/null || true
+  fi
+fi

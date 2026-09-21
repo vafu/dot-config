@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Surface: opencode. Sets the TUI theme from the registry. "system" inherits
+# the terminal bg + ANSI palette, so it tracks every family/mode for free.
+# Takes effect on (re)start, or live via opencode's /theme command.
+set -euo pipefail
+THEME="${1:?usage: apply <theme> <dark|light>}"
+ROOT="${THEME_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/theme}"
+# shellcheck disable=SC1091
+. "$ROOT/lib.sh"
+FILE="$ROOT/themes/$THEME.toml"
+ODIR="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
+
+NAME="$(theme_val opencode theme "$FILE")"
+[[ -n "$NAME" ]] || { echo "opencode surface: missing [opencode] theme for $THEME" >&2; exit 1; }
+
+printf '{\n  "$schema": "https://opencode.ai/tui.json",\n  "theme": "%s"\n}\n' \
+  "$NAME" > "$ODIR/tui.json.tmp"
+if [[ -f "$ODIR/tui.json" ]] && cmp -s "$ODIR/tui.json.tmp" "$ODIR/tui.json"; then
+  rm "$ODIR/tui.json.tmp"
+else
+  mv "$ODIR/tui.json.tmp" "$ODIR/tui.json"
+fi

@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# Surface: adw-gtk3. Full update: regen _theme_palette.scss from the central
+# palette, rebuild, reinstall to ~/.local. (Slow: sass compile. Toggle skips
+# this surface — both modes are built in one run, so no rebuild is needed
+# to flip dark/light.) Hookup: _custom_colors.scss @uses the partial.
+set -euo pipefail
+THEME="${1:?usage: apply <theme> <dark|light>}"
+MODE="${2:?usage: apply <theme> <dark|light>}"
+ROOT="${THEME_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/theme}"
+# shellcheck disable=SC1091
+. "$ROOT/lib.sh"
+SURF="$(dirname "$(readlink -f "$0")")"
+REPO="$HOME/proj/de/adw-gtk3"
+DEST="$REPO/src/sass/_theme_palette.scss"
+FILE="$ROOT/themes/$THEME.toml"
+LOG="/tmp/theme-gtk-build.log"
+
+[[ -d "$(dirname "$DEST")" ]] || { echo "adw-gtk3 surface: missing repo at $(dirname "$DEST")" >&2; exit 1; }
+pal_export "$FILE" dark dark
+pal_export "$FILE" light light
+[[ -n "${DARK_BG0:-}" && -n "${LIGHT_BG0:-}" ]] || { echo "adw-gtk3 surface: empty palette for $THEME" >&2; exit 1; }
+export DOLLAR='$' # templates need literal $ for scss vars (envsubst would eat $dark-)
+
+envsubst < "$SURF/templates/_theme_palette.scss.tmpl" > "$DEST.tmp"
+if [[ -f "$DEST" ]] && cmp -s "$DEST.tmp" "$DEST"; then
+  rm "$DEST.tmp"
+  PART_SAME=1
+else
+  mv "$DEST.tmp" "$DEST"
+  PART_SAME=0
+fi
+
+# Mirror the selected accent into src/ so installs keep it (literal hex, same
+# content the gsettings surface writes to the installed copy).
+ACCENT_NAME="$(current_accent "$FILE")"
+ACCENT_HEX="$(accent_hex "$FILE" "$MODE" "$ACCENT_NAME")" || { echo "adw-gtk3 surface: bad accent '$ACCENT_NAME'" >&2; exit 1; }
+printf '@define-color accent_bg_color %s;\n' "$ACCENT_HEX" > "$REPO/src/accent-color.css"
+
+if [[ "$PART_SAME" == "1" ]]; then
+  echo "adw-gtk3 surface: palette unchanged, nothing to build"
+  exit 0
+fi
+
+echo "adw-gtk3 surface: rebuilding GTK theme…" >&2
+fail() { echo "adw-gtk3 surface: FAILED ($1), tail of $LOG:" >&2; tail -15 "$LOG" >&2; exit 1; }
+ninja -C "$REPO/build" reconfigure >"$LOG" 2>&1 || fail reconfigure
+ninja -C "$REPO/build" >>"$LOG" 2>&1 || fail build
+meson install -C "$REPO/build" >>"$LOG" 2>&1 || fail install
+echo "adw-gtk3 surface: rebuilt + installed"

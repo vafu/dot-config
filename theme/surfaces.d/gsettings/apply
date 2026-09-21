@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Surface: gsettings bus. Portal-aware apps (ghostty dark:/light:) follow
+# color-scheme with no further work; gtk-theme covers the rest.
+set -euo pipefail
+THEME="${1:?usage: apply <theme> <dark|light>}"
+MODE="${2:?usage: apply <theme> <dark|light>}"
+ROOT="${THEME_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/theme}"
+# shellcheck disable=SC1091
+. "$ROOT/lib.sh"
+FILE="$ROOT/themes/$THEME.toml"
+
+if [[ "$MODE" == "dark" ]]; then
+  SCHEME="$(theme_val gsettings color_scheme_dark "$FILE")"
+  GTK="$(theme_val gsettings gtk_theme_dark "$FILE")"
+else
+  SCHEME="$(theme_val gsettings color_scheme_light "$FILE")"
+  GTK="$(theme_val gsettings gtk_theme_light "$FILE")"
+fi
+[[ -n "$SCHEME" && -n "$GTK" ]] || { echo "gsettings surface: missing keys for $THEME/$MODE" >&2; exit 1; }
+
+gsettings set org.gnome.desktop.interface color-scheme "$SCHEME"
+gsettings set org.gnome.desktop.interface gtk-theme "$GTK"
+
+# Unified accent: enum for libadwaita + accent-color.css for the built theme
+# (literal hex from the family table -- exact, no rebuild needed).
+ACCENT_NAME="$(current_accent "$FILE")"
+ACCENT_HEX="$(accent_hex "$FILE" "$MODE" "$ACCENT_NAME")" || { echo "gsettings surface: bad accent '$ACCENT_NAME'" >&2; exit 1; }
+gsettings set org.gnome.desktop.interface accent-color "$ACCENT_NAME"
+printf '@define-color accent_bg_color %s;\n' "$ACCENT_HEX" > "$HOME/.local/share/themes/accent-color.css"
