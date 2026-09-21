@@ -223,7 +223,7 @@ in
   '';
 
   xdg.configFile."gtk-4.0/gtk4.css".source =
-    "${config.home.homeDirectory}/proj/adw-gtk3/build/src/theme-dark/gtk4.css";
+    "${config.home.homeDirectory}/proj/de/adw-gtk3/build/src/theme-dark/gtk4.css";
 
   xdg.configFile."gtk-4.0/accent-color.css".text = ''
     @define-color accent_bg_color #98BB6C;
@@ -235,28 +235,14 @@ in
   xdg.configFile."gtk-4.0/libadwaita-tweaks.css".source =
     "${config.home.homeDirectory}/.local/share/themes/kanso-dark/gtk-4.0/libadwaita-tweaks.css";
 
-  xdg.dataFile."themes/kanso-dark/gtk-4.0/gtk.css" = {
-    force = true;
-    text = ''
-      @import "accent-color.css";
-      @import "gtk4.css";
-    '';
-  };
+  # NOTE: ~/.local/share/themes/kanso-dark is owned by `theme set` (meson
+  # install --prefix ~/.local from ~/proj/de/adw-gtk3). Do NOT manage files
+  # under it here: home-manager symlinks would shadow the freshly built
+  # theme with frozen nix-store copies and fight meson on every switch.
 
-  xdg.dataFile."themes/kanso-dark/gtk-4.0/gtk-dark.css" = {
-    force = true;
-    text = ''
-      @import "accent-color.css";
-      @import "gtk4.css";
-    '';
-  };
-
-  xdg.dataFile."themes/kanso-dark/gtk-4.0/accent-color.css" = {
-    force = true;
-    text = ''
-      @define-color accent_bg_color #98BB6C;
-    '';
-  };
+  # NOTE: rsynapse-notifications is intentionally NOT declared here: the
+  # unit is managed manually in systemd/user/ (committed to this repo).
+  # Declaring it would make every switch fight the manual files.
 
   systemd.user.services = {
     rsynapse-shell = {
@@ -268,22 +254,6 @@ in
       Service = {
         Type = "simple";
         ExecStart = "%h/.local/bin/rsynapse-shell";
-        Restart = "on-failure";
-        RestartSec = 2;
-      };
-
-      Install.WantedBy = [ "default.target" ];
-    };
-
-    rsynapse-notifications = {
-      Unit = {
-        Description = "Rsynapse Notifications";
-        After = [ "graphical-session.target" ];
-      };
-
-      Service = {
-        Type = "simple";
-        ExecStart = "%h/.local/bin/rsynapse-notifications";
         Restart = "on-failure";
         RestartSec = 2;
       };

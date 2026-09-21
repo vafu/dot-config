@@ -43,7 +43,27 @@ fi
 
 echo "adw-gtk3 surface: rebuilding GTK theme…" >&2
 fail() { echo "adw-gtk3 surface: FAILED ($1), tail of $LOG:" >&2; tail -15 "$LOG" >&2; exit 1; }
-ninja -C "$REPO/build" reconfigure >"$LOG" 2>&1 || fail reconfigure
+# The theme must land where GTK looks ($XDG_DATA_HOME/themes =
+# ~/.local/share/themes). Pin the prefix: a build dir configured with any
+# other prefix installs invisibly and apps keep rendering a stale copy.
+meson configure "$REPO/build" -Dprefix="$HOME/.local" >"$LOG" 2>&1 || fail prefix
+ninja -C "$REPO/build" reconfigure >>"$LOG" 2>&1 || fail reconfigure
 ninja -C "$REPO/build" >>"$LOG" 2>&1 || fail build
 meson install -C "$REPO/build" >>"$LOG" 2>&1 || fail install
 echo "adw-gtk3 surface: rebuilt + installed"
+
+# GTK only re-resolves theme files when a settings key *changes* — freshly
+# installed CSS otherwise sits unnoticed until the next toggle. Poke
+# gtk-theme away and back so running apps reload from disk now.
+# (gtk-theme/color-scheme are ancient keys, visible under any schemas.)
+if [[ "$MODE" == "dark" ]]; then
+  WANT="$(theme_val gsettings gtk_theme_dark "$FILE")"
+else
+  WANT="$(theme_val gsettings gtk_theme_light "$FILE")"
+fi
+if [[ -n "$WANT" && "$WANT" != "Adwaita" ]]; then
+  gio_dconf_env # same minimal-env fix as the gsettings surface (dconf backend)
+  gsettings set org.gnome.desktop.interface gtk-theme "Adwaita" >>"$LOG" 2>&1 || fail poke-away
+  gsettings set org.gnome.desktop.interface gtk-theme "$WANT" >>"$LOG" 2>&1 || fail poke-back
+  echo "adw-gtk3 surface: poked gtk-theme to reload ($WANT)"
+fi

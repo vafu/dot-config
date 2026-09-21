@@ -166,6 +166,22 @@ layout {
     // `draw-border-with-background`.
 
     // You can change how the focus ring looks.
+    // Structure lives here; only colors come from the generated theme.kdl.
+    focus-ring {
+        off
+    }
+
+    border {
+        on
+        width 0.5
+    }
+
+    shadow {
+        on
+        softness 8
+        spread 2
+        offset x=0 y=2
+    }
 }
 
 hotkey-overlay {
@@ -184,6 +200,16 @@ window-rule {
 window-rule {
     match app-id=r#"Nautilus$"#
     open-floating true
+}
+
+// Geometry defaults for all windows (colors come from theme.kdl).
+window-rule {
+    geometry-corner-radius 8
+    clip-to-geometry true
+}
+
+cursor {
+    xcursor-size 24
 }
 
 // include "blur/current.kdl"
@@ -257,7 +283,7 @@ binds {
     Mod+Shift+L     { move-column-right; }
     Mod+Shift+J     { move-window-down-or-to-workspace-down; }
     Mod+Shift+K     { move-window-up-or-to-workspace-up; }
-    Mod+Shift+Y     { spawn-sh "~/.config/scripts/darklight.sh"; }
+    Mod+Shift+Y repeat=false { spawn-sh "theme toggle"; }
 
     // Alternative commands that move across workspaces when reaching
     // the first or last window in a column.

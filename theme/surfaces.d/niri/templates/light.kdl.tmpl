@@ -1,30 +1,14 @@
 layout {
-    focus-ring {
-        off
-    }
     border {
-        on
-        width 1
         active-color "${ACCENT}"
     }
     shadow {
-        on
-        softness 4
-        spread 1
-        offset x=0 y=0
         color "${SHADOW}"
         inactive-color "${SHADOW_INACTIVE}"
     }
     background-color "${WORKSPACE_BG}"
 }
 
-window-rule {
-    geometry-corner-radius 8
-    clip-to-geometry true
-}
-
-
 cursor {
     xcursor-theme "${CURSOR_THEME}"
-    xcursor-size 24
 }

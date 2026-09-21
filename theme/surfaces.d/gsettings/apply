@@ -18,6 +18,10 @@ else
 fi
 [[ -n "$SCHEME" && -n "$GTK" ]] || { echo "gsettings surface: missing keys for $THEME/$MODE" >&2; exit 1; }
 
+# Spawned contexts (niri keybinds, systemd units) may see stale schemas
+# and no dconf backend (silent memory-backend writes); fix both.
+gio_dconf_env
+
 gsettings set org.gnome.desktop.interface color-scheme "$SCHEME"
 gsettings set org.gnome.desktop.interface gtk-theme "$GTK"
 

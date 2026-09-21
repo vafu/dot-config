@@ -46,6 +46,29 @@ current_accent() {
     theme_val family default_accent "$1"
   fi
 }
+# gio_dconf_env: make GSettings/dconf usable in minimal contexts (niri
+# keybind spawns, systemd units). Two gaps vs interactive shells:
+#  - XDG_DATA_DIRS may list system schemas first (or only), which can
+#    predate keys like accent-color -> "No such key" failures.
+#    Fixed by preferring the nix-profile schema dirs (same ones the
+#    home-manager app wrappers use).
+#  - GIO_EXTRA_MODULES may be empty, leaving nix gio with no dconf
+#    backend -> silent MEMORY backend: every set exits 0 but writes
+#    vanish with the process. Fixed by pointing at the nix dconf
+#    gio modules.
+# Everything is resolved by glob on each call: no store hashes or
+# versions are pinned anywhere.
+gio_dconf_env() {
+  local d pre mod
+  pre=""
+  for d in "$HOME"/.nix-profile/share/gsettings-schemas/*/; do
+    [[ -d "$d" ]] && pre="${pre:+$pre:}${d%/}"
+  done
+  [[ -n "$pre" ]] && export XDG_DATA_DIRS="$pre:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+  mod="$(ls -td /nix/store/*-dconf-*-lib/lib/gio/modules 2>/dev/null | head -n 1)"
+  [[ -n "$mod" ]] && export GIO_EXTRA_MODULES="$mod${GIO_EXTRA_MODULES:+:$GIO_EXTRA_MODULES}"
+  unset d pre mod
+}
 # pal_export <file> <mode> [prefix]: export every key in [mode] as UPPER
 # (c0 -> C0, border_active -> BORDER_ACTIVE), optionally PREFIXED
 # (prefix=ink -> INK_C0) so dark+light can coexist for envsubst.

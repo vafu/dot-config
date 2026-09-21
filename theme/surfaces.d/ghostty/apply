@@ -40,16 +40,4 @@ else
   CHANGED=1
 fi
 
-# Trigger reload in running instances: touch for file watchers plus SIGUSR2,
-# which ghostty maps to reload_config (colors/themes are reloadable).
-# Best-effort: no ghostty running (or systemd unit instead) must not fail us.
-if [[ "$CHANGED" == "0" ]]; then
-  :
-else
-  touch "$CONF"
-  if systemctl --user is-active -q com.mitchellh.ghostty.service 2>/dev/null; then
-    systemctl reload --user com.mitchellh.ghostty.service 2>/dev/null || true
-  else
-    pkill -SIGUSR2 -x ghostty 2>/dev/null || true
-  fi
-fi
+pkill -USR2 -x ghostty 2>/dev/null || true

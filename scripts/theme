@@ -2,6 +2,7 @@
 # theme: unified entry point for ~/.config/theme.
 #   theme set [--skip surf1,surf2] <family> [dark|light]  full update (incl. GTK rebuild)
 #   theme toggle                                          flip dark<->light (fast, no rebuild)
+#   theme list                                            installed families with color previews
 #   theme get [--name|--mode|--accent]                    print selection
 #   theme accent [name]                                   select unified accent (no arg: show)
 #   theme gtk-rebuild                                     regen + rebuild + reinstall GTK now
@@ -61,7 +62,18 @@ theme_set() {
 }
 
 theme_toggle() {
-  local cur name
+  local cur name now last stamp="${XDG_RUNTIME_DIR:-/tmp}/theme-toggle.stamp"
+  # Collapse rapid presses (key repeat, double-taps) into one toggle:
+  # an even number of quick toggles nets to zero and looks like
+  # "only niri changed". Only explicit `theme set` bypasses this.
+  now="$(date +%s)"
+  last="$(cat "$stamp" 2>/dev/null || printf 0)"
+  [[ "$last" =~ ^[0-9]+$ ]] || last=0
+  if (( now - last < 2 )); then
+    echo "theme toggle: debounced (previous toggle $(( now - last ))s ago)" >&2
+    return 0
+  fi
+  printf '%s\n' "$now" > "$stamp.tmp" && mv "$stamp.tmp" "$stamp"
   cur="$(theme_get)"; name="${cur%%:*}"
   if [[ "${cur##*:}" == "dark" ]]; then
     theme_set --skip adw-gtk3 "$name" light
@@ -85,6 +97,38 @@ theme_accent() {
   theme_set "${cur%%:*}" "${cur##*:}"
 }
 
+# swatch <hex> -> two truecolor background spaces (nothing for bad input).
+swatch() {
+  local h="${1:-}"
+  [[ "$h" =~ ^#[0-9a-fA-F]{6}$ ]] || return 0
+  printf '\e[48;2;%d;%d;%dm  \e[0m' \
+    "$((16#${h:1:2}))" "$((16#${h:3:2}))" "$((16#${h:5:2}))"
+}
+
+theme_list() {
+  . "$ROOT/lib.sh"
+  local cur toml name accent m marker key val row first=1
+  cur="$(theme_get)"
+  for toml in "$ROOT"/themes/*.toml; do
+    [[ "$first" == "1" ]] && first=0 || printf '\n'
+    name="$(basename "$toml" .toml)"
+    accent="$(theme_val family default_accent "$toml")"
+    printf '%s%s%s\n' \
+      "$( [[ "$cur" == "$name:"* ]] && printf '*' || printf ' ' )" \
+      " $name" \
+      "$( [[ -n "$accent" ]] && printf ' (accent %s)' "$accent" )"
+    for m in dark light; do
+      [[ "$cur" == "$name:$m" ]] && marker="*" || marker=" "
+      row=""
+      for key in bg c1 c2 c3 c4 c5 c6 fg; do
+        val="$(theme_val "$m" "$key" "$toml")"
+        row="$row$(swatch "$val")"
+      done
+      printf '%s %-5s %s\n' "$marker" "$m" "$row"
+    done
+  done
+}
+
 theme_gtk_rebuild() {
   . "$ROOT/lib.sh"
   local cur theme mode file gtk
@@ -103,8 +147,9 @@ theme_gtk_rebuild() {
 case "$cmd" in
   set) theme_set "$@" ;;
   toggle) theme_toggle "$@" ;;
+  list) theme_list "$@" ;;
   get) theme_get "$@" ;;
   accent) theme_accent "$@" ;;
   gtk-rebuild) theme_gtk_rebuild "$@" ;;
-  *) echo "usage: theme {set|toggle|get|accent|gtk-rebuild} [...]" >&2; exit 2 ;;
+  *) echo "usage: theme {set|toggle|list|get|accent|gtk-rebuild} [...]" >&2; exit 2 ;;
 esac
