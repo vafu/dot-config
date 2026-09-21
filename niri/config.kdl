@@ -99,6 +99,18 @@ output "Lenovo Group Limited L32p-30 U512DA0P"{
     scale 1.2
 }
 
+
+output "Dell Inc. DELL U2725QE 1XCJ634" {
+    // Top monitor (Main 4K Screen)
+    mode "3840x2160@120.000" // Optional: Upgraded to your monitor's supported 120Hz
+    scale 1.35
+}
+
+output "AU Optronics 0xF99A Unknown" {
+    // Bottom monitor (Laptop Screen)
+    mode "1920x1200@60.026"
+    scale 1.25
+}
 layout {
     gaps 8
     struts {
@@ -196,7 +208,8 @@ binds {
     Mod+Return hotkey-overlay-title="Open a Terminal" { spawn-sh "~/.config/scripts/ghostty-project-window"; }
     Mod+Shift+Return hotkey-overlay-title="Open a Terminal" { spawn-sh "ghostty"; }
     Mod+D hotkey-overlay-title="Run an Application: rsynapse" { spawn-sh "$HOME/.local/bin/rsynapse-ui"; }
-    Mod+N hotkey-overlay-title="Run an Application: remarked" { spawn-sh "$HOME/.local/bin/remarked-ui"; }
+    // Mod+N hotkey-overlay-title="Run an Application: remarked" { spawn-sh "$HOME/.local/bin/remarked-ui"; }
+    Mod+N hotkey-overlay-title="Run an Application: remarked" { spawn-sh "$HOME/proj/remarked/target/debug/remarked-ui-beta"; }
     Mod+Slash hotkey-overlay-title="Codex Overlay" { spawn-sh "/home/v47/proj/layer-codex/layer-codex --toggle"; }
     Ctrl+Shift+L hotkey-overlay-title="Lock the Screen: swaylock" { spawn-sh "runapp -o hyprlock"; }
     Ctrl+Shift+U hotkey-overlay-title="Lock the Screen: swaylock" { spawn-sh "~/.config/scripts/suspend.sh"; }
@@ -237,8 +250,8 @@ binds {
     Mod+L     { focus-column-right; }
 
     Mod+Shift+Left  { move-column-left; }
-    Mod+Shift+Down  { move-window-down; }
-    Mod+Shift+Up    { move-window-up; }
+    Mod+Shift+Down  { move-window-down-or-to-workspace-down; }
+    Mod+Shift+Up    { move-window-up-or-to-workspace-up; }
     Mod+Shift+Right { move-column-right; }
     Mod+Shift+H     { move-column-left; }
     Mod+Shift+L     { move-column-right; }
@@ -254,8 +267,8 @@ binds {
     Mod+Ctrl+End  { move-column-to-last; }
 
     Mod+Ctrl+Left  { focus-monitor-left; }
-    Mod+Ctrl+Down  { focus-workspace-down; }
-    Mod+Ctrl+Up    { focus-workspace-up; }
+    Mod+Ctrl+Down  { focus-monitor-down; }
+    Mod+Ctrl+Up    { focus-monitor-up; }
     Mod+Ctrl+Right { focus-monitor-right; }
     Mod+Ctrl+H     { focus-monitor-left; }
     Mod+Ctrl+J     { focus-workspace-down; }

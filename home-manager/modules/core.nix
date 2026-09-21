@@ -75,8 +75,15 @@
 
       pandoc
       openscad
+      ncdu
+      ghidra
+      databricks-cli
 
-      vcv-rack
+      jadx
+
+      iotop-c
+
+      opencode
 
       (python312.withPackages (
         ps: with ps; [

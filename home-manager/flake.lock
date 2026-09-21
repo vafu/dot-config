@@ -298,25 +298,7 @@
         "niri": "niri",
         "nixGL": "nixGL",
         "nixpkgs": "nixpkgs",
-        "nixpkgs-codex": "nixpkgs-codex",
-        "rsynapse": "rsynapse"
-      }
-    },
-    "rsynapse": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1780628801,
-        "narHash": "sha256-G2IphMArmECxA6zJ/KPS8PKpD+3gvjowi0A1BBOPmRo=",
-        "path": "/home/vfuchedzhy/proj/rsynapse",
-        "type": "path"
-      },
-      "original": {
-        "path": "/home/vfuchedzhy/proj/rsynapse",
-        "type": "path"
+        "nixpkgs-codex": "nixpkgs-codex"
       }
     },
     "systems": {

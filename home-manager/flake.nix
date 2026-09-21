@@ -41,10 +41,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    rsynapse = {
-      url = "path:/home/vfuchedzhy/proj/rsynapse";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
   outputs =
@@ -108,7 +104,6 @@
             })
           inputs.niri.overlays.niri
           (import ./overlays/libadwaita-theme.nix)
-          inputs.rsynapse.overlays.default
         ];
       };
 
