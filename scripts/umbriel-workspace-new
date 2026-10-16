@@ -1,0 +1,77 @@
+#!/usr/bin/env python3
+"""Focus an empty dynamic workspace immediately above/below the current one."""
+
+import argparse
+import json
+import subprocess
+import sys
+
+
+class Compositor:
+    @staticmethod
+    def run(*arguments):
+        result = subprocess.run(["umbriel", *arguments], capture_output=True,
+                                text=True, timeout=10)
+        if result.returncode != 0:
+            raise RuntimeError(result.stderr.strip() or "Umbriel command failed")
+        return result.stdout
+
+    def workspaces(self):
+        return json.loads(self.run("workspaces", "--json"))
+
+    def action(self, value):
+        self.run("msg", value)
+
+
+def insert(ipc, direction):
+    snapshot = ipc.workspaces()
+    original = next((workspace for workspace in snapshot if workspace["focused"]), None)
+    if original is None:
+        raise RuntimeError("no focused workspace")
+    # Empty anonymous workspaces are transient: use the current one if already
+    # blank, rather than replacing it and letting its identity be pruned.
+    if not original["named"] and original["window_count"] == 0:
+        return original["id"]
+    output = original["output"]
+    members = sorted((workspace for workspace in snapshot if workspace["output"] == output),
+                     key=lambda workspace: workspace["index"])
+    blank = members[-1]
+    if blank["named"] or blank["window_count"] != 0:
+        raise RuntimeError("no trailing empty workspace available (dynamic workspaces required)")
+    ipc.action(f'workspace-switch:{blank["index"]}/{output}')
+    for _ in range(65):
+        current = ipc.workspaces()
+        selected = next((workspace for workspace in current if workspace["focused"]), None)
+        if selected is None or selected["id"] != blank["id"] or selected["output"] != output:
+            raise RuntimeError("workspace focus changed during insertion")
+        # Leaving an older empty workspace can prune it and renumber both the
+        # anchor and destination. Follow their identities, not a captured index.
+        anchor = next(workspace for workspace in current if workspace["id"] == original["id"])
+        destination = anchor["index"] + (-1 if direction == "above" else 1)
+        if selected["index"] == destination:
+            return selected["id"]
+        if selected["index"] < destination:
+            raise RuntimeError("workspace order changed during insertion")
+        before = selected["index"]
+        ipc.action("workspace-move-up")
+        changed = ipc.workspaces()
+        moved = next((workspace for workspace in changed if workspace["id"] == blank["id"]), None)
+        if moved is None or moved["index"] >= before:
+            raise RuntimeError("Umbriel did not move the empty workspace")
+    raise RuntimeError("workspace insertion exceeded Umbriel's workspace limit")
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("direction", choices=("above", "below"))
+    arguments = parser.parse_args()
+    try:
+        print(insert(Compositor(), arguments.direction))
+    except (OSError, ValueError, KeyError, RuntimeError, StopIteration, subprocess.SubprocessError) as error:
+        print(f"umbriel-workspace-new: {error}", file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

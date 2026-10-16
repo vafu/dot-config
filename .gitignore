@@ -14,6 +14,7 @@ ghostty/frost/current
 !.zshrc
 
 !niri/**
+!umbriel/**
 niri/theme.kdl
 niri/theme_dark.kdl
 niri/theme_light.kdl

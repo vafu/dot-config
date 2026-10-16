@@ -64,8 +64,28 @@ app_id_re_from_desktop() {
     esac
 }
 
+session_compositor() {
+    local desktop="${XDG_CURRENT_DESKTOP:-}" niri=0 umbriel=0
+    desktop=":${desktop,,}:"
+    case "$desktop" in *:niri:*) niri=1 ;; esac
+    case "$desktop" in *:umbriel:*) umbriel=1 ;; esac
+    if ((niri != umbriel)); then
+        if ((umbriel)); then printf '%s\n' umbriel; else printf '%s\n' niri; fi
+    elif ((niri == 0)); then
+        if [[ -n "${UMBRIEL_SOCKET:-}" && -z "${NIRI_SOCKET:-}" ]]; then printf '%s\n' umbriel;
+        elif [[ -n "${NIRI_SOCKET:-}" && -z "${UMBRIEL_SOCKET:-}" ]]; then printf '%s\n' niri; fi
+    fi
+}
+
 focused_workspace_id() {
     local id
+    if [[ "$compositor" == umbriel ]]; then
+        id="$(umbriel windows --json 2>/dev/null | jq -r 'map(select(.active)) | first.workspace // empty' || true)"
+        if [[ -n "$id" ]]; then printf '%s\n' "$id"; return; fi
+        umbriel workspaces --json 2>/dev/null | jq -r 'map(select(.focused)) | first.id // empty' || true
+        return
+    fi
+    [[ "$compositor" == niri ]] || return 0
     id="$(niri msg --json focused-window 2>/dev/null | jq -r '.workspace_id // empty' || true)"
     if [[ -n "$id" ]]; then
         printf '%s\n' "$id"
@@ -75,15 +95,31 @@ focused_workspace_id() {
     niri msg --json workspaces 2>/dev/null | jq -r 'map(select(.is_focused)) | first.id // empty' || true
 }
 
-browser_window_id() {
-    local workspace_id="$1"
+select_browser_window() {
+    jq -r --arg backend "$1" --arg workspace_id "$2" --arg app_id_re "$3" '
+        [.[] | select(((if $backend == "umbriel" then .workspace else .workspace_id end) | tostring) == $workspace_id
+                       and (.app_id // "" | test($app_id_re)))]
+        | sort_by(if $backend == "umbriel" then [(.active // false), .id]
+                  else [(.focus_timestamp.secs // 0), (.focus_timestamp.nanos // 0)] end)
+        | last.id // empty'
+}
 
-    niri msg --json windows 2>/dev/null | jq -r \
-        --argjson workspace_id "$workspace_id" \
-        --arg app_id_re "$browser_app_id_re" \
-        '[.[] | select(.workspace_id == $workspace_id and (.app_id // "" | test($app_id_re)))]
-         | sort_by(.focus_timestamp.secs // 0, .focus_timestamp.nanos // 0)
-         | last.id // empty' || true
+browser_window_id() {
+    if [[ "$compositor" == umbriel ]]; then
+        umbriel windows --json 2>/dev/null | select_browser_window umbriel "$1" "$browser_app_id_re" || true
+    elif [[ "$compositor" == niri ]]; then
+        niri msg --json windows 2>/dev/null | select_browser_window niri "$1" "$browser_app_id_re" || true
+    fi
+}
+
+focus_browser_window() {
+    if [[ "$compositor" == umbriel ]]; then
+        umbriel msg "window-focus:$1"
+    elif [[ "$compositor" == niri ]]; then
+        niri msg action focus-window --id "$1"
+    else
+        return 1
+    fi
 }
 
 self_test() {
@@ -97,10 +133,16 @@ self_test() {
 
     [[ "$(app_id_re_from_desktop google-chrome.desktop)" == "$app_id_re" ]]
     [[ "$(app_id_re_from_desktop firefox.desktop)" == '^firefox$' ]]
-    [[ "$(jq -r --argjson workspace_id 7 --arg app_id_re "$app_id_re" \
-        '[.[] | select(.workspace_id == $workspace_id and (.app_id // "" | test($app_id_re)))]
-         | sort_by(.focus_timestamp.secs // 0, .focus_timestamp.nanos // 0)
-         | last.id // empty' <<<"$windows")" == 2 ]]
+    [[ "$(select_browser_window niri 7 "$app_id_re" <<<"$windows")" == 2 ]]
+    windows='[
+        {"id":"opaque/one","app_id":"google-chrome","workspace":"DP-1:1","active":false},
+        {"id":"opaque/two","app_id":"google-chrome","workspace":"DP-1:1","active":true},
+        {"id":"other","app_id":"google-chrome","workspace":"DP-2:1","active":true}
+    ]'
+    [[ "$(select_browser_window umbriel 'DP-1:1' "$app_id_re" <<<"$windows")" == 'opaque/two' ]]
+    [[ -z "$(select_browser_window umbriel '007' "$app_id_re" <<<"$windows")" ]]
+    [[ "$(XDG_CURRENT_DESKTOP=Umbriel NIRI_SOCKET=/inherited session_compositor)" == umbriel ]]
+    [[ "$(XDG_CURRENT_DESKTOP=niri UMBRIEL_SOCKET=/inherited session_compositor)" == niri ]]
 }
 
 if [[ "${1:-}" == "--self-test" ]]; then
@@ -118,6 +160,7 @@ browser_desktop="${RSYNAPSE_URL_BROWSER_DESKTOP:-$(browser_desktop_id)}"
 browser="${RSYNAPSE_URL_BROWSER:-$(browser_from_desktop "$browser_desktop")}"
 browser="${browser:-google-chrome}"
 browser_app_id_re="${RSYNAPSE_URL_BROWSER_APP_ID_RE:-$(app_id_re_from_desktop "$browser_desktop")}"
+compositor="${RSYNAPSE_URL_COMPOSITOR:-$(session_compositor)}"
 
 if ! command -v "$browser" >/dev/null 2>&1; then
     notify-send "Rsynapse URL opener" "Browser not found: $browser" 2>/dev/null || true
@@ -127,7 +170,7 @@ fi
 workspace_id="$(focused_workspace_id)"
 if [[ -n "$workspace_id" ]]; then
     window_id="$(browser_window_id "$workspace_id")"
-    if [[ -n "$window_id" ]] && niri msg action focus-window --id "$window_id" >/dev/null 2>&1; then
+    if [[ -n "$window_id" ]] && focus_browser_window "$window_id" >/dev/null 2>&1; then
         exec "$browser" "$url"
     fi
 fi

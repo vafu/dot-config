@@ -2,9 +2,9 @@
   imports = [
     ./modules/apps/slack.nix
     ./modules/core.nix
-    ./modules/desktop/ags.nix
     ./modules/desktop/niri.nix
     ./modules/desktop/portals.nix
+    ./modules/desktop/umbriel.nix
     ./modules/dev/local-gui-wrappers.nix
   ];
 }

@@ -156,6 +156,7 @@ source_ghostty_integration
 source_if_exists "$ZDOTDIR/locus.zsh"
 source_if_exists "$ZDOTDIR/niri.zsh"
 source_if_exists "$HOME/.zshrc"
+source_if_exists "$ZDOTDIR/codex-lanes.zsh"
 
 #THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
 export SDKMAN_DIR="$HOME/.sdkman"

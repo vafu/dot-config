@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# Niri-like screenshot shortcuts: save a PNG and copy it to the clipboard.
+set -euo pipefail
+
+args=()
+case "${1:-region}" in
+  region)
+    geometry="$(slurp)" || exit 0
+    args=(-g "$geometry")
+    ;;
+  output)
+    output="$(umbriel outputs --json | jq -er '.[] | select(.focused and .enabled) | .name')"
+    args=(-o "$output")
+    ;;
+  window)
+    # `focused` is remembered per workspace; `active` is the seat-global focus.
+    geometry="$(umbriel windows --json | jq -er '
+      .[] | select(.active) | "\(.x),\(.y) \(.w)x\(.h)"
+    ')"
+    args=(-g "$geometry")
+    ;;
+  *)
+    printf 'usage: screenshot [region|output|window]\n' >&2
+    exit 2
+    ;;
+esac
+
+pictures="$(xdg-user-dir PICTURES 2>/dev/null || printf '%s/Pictures' "$HOME")"
+directory="$pictures/Screenshots"
+mkdir -p "$directory"
+file="$directory/Screenshot from $(date '+%Y-%m-%d %H-%M-%S-%N').png"
+grim "${args[@]}" "$file"
+wl-copy --type image/png < "$file"

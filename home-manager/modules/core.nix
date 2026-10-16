@@ -8,6 +8,8 @@
 }:
 
 {
+  imports = [ inputs.kcd.homeManagerModules.default ];
+
   fonts.fontconfig.enable = true;
 
   home = {
@@ -72,19 +74,15 @@
       triggerhappy
       (config.lib.nixGL.wrap pkgs.ghostty)
       (config.lib.nixGL.wrap pkgs.scrcpy)
-
       pandoc
       openscad
       ncdu
       ghidra
       databricks-cli
-
       jadx
-
       iotop-c
-
       opencode
-
+      tailscale
       (python312.withPackages (
         ps: with ps; [
           dbus-python
@@ -99,6 +97,8 @@
       XCURSOR_PATH = "${config.home.homeDirectory}/.icons:${config.home.homeDirectory}/.local/share/icons:/usr/share/icons";
     };
   };
+
+  services.kcd.enable = true;
 
   programs.home-manager.enable = true;
 

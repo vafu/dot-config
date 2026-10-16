@@ -29,6 +29,7 @@ adjust-cell-height = 8
 window-padding-x = 4
 window-padding-y = 4
 window-decoration = none
+app-notifications = no-config-reload
 
 # ~/.config/ghostty/config
 quick-terminal-position = center

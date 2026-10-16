@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Use the same central palette and accent selection as the Niri surface.
+set -euo pipefail
+THEME="${1:?usage: apply <theme> <dark|light>}"
+MODE="${2:?usage: apply <theme> <dark|light>}"
+ROOT="${THEME_ROOT:-${XDG_CONFIG_HOME:-$HOME/.config}/theme}"
+# shellcheck disable=SC1091
+. "$ROOT/lib.sh"
+SURF="$(dirname "$(readlink -f "$0")")"
+UMBRIEL="${XDG_CONFIG_HOME:-$HOME/.config}/umbriel"
+FILE="$ROOT/themes/$THEME.toml"
+
+pal_export "$FILE" "$MODE"
+ACCENT="$(accent_hex "$FILE" "$MODE" "$(current_accent "$FILE")")"
+[[ -n "$ACCENT" && -n "${WORKSPACE_BG:-}" && -n "${SHADOW:-}" && -n "${CURSOR_THEME:-}" ]] || {
+  printf 'umbriel surface: empty palette for %s/%s\n' "$THEME" "$MODE" >&2
+  exit 1
+}
+export ACCENT
+
+mkdir -p "$UMBRIEL"
+envsubst < "$SURF/theme.toml.tmpl" > "$UMBRIEL/theme.toml.tmp"
+mv "$UMBRIEL/theme.toml.tmp" "$UMBRIEL/theme.toml"
+
+# The include is watched too; request a reload for an active Umbriel session.
+if [[ -n "${UMBRIEL_SOCKET:-}" ]]; then
+  umbriel msg config-reload >/dev/null 2>&1 || true
+fi

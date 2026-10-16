@@ -10,17 +10,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    ags = {
-      url = "github:Aylur/ags";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.astal.follows = "astal";
-    };
-
-    astal = {
-      url = "github:sameoldlab/astal?ref=feat/niri";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     nixGL = {
       url = "github:nix-community/nixGL";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -40,7 +29,14 @@
       url = "path:./flakes/adw-gtk3-kanso";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
+    kcd = {
+      url = "path:./flakes/kcd";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    umbriel = {
+      url = "git+https://github.com/noctalia-dev/umbriel";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =

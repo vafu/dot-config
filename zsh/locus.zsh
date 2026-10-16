@@ -1,9 +1,9 @@
 typeset -g _LOCUS_BUS="${LOCUS_BUS:-org.rsynapse.Locus}"
 typeset -g _LOCUS_PATH="/org/rsynapse/Locus"
 typeset -g _LOCUS_INTERFACE="org.rsynapse.Locus.Relations1"
-typeset -g _LOCUS_NIRI_BUS="${LOCUS_NIRI_BUS:-org.rsynapse.Niri}"
-typeset -g _LOCUS_NIRI_PATH="/org/rsynapse/Niri"
-typeset -g _LOCUS_NIRI_INTERFACE="org.rsynapse.Niri1"
+typeset -g _LOCUS_WORKSPACE_BUS="${LOCUS_WORKSPACE_BUS:-org.rsynapse.Workspace}"
+typeset -g _LOCUS_WORKSPACE_PATH="/org/rsynapse/Workspace"
+typeset -g _LOCUS_WORKSPACE_INTERFACE="org.rsynapse.Workspace.Manager1"
 typeset -g _LOCUS_WORKSPACE_PROJECT_RELATION="org.rsynapse.workspace.project"
 typeset -g _LOCUS_WINDOW_APP_INSTANCE_RELATION="org.rsynapse.window.app-instance"
 
@@ -17,12 +17,12 @@ _locus_need_dbus_json() {
 
 _locus_dbus_property() {
   local bus="$1"
-  local path="$2"
+  local object_path="$2"
   local interface="$3"
   local property="$4"
   _locus_need_dbus_json || return 1
-  busctl --user --json=short get-property "$bus" "$path" "$interface" "$property" 2>/dev/null \
-    | jq -r '.data[0] // empty'
+  busctl --user --json=short get-property "$bus" "$object_path" "$interface" "$property" 2>/dev/null \
+    | jq -r '.data | if type == "array" then .[0] // empty else . end'
 }
 
 _locus_dbus_call_json() {
@@ -30,71 +30,63 @@ _locus_dbus_call_json() {
   busctl --user --json=short call "$_LOCUS_BUS" "$_LOCUS_PATH" "$_LOCUS_INTERFACE" "$@" 2>/dev/null
 }
 
-_locus_id_from_path() {
-  local path="$1"
-  local prefix="$2"
-  local id
-  [[ -n "$path" ]] || return 1
-  id="${path:t}"
-  id="${id#$prefix}"
-  [[ "$id" == <-> ]] || return 1
-  print -r -- "$id"
-}
-
 _locus_selected_workspace_id() {
-  local path
-  path="$(_locus_dbus_property "$_LOCUS_NIRI_BUS" "$_LOCUS_NIRI_PATH" "$_LOCUS_NIRI_INTERFACE" FocusedWorkspace)" || return 1
-  _locus_id_from_path "$path" workspace_
+  local object_path
+  object_path="$(_locus_dbus_property "$_LOCUS_WORKSPACE_BUS" "$_LOCUS_WORKSPACE_PATH" "$_LOCUS_WORKSPACE_INTERFACE" FocusedWorkspace)" || return 1
+  [[ -n "$object_path" ]] || return 1
+  _locus_dbus_property "$_LOCUS_WORKSPACE_BUS" "$object_path" org.rsynapse.Workspace.Workspace1 Id
 }
 
 _locus_selected_window_id() {
-  local path
-  if [[ "${NIRI_WINDOW_ID:-}" == <-> ]]; then
-    print -r -- "$NIRI_WINDOW_ID"
-    return 0
-  fi
-  if [[ "${LOCUS_TERMINAL_WINDOW_ID:-}" == <-> ]]; then
-    print -r -- "$LOCUS_TERMINAL_WINDOW_ID"
-    return 0
-  fi
-  path="$(_locus_dbus_property "$_LOCUS_NIRI_BUS" "$_LOCUS_NIRI_PATH" "$_LOCUS_NIRI_INTERFACE" FocusedWindow)" || return 1
-  _locus_id_from_path "$path" window_
+  local object_path
+  _locus_terminal_window_id && return 0
+  object_path="$(_locus_dbus_property "$_LOCUS_WORKSPACE_BUS" "$_LOCUS_WORKSPACE_PATH" "$_LOCUS_WORKSPACE_INTERFACE" FocusedWindow)" || return 1
+  [[ -n "$object_path" ]] || return 1
+  _locus_dbus_property "$_LOCUS_WORKSPACE_BUS" "$object_path" org.rsynapse.Workspace.Window1 Id
 }
 
 _locus_targets() {
   local subject="$1"
   local relation="$2"
-  _locus_dbus_call_json Targets ss "$subject" "$relation" | jq -r '.data[0][]?'
+  local kind id
+  kind="$(jq -er '.kind' <<< "$subject")" || return 1
+  id="$(jq -er '.id' <<< "$subject")" || return 1
+  _locus_dbus_call_json Targets 'a{ss}s' 3 type stable-key kind "$kind" id "$id" "$relation" \
+    | jq -c '.data[0][]?'
 }
 
 locus_selected_workspace() {
   local id
   id="$(_locus_selected_workspace_id)" || return 1
-  print -r -- "niri-workspace:$id"
+  jq -nc --arg id "$id" '{type:"stable-key",kind:"org.rsynapse.workspace.id",id:$id}'
 }
 
 locus_selected_window() {
   local id
   id="$(_locus_selected_window_id)" || return 1
-  print -r -- "niri-window:$id"
+  jq -nc --arg id "$id" '{type:"stable-key",kind:"org.rsynapse.window.id",id:$id}'
 }
 
 locus_selected_project_target() {
   local subject
   subject="$(locus_selected_workspace)" || return 1
-  _locus_targets "$subject" "$_LOCUS_WORKSPACE_PROJECT_RELATION" | head -n1
+  _locus_targets "$subject" "$_LOCUS_WORKSPACE_PROJECT_RELATION" | jq -sc '.[0] // empty'
 }
 
 locus_selected_project_path() {
-  local target path
+  local target project_dir kind id
   target="$(locus_selected_project_target)" || return 1
   [[ -n "$target" ]] || return 1
-  case "$target" in
-    project:*) path="${target#project:}" ;;
-    *) path="$target" ;;
+  kind="$(jq -er '.kind' <<< "$target")" || return 1
+  id="$(jq -er '.id' <<< "$target")" || return 1
+  case "$kind" in
+    org.rsynapse.project.path) project_dir="$id" ;;
+    org.rsynapse.project.id)
+      project_dir="$(proj project list --json | jq -r --arg id "$id" '.[] | select(.id == $id) | .cwd')" ;;
+    *) return 1 ;;
   esac
-  [[ -d "$path" ]] || return 1
-  print -r -- "$path"
+  [[ -d "$project_dir" ]] || return 1
+  print -r -- "$project_dir"
 }
 
 _locus_random_token() {
@@ -110,24 +102,12 @@ _locus_set_terminal_title() {
   printf '\033]2;%s\007' "$title" > /dev/tty 2>/dev/null
 }
 
-_locus_niri_window_id_for_title() {
-  local title="$1"
-  _locus_have niri && _locus_have jq || return 1
-  niri msg --json windows 2>/dev/null \
-    | jq -r --arg title "$title" '
-        .[]
-        | select((.app_id == "com.mitchellh.ghostty" or .app_id == "ghostty") and .title == $title)
-        | .id
-      ' \
-    | head -n1
-}
-
 _locus_set_window_app_instance() {
   local window_id="$1"
   local ghostty_uuid="$2"
   local app_name="${3:-}"
   local app_icon="${4:-}"
-  [[ "$window_id" == <-> && -n "$ghostty_uuid" ]] || return 0
+  [[ -n "$window_id" && -n "$ghostty_uuid" ]] || return 0
   _locus_need_dbus_json || return 0
 
   local -a metadata
@@ -142,7 +122,7 @@ _locus_set_window_app_instance() {
   busctl --user --json=short call \
     "$_LOCUS_BUS" "$_LOCUS_PATH" "$_LOCUS_INTERFACE" \
     SetOne a{ss}sa{ss}a{ss} \
-    3 type stable-key kind org.rsynapse.niri.window.id id "$window_id" \
+    3 type stable-key kind org.rsynapse.window.id id "$window_id" \
     "$_LOCUS_WINDOW_APP_INSTANCE_RELATION" \
     3 type stable-key kind org.rsynapse.app-instance.id id "$ghostty_uuid" \
     $(( ${#metadata} / 2 )) "${metadata[@]}" \
@@ -152,7 +132,7 @@ _locus_set_window_app_instance() {
 _locus_link_ghostty_window_async() {
   local window_id="$1"
   local ghostty_uuid="$2"
-  [[ "$window_id" == <-> && -n "$ghostty_uuid" ]] || return 0
+  [[ -n "$window_id" && -n "$ghostty_uuid" ]] || return 0
   _locus_need_dbus_json || return 0
 
   {
@@ -166,20 +146,16 @@ _locus_init_ghostty_window_title() {
   [[ "${TERM_PROGRAM:-}" == ghostty ]] || return 0
   [[ -w /dev/tty ]] || return 0
 
-  local token window_id deadline
+  # A new terminal must not inherit the parent terminal's ownership, including
+  # when discovery is unavailable or fails.
+  unset NIRI_WINDOW_ID LOCUS_TERMINAL_WINDOW_ID AGENT_DBUS_WINDOW AGENT_DBUS_WINDOW_ID
+  _locus_have workspace-terminal-id || return 0
+  local token window_id
   token="$(_locus_random_token)"
-  _locus_set_terminal_title "$token" || return 0
-
-  zmodload zsh/datetime 2>/dev/null || true
-  deadline=$(( EPOCHREALTIME + 0.5 ))
-  while (( EPOCHREALTIME < deadline )); do
-    window_id="$(_locus_niri_window_id_for_title "$token")"
-    [[ "$window_id" == <-> ]] && break
-  done
-
+  window_id="$(workspace-terminal-id "$token" 2>/dev/null)"
+  _locus_set_terminal_title "${PWD:t}"
   export GHOSTTY_UUID="$token"
-  if [[ "$window_id" == <-> ]]; then
-    export NIRI_WINDOW_ID="$window_id"
+  if [[ -n "$window_id" ]]; then
     export LOCUS_TERMINAL_WINDOW_ID="$window_id"
     export AGENT_DBUS_WINDOW="$window_id"
     _locus_link_ghostty_window_async "$window_id" "$token"
@@ -187,12 +163,16 @@ _locus_init_ghostty_window_title() {
 }
 
 _locus_terminal_window_id() {
-  if [[ "${NIRI_WINDOW_ID:-}" == <-> ]]; then
-    print -r -- "$NIRI_WINDOW_ID"
+  if [[ -n "${LOCUS_TERMINAL_WINDOW_ID:-}" ]]; then
+    print -r -- "$LOCUS_TERMINAL_WINDOW_ID"
     return 0
   fi
-  if [[ "${LOCUS_TERMINAL_WINDOW_ID:-}" == <-> ]]; then
-    print -r -- "$LOCUS_TERMINAL_WINDOW_ID"
+  if [[ -n "${AGENT_DBUS_WINDOW:-}" ]]; then
+    print -r -- "$AGENT_DBUS_WINDOW"
+    return 0
+  fi
+  if [[ -n "${NIRI_WINDOW_ID:-}" ]]; then
+    print -r -- "$NIRI_WINDOW_ID"
     return 0
   fi
   return 1
@@ -206,22 +186,21 @@ _locus_wrap_app() {
     shift
   fi
 
-  local selected_window_id app_instance_id status
+  local selected_window_id app_instance_id result
   selected_window_id="$(_locus_terminal_window_id 2>/dev/null || true)"
   app_instance_id="${GHOSTTY_UUID:-}"
-  if [[ "$selected_window_id" == <-> ]]; then
+  if [[ -n "$selected_window_id" ]]; then
     if [[ -n "$app_instance_id" ]]; then
       _locus_set_window_app_instance "$selected_window_id" "$app_instance_id" "$app_name" "$app_icon" || true
     fi
-    NIRI_WINDOW_ID="$selected_window_id" \
-      LOCUS_TERMINAL_WINDOW_ID="$selected_window_id" \
+    LOCUS_TERMINAL_WINDOW_ID="$selected_window_id" \
       AGENT_DBUS_WINDOW="$selected_window_id" \
       "$@"
-    status=$?
+    result=$?
     if [[ -n "$app_instance_id" ]]; then
       _locus_set_window_app_instance "$selected_window_id" "$app_instance_id" || true
     fi
-    return "$status"
+    return "$result"
   else
     "$@"
   fi
@@ -231,6 +210,18 @@ codex() {
   local codex_bin
   codex_bin="$(whence -p codex)" || return 1
   _locus_wrap_app codex utilities-terminal -- "$codex_bin" "$@"
+}
+
+opencode() {
+  local opencode_bin
+  opencode_bin="$(whence -p opencode)" || return 1
+  _locus_wrap_app opencode utilities-terminal -- "$opencode_bin" "$@"
+}
+
+snapopencode() {
+  local opencode_bin
+  opencode_bin="$(whence -p snapopencode)" || return 1
+  _locus_wrap_app opencode utilities-terminal -- "$opencode_bin" "$@"
 }
 
 gemini() {

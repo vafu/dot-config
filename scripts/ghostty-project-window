@@ -1,66 +1,58 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-working_dir="/tmp"
-
-locus_bus="org.rsynapse.Locus"
-locus_path="/org/rsynapse/Locus"
-locus_interface="org.rsynapse.Locus.Relations1"
-niri_bus="org.rsynapse.Niri"
-niri_path="/org/rsynapse/Niri"
-niri_interface="org.rsynapse.Niri1"
-workspace_project_relation="org.rsynapse.workspace.project"
-
-have() {
-  command -v "$1" >/dev/null 2>&1
-}
-
-selected_workspace_id() {
-  have busctl && have jq || return 1
-
-  local path id
-  path="$(
-    busctl --user --json=short get-property \
-      "$niri_bus" "$niri_path" "$niri_interface" FocusedWorkspace 2>/dev/null \
-      | jq -r '.data[0] // empty'
-  )" || return 1
-
-  [[ -n "$path" ]] || return 1
-  id="${path##*/}"
-  id="${id#workspace_}"
-  [[ -n "$id" ]] || return 1
-  printf '%s\n' "$id"
-}
-
-locus_targets() {
-  have busctl && have jq || return 1
-
-  local workspace_id="$1"
-  local relation="$2"
-  busctl --user --json=short call \
-    "$locus_bus" "$locus_path" "$locus_interface" \
-    Targets a{ss}s \
-    3 type stable-key kind org.rsynapse.niri.workspace.id id "$workspace_id" \
-    "$relation" 2>/dev/null
-}
-
 selected_project_dir() {
-  local workspace_id project_dir
-  workspace_id="$(selected_workspace_id)" || return 1
-  project_dir="$(
-    locus_targets "$workspace_id" "$workspace_project_relation" \
-      | jq -r '.data[0][]? | select(.type == "stable-key" and .kind == "org.rsynapse.project.path") | .id' \
-      | head -n1
-  )" || return 1
-  [[ -n "$project_dir" && -d "$project_dir" ]] || return 1
-  printf '%s\n' "$project_dir"
+    command -v busctl >/dev/null && command -v jq >/dev/null || return 1
+
+    local workspace_path workspace_id target kind project cwd
+    workspace_path="$(
+        busctl --user --json=short get-property \
+            org.rsynapse.Workspace /org/rsynapse/Workspace \
+            org.rsynapse.Workspace.Manager1 FocusedWorkspace 2>/dev/null \
+            | jq -er '.data[0] // empty'
+    )" || return 1
+    # IDs are opaque properties, never suffixes decoded from object paths.
+    workspace_id="$(
+        busctl --user --json=short get-property \
+            org.rsynapse.Workspace "$workspace_path" \
+            org.rsynapse.Workspace.Workspace1 Id 2>/dev/null \
+            | jq -er '.data | select(type == "string" and length > 0)'
+    )" || return 1
+    target="$(
+        busctl --user --json=short call \
+            org.rsynapse.Locus /org/rsynapse/Locus org.rsynapse.Locus.Relations1 \
+            Targets 'a{ss}s' \
+            3 type stable-key kind org.rsynapse.workspace.id id "$workspace_id" \
+            org.rsynapse.workspace.project 2>/dev/null \
+            | jq -ec '[.data[0][]? | select(.type == "stable-key" and
+                (.kind == "org.rsynapse.project.path" or .kind == "org.rsynapse.project.id"))][0] // empty'
+    )" || return 1
+    kind="$(jq -er '.kind' <<<"$target")" || return 1
+    project="$(jq -er '.id' <<<"$target")" || return 1
+    case "$kind" in
+        org.rsynapse.project.path)
+            # ResolveProject returns ProjectInfo: id, name, cwd, checkout, icon,
+            # icon-origin. busctl JSON flattens this six-string result.
+            cwd="$(busctl --user --json=short call \
+                org.rsynapse.Proj /org/rsynapse/Proj org.rsynapse.Proj.Manager1 \
+                ResolveProject s "$project" 2>/dev/null \
+                | jq -er '.data[2] // empty')" || return 1
+            ;;
+        org.rsynapse.project.id)
+            cwd="$(busctl --user --json=short call \
+                org.rsynapse.Proj /org/rsynapse/Proj org.freedesktop.DBus.ObjectManager \
+                GetManagedObjects 2>/dev/null \
+                | jq -er --arg id "$project" '.data[0][] | .["org.rsynapse.Proj.Project1"] // empty
+                    | select(.Id.data == $id) | .Cwd.data // empty')" || return 1
+            ;;
+        *) return 1 ;;
+    esac
+    [[ "$cwd" == /* && -d "$cwd" ]] || return 1
+    printf '%s\n' "$cwd"
 }
 
-if project_dir="$(selected_project_dir)"; then
-  working_dir="$project_dir"
-fi
-
+working_dir="$(selected_project_dir)" || working_dir=/tmp
 exec ghostty \
-  --window-inherit-working-directory=false \
-  --working-directory="$working_dir" \
-  +new-window
+    --window-inherit-working-directory=false \
+    --working-directory="$working_dir" \
+    +new-window

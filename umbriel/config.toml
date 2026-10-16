@@ -1,0 +1,264 @@
+# Editable directly; Home Manager installs Umbriel but does not manage this file.
+# Most changes are live-reloaded. Check with: umbriel config validate
+# Reference: https://docs.noctalia.dev/umbriel/
+# Mod is Super in a native session and Alt when nested inside another desktop.
+
+[include]
+files = ["theme.toml"]
+
+[environment]
+ZK_NOTEBOOK_DIR = "/home/vfuchedzhy/Notes"
+
+[general]
+show_cheatsheet = false
+# start-umbriel manages the native session; uwsm finalize is Niri/UWSM-only.
+# Startup commands run once; changing this list requires a session restart.
+autostart = [
+    'runapp -i session-graphical.slice -- hypridle -c "$HOME/.config/umbriel/hypridle.conf"',
+    'runapp -- "$HOME/.cargo/bin/supprssor"',
+    "runapp -- rsynapse-daemon",
+    "runapp -- remarked",
+    "runapp -i background-graphical.slice -- udiskie",
+    "runapp -- ghostty --gtk-single-instance=true --quit-after-last-window-closed=false --initial-window=false",
+]
+
+# Use monitor identities so settings follow the same display between ports.
+# Check identities with `umbriel outputs` if wlroots reports a different name.
+[output."Dell Inc. DELL U2723QE 6H5QG34"]
+transform = "270"
+scale = 1.35
+
+[output."Dell Inc. DELL U2725QE 98XK634"]
+scale = 1.35
+
+[output."Lenovo Group Limited L32p-30 U512DA0P"]
+scale = 1.2
+
+[output."Dell Inc. DELL U2725QE 1XCJ634"]
+mode = "3840x2160@120.000"
+scale = 1.35
+
+[output."AU Optronics 0xF99A Unknown"]
+mode = "1920x1200@60.026"
+scale = 1.25
+
+[input.keyboard]
+layout = "us,ua"
+options = "grp:win_space_toggle,caps:ctrl_modifier,grp_led:num"
+
+[input.touchpad]
+natural_scroll = true
+click_method = "clickfinger"
+tap = false
+
+[input.focus]
+follows_mouse = true
+follows_mouse_max_scroll = 0.5
+
+[input.cursor]
+# Cursor theme comes from theme.toml, just as it does from Niri's theme.kdl.
+size = 24
+follows_focus = true
+
+[layout]
+mode = "scrolling"
+gap = 8
+extent_presets = [0.25, 0.33333, 0.5, 0.66667, 0.75]
+
+[layout.scrolling]
+default_extent_fraction = 0.5
+center_focused = "never"
+center_underfull_strip = false
+
+[layout.struts]
+bottom = -4
+top = -6
+left = -4
+right = 0
+
+[workspaces]
+empty_above = false
+back_and_forth = false
+
+[appearance]
+prefer_no_csd = true
+# Umbriel only accepts integer widths (Niri uses 0.5).
+border_width = 1
+outer_border_width = 0
+corner_radius = 8
+
+[appearance.blur]
+enabled = false
+
+[appearance.shadow]
+enabled = true
+softness = 8
+offset_x = 0
+offset_y = 2
+
+# Niri's default tab indicator is a small strip rather than a title bar.
+[appearance.tab_bar]
+style = "indicator"
+position = "left"
+height = 4
+hide_when_single = true
+
+[overview]
+# Niri uses 1.0; 0.75 is Umbriel's maximum supported zoom.
+zoom = 0.75
+background_blur = false
+shortcuts = false
+
+[animation.windows_drag]
+physics = false
+
+# Defining [keybinds] replaces the built-in bindings.
+[keybinds]
+# Restore the selected workspace project's saved CWD, or fall back to /tmp.
+"Mod+Return" = { action = "spawn:$HOME/.config/scripts/ghostty-project-window", repeat = false }
+"Mod+Shift+Return" = { action = "spawn:ghostty", repeat = false }
+"Mod+D" = { action = "spawn:$HOME/.local/bin/rsynapse-ui", repeat = false }
+"Mod+N" = { action = "spawn:$HOME/proj/remarked/target/debug/remarked-ui-beta", repeat = false }
+"Mod+Slash" = { action = "spawn:$HOME/proj/layer-codex/layer-codex --toggle", repeat = false }
+"Ctrl+Shift+L" = { action = "spawn:runapp -o hyprlock", repeat = false }
+# The existing suspend.sh has a malformed shebang; invoke its commands directly.
+"Ctrl+Shift+U" = { action = "spawn:hyprlock & systemctl suspend", repeat = false }
+"Ctrl+Shift+R" = { action = "spawn:systemctl --user restart rsynapse-shell.service", repeat = false }
+"Mod+Shift+Y" = { action = "spawn:$HOME/.config/scripts/theme toggle", repeat = false }
+"Mod+Shift+C" = { action = "window-close", repeat = false }
+"Mod+Escape" = "session-quit"
+"Mod+Shift+Escape" = { action = "shortcuts-inhibit-toggle", allow_when_inhibited = true, repeat = false }
+
+"Mod+Left" = "window-focus-left"
+"Mod+Down" = "window-focus-or-workspace-down"
+"Mod+Up" = "window-focus-or-workspace-up"
+"Mod+Right" = "window-focus-right"
+"Mod+H" = "window-focus-left"
+"Mod+J" = "window-focus-or-workspace-down"
+"Mod+K" = "window-focus-or-workspace-up"
+"Mod+L" = "window-focus-right"
+"Mod+Shift+Left" = "column-move-left"
+"Mod+Shift+Down" = "window-move-or-workspace-down"
+"Mod+Shift+Up" = "window-move-or-workspace-up"
+"Mod+Shift+Right" = "column-move-right"
+"Mod+Shift+H" = "column-move-left"
+"Mod+Shift+J" = "window-move-or-workspace-down"
+"Mod+Shift+K" = "window-move-or-workspace-up"
+"Mod+Shift+L" = "column-move-right"
+
+"Mod+Home" = "column-focus-first"
+"Mod+End" = "column-focus-last"
+"Mod+Ctrl+Home" = "column-move-to-first"
+"Mod+Ctrl+End" = "column-move-to-last"
+
+"Mod+Ctrl+Left" = "output-focus-left"
+"Mod+Ctrl+Down" = "output-focus-down"
+"Mod+Ctrl+Up" = "output-focus-up"
+"Mod+Ctrl+Right" = "output-focus-right"
+"Mod+Ctrl+H" = "output-focus-left"
+"Mod+Ctrl+J" = "workspace-next"
+"Mod+Ctrl+K" = "workspace-previous"
+"Mod+Ctrl+L" = "output-focus-right"
+
+# Focus a blank workspace inserted immediately above/below the current one.
+"Mod+Alt+Up" = { action = "spawn:$HOME/.config/scripts/umbriel-workspace-new above", repeat = false }
+"Mod+Alt+Down" = { action = "spawn:$HOME/.config/scripts/umbriel-workspace-new below", repeat = false }
+"Mod+Alt+K" = { action = "spawn:$HOME/.config/scripts/umbriel-workspace-new above", repeat = false }
+"Mod+Alt+J" = { action = "spawn:$HOME/.config/scripts/umbriel-workspace-new below", repeat = false }
+# Leave an unused blank so the compositor can prune it; no helper launch/token.
+"Mod+Alt+BackSpace" = { action = "workspace-focus-last", repeat = false }
+
+"Mod+Shift+Ctrl+J" = "workspace-move-down"
+"Mod+Shift+Ctrl+K" = "workspace-move-up"
+"Mod+Shift+Ctrl+H" = "workspace-move-to-output-left"
+"Mod+Shift+Ctrl+L" = "workspace-move-to-output-right"
+"Mod+Shift+Ctrl+Down" = "workspace-move-down"
+"Mod+Shift+Ctrl+Up" = "workspace-move-up"
+"Mod+Shift+Ctrl+Left" = "workspace-move-to-output-left"
+# Niri's Right binding also says left; use the intended symmetric direction.
+"Mod+Shift+Ctrl+Right" = "workspace-move-to-output-right"
+
+"Mod+WheelDown" = { action = "workspace-next", cooldown_ms = 150 }
+"Mod+WheelUp" = { action = "workspace-previous", cooldown_ms = 150 }
+"Mod+Ctrl+WheelDown" = { action = "column-move-to-workspace-next", cooldown_ms = 150 }
+"Mod+Ctrl+WheelUp" = { action = "column-move-to-workspace-previous", cooldown_ms = 150 }
+"Mod+WheelRight" = "window-focus-right"
+"Mod+WheelLeft" = "window-focus-left"
+"Mod+Ctrl+WheelRight" = "column-move-right"
+"Mod+Ctrl+WheelLeft" = "column-move-left"
+"Mod+Shift+WheelDown" = "window-focus-right"
+"Mod+Shift+WheelUp" = "window-focus-left"
+"Mod+Ctrl+Shift+WheelDown" = "column-move-right"
+"Mod+Ctrl+Shift+WheelUp" = "column-move-left"
+
+"Mod+V" = { action = "window-toggle-floating", repeat = false }
+"Mod+Shift+V" = { action = "window-focus-switch-floating", repeat = false }
+"Mod+P" = { action = "window-toggle-pinned", repeat = false }
+"Mod+F" = { action = "window-toggle-maximize", repeat = false }
+"Mod+Shift+F" = { action = "window-toggle-fullscreen", repeat = false }
+"Mod+R" = "window-cycle-primary-extent"
+# Umbriel shares extent_presets between widths and heights.
+"Mod+Shift+R" = "window-cycle-secondary-extent"
+# Closest native reset: half height; Niri resets the row to automatic sizing.
+"Mod+Ctrl+R" = "window-set-secondary-extent:0.5"
+"Mod+Comma" = "window-consume-from-right"
+# Expel the focused window right; Niri expels the bottom window instead.
+"Mod+Period" = "window-move-right"
+"Mod+Minus" = "window-modify-primary-extent:-0.1"
+"Mod+Equal" = "window-modify-primary-extent:0.1"
+"Mod+Shift+Minus" = "window-modify-secondary-extent:-0.1"
+"Mod+Shift+Equal" = "window-modify-secondary-extent:0.1"
+"Mod+C" = "column-center"
+# No native center-visible-columns / expand-to-available-width actions.
+"Mod+Ctrl+C" = "column-center"
+"Mod+Ctrl+F" = { action = "window-toggle-maximize", repeat = false }
+"Mod+W" = { action = "column-toggle-tabbed", repeat = false }
+"Mod+Shift+W" = { action = "workspace-set-layout:toggle:scrolling,master,dwindle", repeat = false }
+# Swap the focused stack window into the default left-hand master slot.
+"Mod+Shift+B" = { action = "window-swap-left", repeat = false }
+"Mod+O" = { action = "overview-toggle", repeat = false }
+
+# Global default scratchpad; Mod+Space remains the keyboard-layout switch.
+"Mod+S" = { action = "scratchpad-toggle", repeat = false }
+"Mod+Shift+S" = { action = "window-move-to-scratchpad", repeat = false }
+"Mod+Ctrl+S" = { action = "window-restore-from-scratchpad", repeat = false }
+"Mod+Tab" = { action = "scratchpad-focus-next", repeat = false }
+
+"Mod+1" = "workspace-switch:1"
+"Mod+2" = "workspace-switch:2"
+"Mod+3" = "workspace-switch:3"
+"Mod+4" = "workspace-switch:4"
+"Mod+5" = "workspace-switch:5"
+"Mod+Ctrl+1" = "column-move-to-workspace:1"
+"Mod+Ctrl+2" = "column-move-to-workspace:2"
+"Mod+Ctrl+3" = "column-move-to-workspace:3"
+"Mod+Ctrl+4" = "column-move-to-workspace:4"
+"Mod+Ctrl+5" = "column-move-to-workspace:5"
+
+"XF86AudioRaiseVolume" = { action = "spawn:wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.1+", allow_when_locked = true }
+"XF86AudioLowerVolume" = { action = "spawn:wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.1-", allow_when_locked = true }
+"XF86AudioMute" = { action = "spawn:wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle", allow_when_locked = true }
+"XF86AudioMicMute" = { action = "spawn:wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle", allow_when_locked = true }
+"XF86AudioPlay" = { action = "spawn:playerctl play-pause", allow_when_locked = true }
+"XF86AudioNext" = { action = "spawn:playerctl next", allow_when_locked = true }
+"XF86AudioPrev" = { action = "spawn:playerctl previous", allow_when_locked = true }
+"XF86MonBrightnessUp" = { action = "spawn:brightnessctl --class=backlight set +10%", allow_when_locked = true }
+"XF86MonBrightnessDown" = { action = "spawn:brightnessctl --class=backlight set 10%-", allow_when_locked = true }
+
+"Ctrl+Shift+P" = { action = "spawn:bash $HOME/.config/umbriel/screenshot region", repeat = false }
+"Ctrl+Shift+Alt+P" = { action = "spawn:bash $HOME/.config/umbriel/screenshot output", repeat = false }
+"Ctrl+Alt+P" = { action = "spawn:bash $HOME/.config/umbriel/screenshot window", repeat = false }
+
+[[window_rule]]
+match.app_id = "firefox$"
+match.title = "^Picture-in-Picture$"
+default_floating = true
+
+[[window_rule]]
+match.app_id = "Nautilus$"
+default_floating = true
+
+[[window_rule]]
+match.app_id = "^dev.noctalia.UmbrielSharePicker$"
+default_floating = true
+default_floating_size_px = { width = 800, height = 600 }
