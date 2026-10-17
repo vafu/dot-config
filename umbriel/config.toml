@@ -22,6 +22,10 @@ autostart = [
     "runapp -- ghostty --gtk-single-instance=true --quit-after-last-window-closed=false --initial-window=false",
 ]
 
+[events]
+lid_close = "umbriel msg output-disable:eDP-1"
+lid_open = "umbriel msg output-enable:eDP-1"
+
 # Use monitor identities so settings follow the same display between ports.
 # Check identities with `umbriel outputs` if wlroots reports a different name.
 [output."Dell Inc. DELL U2723QE 6H5QG34"]
