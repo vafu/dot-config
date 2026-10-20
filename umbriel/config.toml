@@ -258,6 +258,12 @@ match.app_id = "firefox$"
 match.title = "^Picture-in-Picture$"
 default_floating = true
 
+# Restore-tagged windows open in the background. Ordinary launches are unchanged.
+[[window_rule]]
+match.app_id = '[.]rsynapse[.]r[0-9a-f]{32}$'
+default_focused = false
+focus_on_activate = false
+
 [[window_rule]]
 match.app_id = "Nautilus$"
 default_floating = true
