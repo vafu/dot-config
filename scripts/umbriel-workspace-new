@@ -19,8 +19,8 @@ class Compositor:
     def workspaces(self):
         return json.loads(self.run("workspaces", "--json"))
 
-    def action(self, value):
-        self.run("msg", value)
+    def action(self, *arguments):
+        self.run("msg", *arguments)
 
 
 def insert(ipc, direction):
@@ -38,7 +38,7 @@ def insert(ipc, direction):
     blank = members[-1]
     if blank["named"] or blank["window_count"] != 0:
         raise RuntimeError("no trailing empty workspace available (dynamic workspaces required)")
-    ipc.action(f'workspace-switch:{blank["index"]}/{output}')
+    ipc.action("workspace-switch", str(blank["index"]), "--output", output)
     for _ in range(65):
         current = ipc.workspaces()
         selected = next((workspace for workspace in current if workspace["focused"]), None)

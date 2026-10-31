@@ -114,7 +114,7 @@ browser_window_id() {
 
 focus_browser_window() {
     if [[ "$compositor" == umbriel ]]; then
-        umbriel msg "window-focus:$1"
+        umbriel msg window-focus "$1"
     elif [[ "$compositor" == niri ]]; then
         niri msg action focus-window --id "$1"
     else
