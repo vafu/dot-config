@@ -234,6 +234,8 @@ binds {
     Mod+Return hotkey-overlay-title="Open a Terminal" { spawn-sh "~/.config/scripts/ghostty-project-window"; }
     Mod+Shift+Return hotkey-overlay-title="Open a Terminal" { spawn-sh "ghostty"; }
     Mod+D hotkey-overlay-title="Run an Application: rsynapse" { spawn-sh "$HOME/.local/bin/rsynapse-ui"; }
+    Mod+A hotkey-overlay-title="Audio Output" { spawn-sh "$HOME/.local/bin/rsynapse-ui audio --cycle"; }
+    Mod+B hotkey-overlay-title="Bluetooth" { spawn-sh "$HOME/.local/bin/rsynapse-ui bluetooth"; }
     // Mod+N hotkey-overlay-title="Run an Application: remarked" { spawn-sh "$HOME/.local/bin/remarked-ui"; }
     Mod+N hotkey-overlay-title="Run an Application: remarked" { spawn-sh "$HOME/proj/remarked/target/debug/remarked-ui-beta"; }
     Mod+Slash hotkey-overlay-title="Codex Overlay" { spawn-sh "$HOME/proj/layer-codex/layer-codex --toggle"; }
@@ -437,6 +439,7 @@ binds {
     Mod+Shift+V { switch-focus-between-floating-and-tiling; }
 
     Mod+W { toggle-column-tabbed-display; }
+    Mod+BackSpace hotkey-overlay-title="Workspaces" { spawn-sh "$HOME/.local/bin/rsynapse-ui workspaces --cycle --preselect-next --current-output"; }
 
     Ctrl+Shift+P { screenshot; }
     Ctrl+Shift+Alt+P { screenshot-screen; }

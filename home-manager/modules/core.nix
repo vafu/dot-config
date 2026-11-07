@@ -6,7 +6,21 @@
   username,
   ...
 }:
+let
+  gstPluginPath = pkgs.lib.makeSearchPath "lib/gstreamer-1.0" [
+    pkgs.gst_all_1.gstreamer
+    pkgs.gst_all_1.gst-plugins-base
+    pkgs.gst_all_1.gst-plugins-good
+    pkgs.gst_all_1.gst-plugins-bad
+    pkgs.gst_all_1.gst-libav
+  ];
 
+  sone = pkgs.sone.overrideAttrs (old: {
+    preFixup = (old.preFixup or "") + ''
+      gappsWrapperArgs+=(--set GST_PLUGIN_PATH_1_0 "${gstPluginPath}")
+    '';
+  });
+in
 {
   imports = [ inputs.kcd.homeManagerModules.default ];
 
@@ -59,6 +73,7 @@
       sassc
       satty
       slack
+sone
       slurp
       swaynotificationcenter
       awww
@@ -83,6 +98,8 @@
       iotop-c
       opencode
       tailscale
+      high-tide
+
       (python312.withPackages (
         ps: with ps; [
           dbus-python

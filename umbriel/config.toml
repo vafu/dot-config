@@ -122,7 +122,11 @@ physics = false
 "Mod+Return" = { action = "spawn $HOME/.config/scripts/ghostty-project-window", repeat = false }
 "Mod+Shift+Return" = { action = "spawn ghostty", repeat = false }
 "Mod+D" = { action = "spawn $HOME/.local/bin/rsynapse-ui", repeat = false }
-"Mod+N" = { action = "spawn $HOME/proj/remarked/target/debug/remarked-ui-beta", repeat = false }
+"Mod+A" = { action = "spawn $HOME/.local/bin/rsynapse-ui audio --cycle", allow_when_inhibited = true, repeat = false }
+"Mod+B" = { action = "spawn $HOME/.local/bin/rsynapse-ui bluetooth", repeat = false }
+"Mod+N" = { action = "spawn $HOME/.local/bin/rsynapse-shell request remarked toggle", repeat = false }
+"Mod+M" = { action = "spawn $HOME/.local/bin/rsynapse-shell request mpris show --hold", repeat = false }
+"Mod+Shift+M" = { action = "spawn $HOME/.local/bin/rsynapse-ui projects", repeat = false }
 "Mod+Slash" = { action = "spawn $HOME/proj/layer-codex/layer-codex --toggle", repeat = false }
 "Ctrl+Shift+L" = { action = "spawn runapp -o hyprlock", repeat = false }
 # The existing suspend.sh has a malformed shebang; invoke its commands directly.
@@ -217,6 +221,7 @@ physics = false
 "Mod+Ctrl+C" = "column-center"
 "Mod+Ctrl+F" = { action = "window-toggle-maximize", repeat = false }
 "Mod+W" = { action = "column-toggle-tabbed", repeat = false }
+"Mod+BackSpace" = { action = "spawn $HOME/.local/bin/rsynapse-ui workspaces --cycle --preselect-next --current-output", allow_when_inhibited = true, repeat = false }
 "Mod+Shift+W" = { action = "workspace-set-layout toggle scrolling master dwindle", repeat = false }
 # Swap the focused stack window into the default left-hand master slot.
 "Mod+Shift+B" = { action = "window-swap-left", repeat = false }
@@ -226,7 +231,8 @@ physics = false
 "Mod+S" = { action = "scratchpad-toggle", repeat = false }
 "Mod+Shift+S" = { action = "window-move-to-scratchpad", repeat = false }
 "Mod+Ctrl+S" = { action = "window-restore-from-scratchpad", repeat = false }
-"Mod+Tab" = { action = "scratchpad-focus-next", repeat = false }
+"Mod+Ctrl+BackSpace" = { action = "spawn $HOME/.local/bin/rsynapse-ui workspaces --cycle --preselect-next", allow_when_inhibited = true, repeat = false }
+"Mod+Shift+Tab" = { action = "scratchpad-focus-next", repeat = false }
 
 "Mod+1" = "workspace-switch 1"
 "Mod+2" = "workspace-switch 2"

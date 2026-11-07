@@ -74,8 +74,8 @@ let
       wrapNixGL = useNixGL;
       runtimeLibraries = gtkRuntimeLibraries ++ extraLibraries;
       extraEnv = ''
-        export GIO_EXTRA_MODULES="${pkgs.dconf.lib}/lib/gio/modules:''${GIO_EXTRA_MODULES:-}"
-        export XDG_DATA_DIRS="${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}:${pkgs.gtk4}/share/gsettings-schemas/${pkgs.gtk4.name}:''${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+        export GIO_EXTRA_MODULES="${pkgs.gvfs}/lib/gio/modules:${pkgs.dconf.lib}/lib/gio/modules:''${GIO_EXTRA_MODULES:-}"
+        export XDG_DATA_DIRS="${pkgs.gvfs}/share:${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}:${pkgs.gtk4}/share/gsettings-schemas/${pkgs.gtk4.name}:''${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
         ${extraEnv}
       '';
     };
@@ -294,7 +294,8 @@ in
       librsynapse_plugin_calc.so \
       librsynapse_plugin_commands.so \
       librsynapse_plugin_launcher.so \
-      librsynapse_plugin_shell.so
+      librsynapse_plugin_shell.so \
+      librsynapse_plugin_workspaces.so
     do
       if [ -e "$source_dir/$plugin" ]; then
         $DRY_RUN_CMD ln -sfn "$source_dir/$plugin" "$plugin_dir/$plugin"

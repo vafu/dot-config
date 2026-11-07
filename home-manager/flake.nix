@@ -110,11 +110,11 @@
           (final: prev: {
             codex = prev.stdenvNoCC.mkDerivation (finalAttrs: {
               pname = "codex";
-              version = "0.146.0-alpha.13";
+              version = "0.166.0";
 
               src = prev.fetchurl {
                 url = "https://github.com/openai/codex/releases/download/rust-v${finalAttrs.version}/codex-x86_64-unknown-linux-musl.tar.gz";
-                hash = "sha256-bQLzTVm2ghBPzrFYPLWa11kuTimHPUalUohUcpXSJww=";
+                hash = "sha256-oL9XLS+T8FbGcSpto0jpYHjchPOIX9e+Z4B+84nLOXg=";
               };
 
               sourceRoot = ".";

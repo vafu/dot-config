@@ -35,22 +35,8 @@ desktop_file() {
 
 browser_from_desktop() {
     local desktop_id="$1"
-    local file exec_line
-    local -a argv
-
-    file="$(desktop_file "$desktop_id")"
-    [[ -n "$file" ]] || return
-
-    exec_line="$(awk -F= '$1 == "Exec" { print $2; exit }' "$file")"
-    exec_line="${exec_line//%[fFuUdDnNickvm]/}"
-    read -r -a argv <<<"$exec_line"
-    if [[ "${argv[0]:-}" == env ]]; then
-        argv=("${argv[@]:1}")
-        while [[ "${argv[0]:-}" == *=* ]]; do
-            argv=("${argv[@]:1}")
-        done
-    fi
-    printf '%s\n' "${argv[0]:-}"
+    command -v rsynapse-desktop-exec >/dev/null 2>&1 || return
+    rsynapse-desktop-exec "$desktop_id" 2>/dev/null
 }
 
 app_id_re_from_desktop() {

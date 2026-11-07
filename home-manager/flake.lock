@@ -125,7 +125,7 @@
       },
       "locked": {
         "lastModified": 1,
-        "narHash": "sha256-jGNj4eELbNVk/51g4B7Y3H+D1dAIgJsD7+rA9ObbyQQ=",
+        "narHash": "sha256-sVX2hNNl9Mg1EQvhMJ9hZUwFmGQIYbJAdGzvYOGmzWk=",
         "path": "./flakes/kcd",
         "type": "path"
       },
