@@ -112,11 +112,11 @@ in
     };
 
     ".local/bin/rsynapse-ui" = mkDebugGtkWrapper {
-      target = "$HOME/proj/rsynapse/shell/launcher/target/release/rsynapse-ui";
+      target = "$HOME/proj/rsynapse/target/release/rsynapse-ui";
     };
 
     ".local/bin/rsynapse-shell" = mkDebugGtkWrapper {
-      target = "$HOME/proj/rsynapse/shell/target/release/rsynapse-shell";
+      target = "$HOME/proj/rsynapse/target/release/rsynapse-shell";
       extraPath = with pkgs; [ dart-sass ];
       extraEnv = ''
         export LOCUS_SHELL_SASS="${pkgs.dart-sass}/bin/sass"
@@ -124,7 +124,7 @@ in
     };
 
     ".local/bin/rsynapse-notifications" = mkDebugGtkWrapper {
-      target = "$HOME/proj/rsynapse/shell/target/release/rsynapse-notifications";
+      target = "$HOME/proj/rsynapse/target/release/rsynapse-notifications";
     };
   };
 

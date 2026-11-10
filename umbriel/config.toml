@@ -124,9 +124,10 @@ physics = false
 "Mod+D" = { action = "spawn $HOME/.local/bin/rsynapse-ui", repeat = false }
 "Mod+A" = { action = "spawn $HOME/.local/bin/rsynapse-ui audio --cycle", allow_when_inhibited = true, repeat = false }
 "Mod+B" = { action = "spawn $HOME/.local/bin/rsynapse-ui bluetooth", repeat = false }
-"Mod+N" = { action = "spawn $HOME/.local/bin/rsynapse-shell request remarked toggle", repeat = false }
+"Mod+N" = { action = "spawn $HOME/.local/bin/remarked-ui --layer-shell --toggle", repeat = false }
 "Mod+M" = { action = "spawn $HOME/.local/bin/rsynapse-shell request mpris show --hold", repeat = false }
-"Mod+Shift+M" = { action = "spawn $HOME/.local/bin/rsynapse-ui projects", repeat = false }
+"Mod+Shift+M" = { action = "spawn $HOME/.local/bin/rsynapse-ui mpris", repeat = false }
+"Mod+Shift+P" = { action = "spawn $HOME/.local/bin/rsynapse-ui projects", repeat = false }
 "Mod+Slash" = { action = "spawn $HOME/proj/layer-codex/layer-codex --toggle", repeat = false }
 "Ctrl+Shift+L" = { action = "spawn runapp -o hyprlock", repeat = false }
 # The existing suspend.sh has a malformed shebang; invoke its commands directly.
