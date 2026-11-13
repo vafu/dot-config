@@ -73,9 +73,8 @@ in
       sassc
       satty
       slack
-sone
+      sone
       slurp
-      swaynotificationcenter
       awww
       tree-sitter
       tuigreet
@@ -114,6 +113,19 @@ sone
       XCURSOR_PATH = "${config.home.homeDirectory}/.icons:${config.home.homeDirectory}/.local/share/icons:/usr/share/icons";
     };
   };
+
+  xdg.configFile."systemd/user/rsynapse-notifications.service.d/20-dbus.conf".text = ''
+    [Service]
+    Type=dbus
+    BusName=org.freedesktop.Notifications
+  '';
+
+  xdg.dataFile."dbus-1/services/org.freedesktop.Notifications.service".text = ''
+    [D-BUS Service]
+    Name=org.freedesktop.Notifications
+    Exec=${config.home.homeDirectory}/.local/bin/rsynapse-notifications
+    SystemdService=rsynapse-notifications.service
+  '';
 
   services.kcd.enable = true;
 
